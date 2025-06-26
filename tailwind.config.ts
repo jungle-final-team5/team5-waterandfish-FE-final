@@ -93,4 +93,7 @@ export default {
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
+	safelist: [
+		'text-[#361313]'
+	],
 } satisfies Config;
