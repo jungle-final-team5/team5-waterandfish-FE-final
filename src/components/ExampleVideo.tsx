@@ -70,14 +70,18 @@ const ExampleVideo = ({ keyword }: ExampleVideoProps) => {
         {/* 진행 바 */}
         {isPlaying && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
-            <div className="h-full bg-blue-600 animate-pulse" style={{ 
-              animation: 'progressBar 3s linear forwards' 
-            }} />
+            <div 
+              className="h-full bg-blue-600 animate-pulse" 
+              style={{ 
+                animation: 'progressBar 3s linear forwards',
+                width: '0%'
+              }} 
+            />
           </div>
         )}
       </div>
       
-      <style jsx>{`
+      <style>{`
         @keyframes progressBar {
           from { width: 0% }
           to { width: 100% }
