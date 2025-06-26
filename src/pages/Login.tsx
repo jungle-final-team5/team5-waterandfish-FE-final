@@ -1,5 +1,6 @@
 import { useState } from "react";
 import API from '../components/AxiosInstance'
+import { useNavigate } from "react-router-dom";
 function MailIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -20,13 +21,13 @@ export default function Login() {
   const [pw, setPw] = useState('');
   const [emailFocus, setEmailFocus] = useState(false);
   const [pwFocus, setPwFocus] = useState(false);
-
+  const navigator = useNavigate();
   // 로그인 연동 확인용 submit 함수
   const login = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       await API.post('auth/signin', { email:email, password:pw });
-      alert("성공")
+      navigator('/home');
     } catch {
       alert('❌ 로그인 실패');
     }
