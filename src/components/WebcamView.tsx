@@ -1,0 +1,104 @@
+
+import { useEffect, useRef, useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Camera, CameraOff } from 'lucide-react';
+
+interface WebcamViewProps {
+  isRecording?: boolean;
+}
+
+const WebcamView = ({ isRecording = false }: WebcamViewProps) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasPermission, setHasPermission] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const startWebcam = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setHasPermission(true);
+        }
+      } catch (err) {
+        setError('웹캠 접근 권한이 필요합니다.');
+        console.error('웹캠 접근 오류:', err);
+      }
+    };
+
+    startWebcam();
+
+    return () => {
+      // 컴포넌트 언마운트 시 스트림 정리
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const requestPermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setHasPermission(true);
+        setError(null);
+      }
+    } catch (err) {
+      setError('웹캠 접근 권한을 허용해주세요.');
+    }
+  };
+
+  return (
+    <Card className="relative overflow-hidden">
+      <div className="aspect-video bg-gray-900 relative">
+        {hasPermission ? (
+          <>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+            />
+            {isRecording && (
+              <div className="absolute inset-0 border-4 border-red-500 animate-pulse">
+                <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  REC
+                </div>
+              </div>
+            )}
+            {/* 손 가이드 오버레이 */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="border-2 border-dashed border-white/50 rounded-lg w-64 h-48 flex items-center justify-center">
+                <span className="text-white/70 text-sm">손을 이 영역에 위치시켜주세요</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-white">
+            {error ? (
+              <>
+                <CameraOff className="h-16 w-16 mb-4 text-gray-400" />
+                <p className="text-gray-400 mb-4 text-center">{error}</p>
+                <Button onClick={requestPermission} variant="outline" className="text-white border-white hover:bg-white hover:text-gray-900">
+                  <Camera className="h-4 w-4 mr-2" />
+                  웹캠 권한 허용
+                </Button>
+              </>
+            ) : (
+              <>
+                <Camera className="h-16 w-16 mb-4 text-gray-400" />
+                <p className="text-gray-400">웹캠을 연결하는 중...</p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+};
+
+export default WebcamView;
