@@ -1,10 +1,51 @@
 import { useState } from "react";
 
+function MailIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-.879 1.797l-7.5 5.625a2.25 2.25 0 01-2.742 0l-7.5-5.625A2.25 2.25 0 012.25 6.993V6.75" />
+    </svg>
+  );
+}
+function LockIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V7.875A4.125 4.125 0 008.25 7.875V10.5m8.25 0A2.25 2.25 0 0120.25 12.75v4.5A2.25 2.25 0 0118 19.5H6a2.25 2.25 0 01-2.25-2.25v-4.5A2.25 2.25 0 016 10.5m8.25 0h-8.5" />
+    </svg>
+  );
+}
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [emailFocus, setEmailFocus] = useState(false);
   const [pwFocus, setPwFocus] = useState(false);
+
+  // 로그인 연동 확인용 submit 함수
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = `${import.meta.env.VITE_API_BASE_URL}/login`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password: pw }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        alert(`서버 오류: ${res.status}`);
+        return;
+      }
+
+      const data = await res.json();
+      alert(data.message); // 백엔드에서 오는 메시지 확인
+    } catch (err) {
+      alert('서버 요청 실패');
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#ede9ff]">
@@ -19,13 +60,11 @@ export default function Login() {
         {/* 흰색 카드 */}
         <div className="absolute right-10 top-0 w-[600px] h-[650px] bg-white rounded-[40px] shadow-[0_4px_24px_rgba(0,0,0,0.25)] flex flex-col justify-center items-center p-10 z-20">
           <h2 className="text-2xl font-bold mb-8">로그인</h2>
-          <form className="w-full flex flex-col gap-5">
+          <form className="w-full flex flex-col gap-5" onSubmit={handleSubmit}>
             {/* 이메일 */}
             <div className="relative w-3/4 mx-auto mb-5">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#888] text-[18px] z-10 pointer-events-none">
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-.879 1.797l-7.5 5.625a2.25 2.25 0 01-2.742 0l-7.5-5.625A2.25 2.25 0 012.25 6.993V6.75" />
-                </svg>
+                <MailIcon width={20} height={20} />
               </span>
               <input
                 type="email"
@@ -49,9 +88,7 @@ export default function Login() {
             {/* 비밀번호 */}
             <div className="relative w-3/4 mx-auto mb-5">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#888] text-[18px] z-10 pointer-events-none">
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V7.875A4.125 4.125 0 008.25 7.875V10.5m8.25 0A2.25 2.25 0 0120.25 12.75v4.5A2.25 2.25 0 0118 19.5H6a2.25 2.25 0 01-2.25-2.25v-4.5A2.25 2.25 0 016 10.5m8.25 0h-8.5" />
-                </svg>
+                <LockIcon width={20} height={20} />
               </span>
               <input
                 type="password"
@@ -80,17 +117,27 @@ export default function Login() {
             </button>
           </form>
           <p className="mt-3 text-center text-[14px] text-[#333] w-3/4 mx-auto">
-            회원이 아니신가요? <a href="#" className="text-[#7c3aed] underline font-bold">회원가입 하기</a>
+            아직 회원이 아니신가요? <a href="/signup" className="text-[#7c3aed] underline font-bold">회원가입</a>
           </p>
           <div className="text-center my-4 text-[#999] text-[14px] w-3/4 mx-auto">OR</div>
           {/* 소셜 로그인 */}
           <div className="flex flex-col gap-3 w-3/4 mx-auto">
-            <button className="flex items-center justify-center h-12 w-full rounded-[8px] bg-white shadow-[0_4px_10px_rgba(100,100,100,0.25)] border border-[#e0e0e0]">
+            {/* 구글 로그인 */}
+            <button
+              type="button"
+              onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`}
+              className="flex items-center justify-center h-12 w-full rounded-[8px] bg-white shadow-[0_4px_10px_rgba(100,100,100,0.25)] border border-[#e0e0e0]"
+            >
               <img src="/search 1.svg" alt="Google" className="w-6 h-6 mr-8 ml-5" />
               <span className="font-medium text-[#361313] text-[15.5px] mr-10">Google 로그인</span>
             </button>
-            <button className="flex items-center justify-center h-12 w-full rounded-[8px] bg-[#FEE500] shadow-[0_4px_10px_rgba(100,100,100,0.25)] border-none">
-              <img src="/kakao_login_medium_narrow.png" alt="Kakao" className="w-50 h-12 mr-" />
+            {/* 카카오 로그인 */}
+            <button
+              type="button"
+              onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`}
+              className="flex items-center justify-center h-12 w-full rounded-[8px] bg-[#FEE500] shadow-[0_4px_10px_rgba(100,100,100,0.25)] border-none"
+            >
+              <img src="/kakao_login_medium_narrow.png" alt="Kakao" className="w-50 h-12" />
             </button>
           </div>
         </div>

@@ -1,0 +1,44 @@
+name: deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main, publish ]  # PR이 main 또는 publish로 향할 때도 작동
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run build to test
+        run: npm run build
+
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          source: "."
+          target: "/home/ubuntu/waterandfish-FE"
+
+      - name: SSH to EC2 and run Docker
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          script: |
+            cd /home/ubuntu/waterandfish-FE
+            git pull origin main
+            docker build -t waterandfish-fe .
+            docker stop waterandfish-frontend || true
+            docker rm waterandfish-frontend || true
+            docker run -d -p 80:80 --name waterandfish-frontend waterandfish-fe
