@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import API from '../components/AxiosInstance'
 function MailIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -22,28 +22,13 @@ export default function Login() {
   const [pwFocus, setPwFocus] = useState(false);
 
   // 로그인 연동 확인용 submit 함수
-  const handleSubmit = async (e: React.FormEvent) => {
+  const login = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const url = `${import.meta.env.VITE_API_BASE_URL}/login`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password: pw }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        alert(`서버 오류: ${res.status}`);
-        return;
-      }
-
-      const data = await res.json();
-      alert(data.message); // 백엔드에서 오는 메시지 확인
-    } catch (err) {
-      alert('서버 요청 실패');
+      await API.post('auth/signin', { email:email, password:pw });
+      alert("성공")
+    } catch {
+      alert('❌ 로그인 실패');
     }
   };
 
@@ -60,7 +45,7 @@ export default function Login() {
         {/* 흰색 카드 */}
         <div className="absolute right-10 top-0 w-[600px] h-[650px] bg-white rounded-[40px] shadow-[0_4px_24px_rgba(0,0,0,0.25)] flex flex-col justify-center items-center p-10 z-20">
           <h2 className="text-2xl font-bold mb-8">로그인</h2>
-          <form className="w-full flex flex-col gap-5" onSubmit={handleSubmit}>
+          <form className="w-full flex flex-col gap-5" onSubmit={login}>
             {/* 이메일 */}
             <div className="relative w-3/4 mx-auto mb-5">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#888] text-[18px] z-10 pointer-events-none">
