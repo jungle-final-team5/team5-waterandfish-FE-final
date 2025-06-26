@@ -117,7 +117,7 @@ export default function Login() {
             </button>
           </form>
           <p className="mt-3 text-center text-[14px] text-[#333] w-3/4 mx-auto">
-            아직 회원이 아니신가요? <a href="/signup" className="text-[#7c3aed] underline font-bold">회원가입</a>
+            아직 회원이 아니신가요? 그렇다면... <a href="/signup" className="text-[#7c3aed] underline font-bold">회원가입</a>
           </p>
           <div className="text-center my-4 text-[#999] text-[14px] w-3/4 mx-auto">OR</div>
           {/* 소셜 로그인 */}
