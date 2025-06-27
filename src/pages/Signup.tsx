@@ -1,5 +1,6 @@
 import { useState } from "react";
-
+import API from '../components/AxiosInstance'
+import { useNavigate } from 'react-router-dom';
 function MailIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -31,7 +32,16 @@ export default function Signup() {
   const [pwFocus, setPwFocus] = useState(false);
   const [pw2Focus, setPw2Focus] = useState(false);
   const [nicknameFocus, setNicknameFocus] = useState(false);
-
+  const navigate = useNavigate();
+  const signup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      await API.post('/user/signup', { email:email, password1:pw,password2:pw2,nickname:nickname });
+      navigate('/login'); 
+    } catch(err) {
+      alert('회원가입 실패');
+    }
+  };
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#ede9ff]">
       <div className="relative w-[1000px] h-[700px]">
@@ -45,7 +55,7 @@ export default function Signup() {
         {/* 흰색 카드 */}
         <div className="absolute right-10 top-0 w-[600px] h-[700px] bg-white rounded-[40px] shadow-[0_4px_24px_rgba(0,0,0,0.25)] flex flex-col justify-center items-center p-10 z-20">
           <h2 className="text-2xl font-bold mb-8">회원가입</h2>
-          <form className="w-full flex flex-col gap-">
+          <form className="w-full flex flex-col gap-" onSubmit={signup}>
             {/* 이메일 */}
             <div className="relative w-3/4 mx-auto mb-3">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#888] text-[18px] z-10 pointer-events-none">
@@ -150,7 +160,7 @@ export default function Signup() {
             </button>
           </form>
           <p className="mt-3 text-center text-[14px] text-[#333] w-3/4 mx-auto">
-            이미 회원이신가요? <a href="#" className="text-[#7c3aed] underline font-bold">로그인 하기</a>
+            이미 회원이신가요? <a href="/login" className="text-[#7c3aed] underline font-bold">로그인 하기</a>
           </p>
           <div className="text-center my-4 text-[#999] text-[14px] w-3/4 mx-auto">OR</div>
           {/* 소셜 회원가입 */}
