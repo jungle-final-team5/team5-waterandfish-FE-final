@@ -50,10 +50,10 @@ const Home = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">🤟</span>
+              <div className="w-8 h-8 bg-violet-200 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">🐟</span>
               </div>
-              <span className="text-xl font-bold text-gray-800">SignSense</span>
+              <span className="text-xl font-bold text-gray-800">수어지교</span>
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="icon">
@@ -90,7 +90,7 @@ const Home = () => {
           <Button
             onClick={() => navigate('/learn')}
             variant="outline"
-            className="h-24 hover:bg-blue-50 flex-col space-y-2 transform hover:scale-105 transition-all duration-200"
+            className="h-24 hover:bg-violet-50 flex-col space-y-2 transform hover:scale-105 transition-all duration-200"
           >
             <BookOpen className="h-8 w-8" />
             <span className="text-lg">학습하기</span>
@@ -99,7 +99,7 @@ const Home = () => {
           <Button
             onClick={() => navigate('/review')}
             variant="outline"
-            className="h-24 hover:bg-green-50 flex-col space-y-2 transform hover:scale-105 transition-all duration-200"
+            className="h-24 hover:bg-purple-50 flex-col space-y-2 transform hover:scale-105 transition-all duration-200"
           >
             <RotateCcw className="h-8 w-8" />
             <span className="text-lg">복습하기</span>
@@ -195,7 +195,7 @@ const Home = () => {
         <div className="bg-white rounded-xl p-6 shadow-sm">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">추천 학습</h3>
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:border-blue-300 cursor-pointer transition-all duration-200 transform hover:scale-[1.02]">
+            <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:border-violet-300 cursor-pointer transition-all duration-200 transform hover:scale-[1.02]">
               <h4 className="font-medium text-gray-800 mb-2">일상 인사말</h4>
               <p className="text-sm text-gray-600 mb-3">기본적인 인사 표현을 배워보세요</p>
               <div className="flex justify-between items-center">
@@ -203,7 +203,7 @@ const Home = () => {
                 <Button size="sm" variant="outline" className="hover:scale-105 transition-transform">계속하기</Button>
               </div>
             </div>
-            <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:border-green-300 cursor-pointer transition-all duration-200 transform hover:scale-[1.02]">
+            <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:border-purple-300 cursor-pointer transition-all duration-200 transform hover:scale-[1.02]">
               <h4 className="font-medium text-gray-800 mb-2">감정 표현</h4>
               <p className="text-sm text-gray-600 mb-3">다양한 감정을 수어로 표현해보세요</p>
               <div className="flex justify-between items-center">

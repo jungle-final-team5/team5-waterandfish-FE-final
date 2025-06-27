@@ -44,15 +44,16 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-100">
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">🤟</span>
+
+            <div className="w-8 h-8 bg-violet-200 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">🐟</span>
             </div>
-            <span className="text-xl font-bold text-gray-800">SignSense</span>
+            <span className="text-xl font-bold text-gray-800">수어지교</span>
           </div>
           <Button 
             variant="outline" 
@@ -119,7 +120,6 @@ const Index = () => {
             >
               학습하러 가기
             </Button>
-
           </div>
         </div>
 
@@ -160,7 +160,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="container mx-auto px-4 py-8 mt-16 border-t border-gray-200">
         <div className="text-center text-gray-600">
-          <p>&copy; 2024 SignSense. 모든 권리 보유.</p>
+          <p>&copy; 2025 수어지교. All right reserved.</p>
         </div>
       </footer>
     </div>

@@ -67,7 +67,7 @@ const SearchPage = () => {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/home')}
-                className="hover:bg-blue-50"
+                className="hover:bg-violet-50"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 홈으로
@@ -85,7 +85,7 @@ const SearchPage = () => {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Search className="h-5 w-5 text-blue-600" />
+                <Search className="h-5 w-5 text-violet-600" />
                 <span>수어 검색</span>
               </CardTitle>
               <p className="text-gray-600">학습하고 싶은 수어를 검색해보세요</p>
@@ -147,7 +147,7 @@ const SearchPage = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-violet-600 hover:bg-violet-700"
                   disabled={filteredSigns.length === 0}
                 >
                   <Search className="h-4 w-4 mr-2" />
@@ -173,7 +173,7 @@ const SearchPage = () => {
                     key={sign.id}
                     variant="outline"
                     onClick={() => handleSignSelect(sign)}
-                    className="h-auto p-3 hover:bg-blue-50 border-gray-200"
+                    className="h-auto p-3 hover:bg-violet-50 border-gray-200"
                   >
                     <div className="text-center">
                       <div className="font-medium text-gray-800">{sign.word}</div>
