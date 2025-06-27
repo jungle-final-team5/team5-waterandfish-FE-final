@@ -1,0 +1,708 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "개발 환경 및 프로젝트 구조 설정",
+        "description": "React+Vite 프론트엔드와 NestJS 백엔드가 포함된 프로젝트 저장소를 초기화하고, 폴더 구조와 의존성을 갖춘 개발 환경을 구성합니다.",
+        "details": "Create monorepo structure with separate folders for frontend (React+Vite+AntDesign) and backend (NestJS). Initialize package.json files, configure TypeScript, ESLint, and Prettier. Set up development scripts and environment variables. Install core dependencies: React 18+, Vite 4+, AntDesign 5+, NestJS 10+, TypeScript, and development tools.",
+        "testStrategy": "Verify both frontend and backend can start successfully, TypeScript compilation works, and linting passes without errors",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "모노레포 폴더 구조 생성 및 루트 설정",
+            "description": "프로젝트 루트 디렉토리에 frontend, backend 폴더를 생성하고 루트 레벨 package.json과 기본 설정 파일들을 구성합니다.",
+            "dependencies": [],
+            "details": "Create root directory structure with /frontend and /backend folders. Initialize root package.json with workspace configuration. Create .gitignore, README.md, and basic project documentation. Set up monorepo workspace using npm workspaces or yarn workspaces.",
+            "status": "pending",
+            "testStrategy": "Verify folder structure exists and root package.json contains correct workspace configuration"
+          },
+          {
+            "id": 2,
+            "title": "프론트엔드 React+Vite 프로젝트 초기화",
+            "description": "frontend 폴더에 React+Vite 프로젝트를 생성하고 AntDesign과 필수 의존성을 설치합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "Initialize React+Vite project in /frontend folder using 'npm create vite@latest'. Install React 18+, Vite 4+, AntDesign 5+, TypeScript, and related type definitions. Configure vite.config.ts with proper settings for development and build.",
+            "status": "pending",
+            "testStrategy": "Run 'npm run dev' to verify Vite development server starts successfully and displays default React page"
+          },
+          {
+            "id": 3,
+            "title": "백엔드 NestJS 프로젝트 초기화",
+            "description": "backend 폴더에 NestJS 프로젝트를 생성하고 필수 의존성을 설치합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "Initialize NestJS project in /backend folder using '@nestjs/cli'. Install NestJS 10+, TypeScript, and core NestJS modules (@nestjs/common, @nestjs/core, @nestjs/platform-express). Set up basic app module, controller, and service structure.",
+            "status": "pending",
+            "testStrategy": "Run 'npm run start:dev' to verify NestJS application starts successfully and responds to HTTP requests"
+          },
+          {
+            "id": 4,
+            "title": "TypeScript, ESLint, Prettier 설정",
+            "description": "프론트엔드와 백엔드 모두에 TypeScript 컴파일러 옵션, ESLint 규칙, Prettier 포맷팅을 설정합니다.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Configure tsconfig.json for both frontend and backend with appropriate compiler options. Set up ESLint with TypeScript parser and React/NestJS specific rules. Configure Prettier with consistent formatting rules. Create .eslintrc and .prettierrc files in both directories.",
+            "status": "pending",
+            "testStrategy": "Run ESLint and Prettier commands to verify no configuration errors and proper code formatting"
+          },
+          {
+            "id": 5,
+            "title": "개발 스크립트 및 환경변수 설정",
+            "description": "개발, 빌드, 린팅을 위한 npm 스크립트를 설정하고 환경변수 파일을 구성합니다.",
+            "dependencies": [
+              4
+            ],
+            "details": "Add development scripts to package.json files for both frontend and backend (dev, build, lint, format). Create .env.example files with necessary environment variables. Set up concurrent development script in root package.json to run both frontend and backend simultaneously. Configure environment variable loading for both applications.",
+            "status": "pending",
+            "testStrategy": "Execute root development script to verify both frontend and backend start concurrently without errors"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "데이터베이스 스키마 및 모델 구성",
+        "description": "사용자 계정, 학습 콘텐츠, 진행도 추적, 퀴즈 결과를 위한 MySQL 데이터베이스 스키마를 설계·구현하고 적절한 관계와 인덱스를 설정합니다.",
+        "details": "Create MySQL database schema with tables: users (id, email, nickname, preferred_hand, created_at), categories (id, name, description), chapters (id, category_id, name, order), sign_content (id, chapter_id, korean_text, video_url, keypoints_json), user_progress (user_id, chapter_id, completed_at, score), quiz_results (user_id, sign_content_id, is_correct, attempt_count). Use TypeORM entities in NestJS with proper decorators and relationships.",
+        "testStrategy": "Run database migrations successfully, verify all tables are created with correct constraints, test CRUD operations on all entities",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "MySQL 데이터베이스 환경 설정",
+            "description": "Docker Compose를 사용하여 MySQL 8.0 컨테이너를 설정하고, 개발 환경에 필요한 데이터베이스와 사용자를 생성합니다.",
+            "dependencies": [],
+            "details": "docker-compose.yml 파일에 MySQL 서비스 추가, 환경 변수 설정 (MYSQL_ROOT_PASSWORD, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD), 포트 3306 매핑, 볼륨 마운트 설정, .env 파일에 데이터베이스 연결 정보 저장",
+            "status": "pending",
+            "testStrategy": "Docker 컨테이너 실행 확인, MySQL 클라이언트로 연결 테스트, 데이터베이스 생성 확인"
+          },
+          {
+            "id": 2,
+            "title": "TypeORM 설정 및 데이터베이스 연결",
+            "description": "NestJS 프로젝트에 TypeORM을 설치하고 MySQL 데이터베이스 연결을 구성합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "@nestjs/typeorm, typeorm, mysql2 패키지 설치, app.module.ts에 TypeOrmModule 설정 추가, ormconfig.ts 파일 생성하여 연결 옵션 구성 (host, port, username, password, database, entities, synchronize), 환경 변수 사용하여 연결 정보 관리",
+            "status": "pending",
+            "testStrategy": "NestJS 애플리케이션 시작 시 데이터베이스 연결 성공 로그 확인"
+          },
+          {
+            "id": 3,
+            "title": "기본 엔티티 클래스 생성",
+            "description": "User, Category, Chapter 엔티티를 TypeORM 데코레이터를 사용하여 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "src/entities 디렉토리 생성, User 엔티티 (id: @PrimaryGeneratedColumn('uuid'), email: @Column({unique: true}), nickname: @Column(), preferredHand: @Column({type: 'enum', enum: ['left', 'right']}), createdAt: @CreateDateColumn()), Category 엔티티 (id, name, description), Chapter 엔티티 (id, name, order, @ManyToOne 관계로 Category 연결)",
+            "status": "pending",
+            "testStrategy": "TypeORM synchronize 옵션으로 테이블 생성 확인, MySQL Workbench로 스키마 검증"
+          },
+          {
+            "id": 4,
+            "title": "학습 콘텐츠 및 진행도 엔티티 구현",
+            "description": "SignContent, UserProgress, QuizResult 엔티티를 생성하고 관계를 설정합니다.",
+            "dependencies": [
+              3
+            ],
+            "details": "SignContent 엔티티 (id, koreanText, videoUrl, keypointsJson: @Column('json'), @ManyToOne으로 Chapter 연결), UserProgress 엔티티 (@ManyToOne으로 User와 Chapter 연결, completedAt, score, 복합 기본키 설정), QuizResult 엔티티 (@ManyToOne으로 User와 SignContent 연결, isCorrect, attemptCount)",
+            "status": "pending",
+            "testStrategy": "엔티티 간 관계 매핑 확인, 외래 키 제약 조건 검증"
+          },
+          {
+            "id": 5,
+            "title": "인덱스 최적화 및 마이그레이션 설정",
+            "description": "성능 향상을 위한 인덱스를 추가하고 TypeORM 마이그레이션을 구성합니다.",
+            "dependencies": [
+              4
+            ],
+            "details": "User.email에 unique 인덱스, UserProgress의 (userId, chapterId) 복합 인덱스, QuizResult의 userId 인덱스 추가, TypeORM 마이그레이션 명령어 설정 (package.json scripts), 초기 마이그레이션 파일 생성 및 실행",
+            "status": "pending",
+            "testStrategy": "EXPLAIN 쿼리로 인덱스 사용 확인, 마이그레이션 up/down 테스트"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "사용자 인증 및 계정 관리 구현",
+        "description": "이메일/비밀번호 기반 사용자 등록, 로그인, 프로필 관리 시스템을 구축하고 사용자 선호 정보를 저장합니다.",
+        "details": "Implement NestJS authentication module using JWT strategy. Create endpoints: POST /auth/register, POST /auth/login, GET /auth/profile, PUT /auth/profile. Hash passwords using bcrypt. Store user preferences (nickname, preferred hand). Implement JWT guards for protected routes. Create React components for login/register forms using AntDesign Form components with validation.",
+        "testStrategy": "Test user registration with email validation, login with correct/incorrect credentials, JWT token generation/validation, and profile updates",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "NestJS 인증 모듈 설정",
+            "description": "JWT 기반 인증을 위한 NestJS 모듈 구성 및 필요한 패키지 설치",
+            "dependencies": [],
+            "details": "PassportJS, JWT 전략 설정, bcrypt 패키지 설치, 환경 변수 설정 (JWT_SECRET, JWT_EXPIRATION), AuthModule 및 AuthService 기본 구조 생성",
+            "status": "pending",
+            "testStrategy": "JWT 토큰 생성/검증 유닛 테스트, 환경 변수 로드 테스트"
+          },
+          {
+            "id": 2,
+            "title": "사용자 엔티티 및 DTO 생성",
+            "description": "User 엔티티 정의 및 인증 관련 DTO 클래스 구현",
+            "dependencies": [
+              1
+            ],
+            "details": "User 엔티티 (id, email, password, nickname, preferredHand, createdAt, updatedAt), RegisterDto, LoginDto, UpdateProfileDto 클래스 생성 with class-validator 데코레이터",
+            "status": "pending",
+            "testStrategy": "DTO 유효성 검증 테스트, 엔티티 CRUD 동작 테스트"
+          },
+          {
+            "id": 3,
+            "title": "인증 API 엔드포인트 구현",
+            "description": "회원가입, 로그인, 프로필 조회/수정 API 개발",
+            "dependencies": [
+              2
+            ],
+            "details": "POST /auth/register (bcrypt 해싱), POST /auth/login (JWT 토큰 발급), GET /auth/profile (JWT Guard 적용), PUT /auth/profile (프로필 업데이트) 엔드포인트 구현",
+            "status": "pending",
+            "testStrategy": "각 엔드포인트 E2E 테스트, 인증 실패 케이스 테스트, JWT 토큰 만료 테스트"
+          },
+          {
+            "id": 4,
+            "title": "React 인증 컴포넌트 개발",
+            "description": "로그인/회원가입 폼 컴포넌트 및 프로필 관리 UI 구현",
+            "dependencies": [
+              3
+            ],
+            "details": "AntDesign Form 사용한 LoginForm, RegisterForm 컴포넌트, 폼 유효성 검증 규칙, 프로필 편집 컴포넌트, preferredHand 선택 UI (라디오 버튼)",
+            "status": "pending",
+            "testStrategy": "컴포넌트 렌더링 테스트, 폼 유효성 검증 동작 테스트, API 호출 모킹 테스트"
+          },
+          {
+            "id": 5,
+            "title": "인증 상태 관리 및 라우트 보호",
+            "description": "전역 인증 상태 관리 및 보호된 라우트 구현",
+            "dependencies": [
+              4
+            ],
+            "details": "Context API 또는 Redux로 인증 상태 관리, JWT 토큰 localStorage 저장/관리, axios 인터셉터로 토큰 자동 첨부, PrivateRoute 컴포넌트로 인증 필요 페이지 보호, 로그아웃 기능",
+            "status": "pending",
+            "testStrategy": "인증 상태 변경 시나리오 테스트, 토큰 만료 시 리다이렉트 테스트, 보호된 라우트 접근 제어 테스트"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "MediaPipe 손 추적 통합 설정",
+        "description": "웹캠 영상에서 손 랜드마크를 실시간으로 탐지하기 위해 MediaPipe Hands 솔루션을 통합하고, 오류 처리 및 성능 최적화를 수행합니다.",
+        "details": "Install @mediapipe/hands and @mediapipe/camera_utils packages. Create React hook useHandTracking() that initializes MediaPipe Hands with webcam access. Configure hand detection parameters: maxNumHands=2, minDetectionConfidence=0.7, minTrackingConfidence=0.5. Implement real-time landmark extraction (21 points per hand) and normalize coordinates. Add error handling for camera permissions and MediaPipe initialization failures.",
+        "testStrategy": "Verify webcam access works across different browsers, hand landmarks are detected accurately, performance maintains 30+ FPS, and graceful error handling for missing camera",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "MediaPipe 패키지 설치 및 프로젝트 설정",
+            "description": "MediaPipe Hands와 Camera Utils 패키지를 설치하고 프로젝트에 필요한 타입 정의를 설정합니다.",
+            "dependencies": [],
+            "details": "npm install @mediapipe/hands @mediapipe/camera_utils 명령으로 패키지 설치. TypeScript 프로젝트인 경우 @types/mediapipe 또는 커스텀 타입 정의 파일 생성. package.json에서 의존성 버전 확인 및 호환성 검증.",
+            "status": "pending",
+            "testStrategy": "패키지 설치 후 import 문이 오류 없이 작동하는지 확인. 간단한 초기화 코드로 MediaPipe 객체 생성 가능 여부 테스트."
+          },
+          {
+            "id": 2,
+            "title": "웹캠 액세스 및 권한 처리 구현",
+            "description": "브라우저에서 웹캠 접근 권한을 요청하고 스트림을 관리하는 로직을 구현합니다.",
+            "dependencies": [],
+            "details": "navigator.mediaDevices.getUserMedia() API를 사용하여 카메라 권한 요청. 권한 거부, 카메라 미존재 등의 에러 케이스 처리. 비디오 스트림 설정 (width, height, facingMode 등) 구성. 스트림 종료 시 리소스 정리 로직 추가.",
+            "status": "pending",
+            "testStrategy": "다양한 브라우저에서 권한 요청 플로우 테스트. 권한 거부 시 적절한 에러 메시지 표시 확인. 카메라 스트림 시작/중지가 정상 작동하는지 검증."
+          },
+          {
+            "id": 3,
+            "title": "useHandTracking 커스텀 훅 개발",
+            "description": "MediaPipe Hands를 초기화하고 관리하는 React 커스텀 훅을 구현합니다.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "useEffect로 MediaPipe Hands 인스턴스 생성 및 초기화. maxNumHands=2, minDetectionConfidence=0.7, minTrackingConfidence=0.5 파라미터 설정. 컴포넌트 언마운트 시 정리 로직 구현. 로딩 상태와 에러 상태를 관리하는 state 추가.",
+            "status": "pending",
+            "testStrategy": "훅이 컴포넌트 마운트/언마운트 시 적절히 초기화/정리되는지 확인. 설정 파라미터가 올바르게 적용되는지 MediaPipe 인스턴스에서 검증."
+          },
+          {
+            "id": 4,
+            "title": "실시간 손 랜드마크 추출 및 정규화",
+            "description": "MediaPipe에서 감지한 21개 손 랜드마크 포인트를 추출하고 좌표를 정규화합니다.",
+            "dependencies": [
+              3
+            ],
+            "details": "onResults 콜백에서 multi_hand_landmarks 데이터 추출. 각 랜드마크의 x, y, z 좌표를 0-1 범위로 정규화. 왼손/오른손 구분 정보 포함. 프레임마다 업데이트되는 랜드마크 데이터를 React state로 관리.",
+            "status": "pending",
+            "testStrategy": "다양한 손 동작에서 21개 포인트가 모두 정상 추출되는지 확인. 좌표 정규화 결과가 0-1 범위 내에 있는지 검증. 양손 감지 시 데이터 구조가 올바른지 테스트."
+          },
+          {
+            "id": 5,
+            "title": "에러 처리 및 성능 최적화",
+            "description": "MediaPipe 초기화 실패와 런타임 에러를 처리하고 성능을 최적화합니다.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "try-catch로 MediaPipe 초기화 에러 캐치 및 사용자 친화적 메시지 표시. 카메라 권한 실패, 네트워크 오류 등 각종 에러 시나리오 대응. requestAnimationFrame으로 프레임 처리 최적화. 메모리 누수 방지를 위한 정리 로직 강화.",
+            "status": "pending",
+            "testStrategy": "의도적으로 에러 상황을 만들어 적절한 에러 메시지가 표시되는지 확인. Chrome DevTools로 메모리 사용량과 FPS 모니터링. 장시간 실행 시 성능 저하가 없는지 검증."
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "학습 콘텐츠 관리 시스템 구축",
+        "description": "수어 학습 콘텐츠(카테고리, 챕터, 수어 예제 영상)를 관리하기 위한 백엔드 API와 프론트엔드 인터페이스를 구축합니다.",
+        "details": "Create NestJS controllers: CategoriesController, ChaptersController, SignContentController with CRUD operations. Implement endpoints: GET /categories, GET /categories/:id/chapters, GET /chapters/:id/signs, POST /admin/signs (for content upload). Store sign language videos in S3 and reference URLs in database. Create React components: CategoryList, ChapterList, SignContentViewer using AntDesign Card, List, and Video components. Implement content filtering and search functionality.",
+        "testStrategy": "Test CRUD operations for all content types, verify video playback works, test search and filtering functionality, validate admin content upload workflow",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "백엔드 엔티티 및 데이터베이스 설계",
+            "description": "Category, Chapter, SignContent 엔티티를 정의하고 TypeORM을 사용하여 데이터베이스 스키마를 구성합니다.",
+            "dependencies": [],
+            "details": "Category (id, name, description, order), Chapter (id, categoryId, name, description, order), SignContent (id, chapterId, title, videoUrl, thumbnailUrl, description, difficulty) 엔티티 생성. 각 엔티티 간의 관계 설정 (One-to-Many). Migration 파일 생성 및 실행.",
+            "status": "pending",
+            "testStrategy": "각 엔티티의 CRUD 작업에 대한 Repository 단위 테스트 작성. 관계 설정이 올바르게 작동하는지 확인."
+          },
+          {
+            "id": 2,
+            "title": "NestJS 컨트롤러 및 서비스 구현",
+            "description": "CategoriesController, ChaptersController, SignContentController를 구현하고 각각의 서비스 로직을 작성합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "GET /categories (모든 카테고리 조회), GET /categories/:id/chapters (특정 카테고리의 챕터 목록), GET /chapters/:id/signs (특정 챕터의 수어 콘텐츠), POST /admin/signs (관리자용 콘텐츠 업로드) 엔드포인트 구현. DTO 클래스 정의 및 validation 적용.",
+            "status": "pending",
+            "testStrategy": "각 엔드포인트에 대한 E2E 테스트 작성. 정상 케이스와 에러 케이스 (404, 400) 모두 검증."
+          },
+          {
+            "id": 3,
+            "title": "S3 파일 업로드 서비스 구현",
+            "description": "수어 영상과 썸네일을 AWS S3에 업로드하고 URL을 관리하는 서비스를 구현합니다.",
+            "dependencies": [],
+            "details": "AWS SDK 설정 및 S3 버킷 연결. Multer를 사용한 파일 업로드 미들웨어 구성. 영상 파일 검증 (형식, 크기 제한). 업로드된 파일의 S3 URL 반환 및 데이터베이스 저장. 썸네일 자동 생성 기능 구현.",
+            "status": "pending",
+            "testStrategy": "Mock AWS S3 서비스를 사용하여 파일 업로드 로직 테스트. 파일 검증 로직에 대한 단위 테스트."
+          },
+          {
+            "id": 4,
+            "title": "React 프론트엔드 컴포넌트 개발",
+            "description": "AntDesign을 활용하여 CategoryList, ChapterList, SignContentViewer 컴포넌트를 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "CategoryList: Card 컴포넌트로 카테고리 그리드 표시. ChapterList: List 컴포넌트로 챕터 목록 표시 및 진행률 표시. SignContentViewer: Video 컴포넌트로 수어 영상 재생, 재생 속도 조절 기능. React Query를 사용한 데이터 fetching 및 캐싱.",
+            "status": "pending",
+            "testStrategy": "각 컴포넌트에 대한 React Testing Library 테스트. API 호출은 MSW로 mocking하여 테스트."
+          },
+          {
+            "id": 5,
+            "title": "검색 및 필터링 기능 구현",
+            "description": "콘텐츠 검색과 카테고리/난이도별 필터링 기능을 백엔드와 프론트엔드에 구현합니다.",
+            "dependencies": [
+              2,
+              4
+            ],
+            "details": "백엔드: 검색 쿼리 파라미터 처리 (title, category, difficulty). TypeORM QueryBuilder를 사용한 동적 쿼리 생성. 프론트엔드: SearchBar 컴포넌트와 FilterDropdown 구현. 디바운싱을 적용한 실시간 검색. URL 쿼리 파라미터와 상태 동기화.",
+            "status": "pending",
+            "testStrategy": "다양한 검색/필터 조합에 대한 통합 테스트. 검색 성능 테스트 및 인덱스 최적화 확인."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "실시간 손 동작 인식 및 비교 구현",
+        "description": "랜드마크 유사도를 활용하여 사용자의 손 제스처를 기준 수어 패턴과 비교하는 핵심 알고리즘을 개발하고 실시간 피드백을 제공합니다.",
+        "details": "Create gesture comparison algorithm using Dynamic Time Warping (DTW) or cosine similarity between normalized hand landmarks. Implement real-time comparison with reference keypoints stored in database. Calculate similarity scores with threshold-based pass/fail logic (>0.8 for pass). Create feedback system with visual indicators: green for correct, red for incorrect, yellow for close. Optimize for <100ms latency per frame. Store reference keypoints as JSON arrays in sign_content table.",
+        "testStrategy": "Test gesture recognition accuracy with known correct/incorrect gestures, measure latency performance, verify visual feedback appears correctly, test with different hand sizes and positions",
+        "priority": "high",
+        "dependencies": [
+          4,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "랜드마크 정규화 및 전처리 모듈 구현",
+            "description": "MediaPipe에서 추출한 손 랜드마크 데이터를 정규화하고 비교 가능한 형태로 전처리하는 모듈을 개발합니다.",
+            "dependencies": [],
+            "details": "21개 손 랜드마크 좌표를 0-1 범위로 정규화, 손목 기준 상대 좌표 변환, 손 크기 불변성을 위한 스케일링 적용, 노이즈 제거를 위한 칼만 필터 구현",
+            "status": "pending",
+            "testStrategy": "다양한 손 크기와 위치에서 랜드마크 추출 후 정규화 결과의 일관성 검증, 프레임 간 안정성 테스트"
+          },
+          {
+            "id": 2,
+            "title": "DTW 기반 제스처 비교 알고리즘 구현",
+            "description": "Dynamic Time Warping을 활용하여 시간적 변화가 있는 수어 동작을 비교하는 핵심 알고리즘을 개발합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "DTW 거리 계산 함수 구현, 코사인 유사도를 대체 메트릭으로 구현, 프레임 시퀀스 간 최적 정렬 경로 계산, 유사도 점수를 0-1 범위로 정규화",
+            "status": "pending",
+            "testStrategy": "동일 수어의 다른 속도 실행 시 높은 유사도 확인, 다른 수어 간 낮은 유사도 검증"
+          },
+          {
+            "id": 3,
+            "title": "기준 수어 데이터 관리 시스템 구축",
+            "description": "sign_content 테이블에 JSON 형태로 저장된 기준 랜드마크 데이터를 효율적으로 로드하고 캐싱하는 시스템을 구현합니다.",
+            "dependencies": [],
+            "details": "PostgreSQL JSON 쿼리 최적화, 메모리 내 기준 데이터 캐싱 구현, 수어별 키프레임 시퀀스 관리, 동적 로딩 및 업데이트 지원",
+            "status": "pending",
+            "testStrategy": "데이터베이스 쿼리 성능 측정, 캐시 히트율 모니터링, 동시 접근 시 일관성 검증"
+          },
+          {
+            "id": 4,
+            "title": "실시간 비교 엔진 및 최적화",
+            "description": "프레임당 100ms 이하의 지연시간으로 실시간 제스처 비교를 수행하는 고성능 엔진을 구현합니다.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "멀티스레딩을 활용한 병렬 처리, 슬라이딩 윈도우 방식의 프레임 버퍼링, GPU 가속 옵션 구현, 임계값 기반 조기 종료 로직",
+            "status": "pending",
+            "testStrategy": "다양한 하드웨어에서 지연시간 측정, 프레임 드롭률 모니터링, CPU/메모리 사용률 프로파일링"
+          },
+          {
+            "id": 5,
+            "title": "시각적 피드백 UI 컴포넌트 개발",
+            "description": "유사도 점수에 따른 실시간 시각적 피드백을 제공하는 React 컴포넌트를 구현합니다.",
+            "dependencies": [
+              4
+            ],
+            "details": "0.8 이상 녹색, 0.6-0.8 노란색, 0.6 미만 빨간색 표시, 프로그레스 바 형태의 유사도 표시, 손 윤곽선 오버레이로 차이점 시각화, 부드러운 전환 애니메이션",
+            "status": "pending",
+            "testStrategy": "다양한 유사도 값에 대한 UI 반응 테스트, 색맹 접근성 검증, 성능 영향 측정"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "학습 세션 인터페이스 개발",
+        "description": "사용자가 수어 시연 영상을 보고 제스처를 연습하며 실시간 피드백과 진행 상황을 확인할 수 있는 메인 학습 인터페이스를 만듭니다.",
+        "details": "Create React component LearningSession with video player for demonstrations, webcam feed for user practice, and real-time feedback overlay. Implement session flow: show demonstration → user practice → feedback → next sign. Use AntDesign Progress, Button, and Card components. Add visual guides (hand outline overlay), gesture recording/playback, and session completion tracking. Integrate with progress tracking API to update user_progress table.",
+        "testStrategy": "Test complete learning session flow, verify video playback synchronization, test real-time feedback accuracy, validate progress tracking updates correctly",
+        "priority": "high",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Video Player Component Setup",
+            "description": "Create a video player component for displaying sign language demonstration videos with playback controls",
+            "dependencies": [],
+            "details": "Build VideoPlayer component using HTML5 video element or a React video library. Include play/pause, replay, and speed controls. Add support for loading videos from API endpoints. Implement video preloading for smooth playback experience.",
+            "status": "pending",
+            "testStrategy": "Test video loading, playback controls functionality, and different video formats compatibility"
+          },
+          {
+            "id": 2,
+            "title": "Webcam Integration Component",
+            "description": "Implement webcam access and display component for capturing user's sign language practice",
+            "dependencies": [],
+            "details": "Create WebcamFeed component using getUserMedia API. Handle camera permissions, device selection, and error states. Display live webcam feed with proper aspect ratio and mirroring. Add recording capabilities for gesture capture.",
+            "status": "pending",
+            "testStrategy": "Test camera permission handling, webcam feed display across browsers, and recording functionality"
+          },
+          {
+            "id": 3,
+            "title": "Real-time Feedback Overlay",
+            "description": "Develop overlay component for displaying real-time feedback on user's sign language performance",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create FeedbackOverlay component that shows hand outline guides, correctness indicators, and real-time pose matching feedback. Use Canvas API for drawing visual guides. Integrate with gesture recognition service for accuracy scoring.",
+            "status": "pending",
+            "testStrategy": "Test overlay rendering, feedback accuracy display, and performance impact on video feeds"
+          },
+          {
+            "id": 4,
+            "title": "Session Flow Management",
+            "description": "Implement the learning session state management and flow control logic",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Create session flow controller: demonstration phase → practice phase → feedback phase → next sign transition. Use React state management for tracking current phase, sign index, and completion status. Implement timer for practice duration and auto-progression logic.",
+            "status": "pending",
+            "testStrategy": "Test state transitions, phase timing, session progression, and edge cases like session interruption"
+          },
+          {
+            "id": 5,
+            "title": "Progress Tracking Integration",
+            "description": "Connect learning session to backend API for updating user progress and session statistics",
+            "dependencies": [
+              4
+            ],
+            "details": "Integrate with progress tracking API endpoints to update user_progress table. Track metrics: attempts, accuracy scores, completion time, and mastered signs. Implement session data persistence and recovery. Add progress visualization using AntDesign Progress component.",
+            "status": "pending",
+            "testStrategy": "Test API integration, data persistence, progress calculation accuracy, and error handling for failed updates"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "오답 추적 기능이 포함된 퀴즈 시스템 개발",
+        "description": "사용자가 학습한 수어를 테스트하고 오답을 자동으로 추적하여 복습 세션에 활용할 수 있는 퀴즈 기능을 개발합니다.",
+        "details": "Create QuizSession component with randomized sign prompts from completed chapters. Implement quiz flow: show Korean text → user performs sign → automatic scoring → next question. Track results in quiz_results table with is_correct and attempt_count fields. Create quiz completion summary with score and incorrect items. Implement quiz selection by category/chapter with minimum completion requirements.",
+        "testStrategy": "Test quiz question randomization, verify automatic scoring accuracy, validate incorrect answer tracking, test quiz completion flow and score calculation",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "데이터베이스 스키마 설계 및 구현",
+            "description": "퀴즈 결과와 사용자 진행 상황을 추적하기 위한 데이터베이스 테이블을 설계하고 구현합니다.",
+            "dependencies": [],
+            "details": "quiz_sessions, quiz_results, quiz_questions 테이블 생성. quiz_results 테이블에 is_correct, attempt_count, timestamp 필드 포함. 사용자별 퀴즈 히스토리 및 오답 추적을 위한 인덱스 설정.",
+            "status": "pending",
+            "testStrategy": "테이블 생성 후 샘플 데이터 삽입 및 쿼리 성능 테스트"
+          },
+          {
+            "id": 2,
+            "title": "퀴즈 생성 및 문제 출제 로직 구현",
+            "description": "완료된 챕터에서 수어 문제를 무작위로 선택하고 퀴즈 세션을 생성하는 백엔드 API를 개발합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "카테고리/챕터별 퀴즈 선택 API 구현. 최소 완료 요구사항 검증 로직 추가. 문제 무작위 선택 알고리즘 구현. 중복 문제 방지 및 난이도 균형 조정.",
+            "status": "pending",
+            "testStrategy": "다양한 챕터 완료 상태에서 퀴즈 생성 테스트"
+          },
+          {
+            "id": 3,
+            "title": "QuizSession 컴포넌트 개발",
+            "description": "한국어 텍스트 표시, 사용자 수어 입력, 자동 채점을 포함한 퀴즈 진행 UI 컴포넌트를 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "React 기반 QuizSession 컴포넌트 개발. 한국어 텍스트 프롬프트 표시, 타이머 기능, 다음 문제 자동 진행. 실시간 점수 표시 및 진행률 인디케이터 구현.",
+            "status": "pending",
+            "testStrategy": "다양한 화면 크기에서 UI 테스트 및 사용자 인터랙션 테스트"
+          },
+          {
+            "id": 4,
+            "title": "자동 채점 시스템 구현",
+            "description": "사용자의 수어 동작을 실시간으로 인식하고 정답 여부를 자동으로 판단하는 채점 시스템을 개발합니다.",
+            "dependencies": [
+              3
+            ],
+            "details": "MediaPipe 또는 TensorFlow.js를 활용한 수어 인식 모델 통합. 동작 유사도 계산 알고리즘 구현. 정답/오답 판정 기준 설정 및 신뢰도 점수 계산.",
+            "status": "pending",
+            "testStrategy": "다양한 수어 동작에 대한 인식 정확도 테스트"
+          },
+          {
+            "id": 5,
+            "title": "퀴즈 완료 요약 및 오답 복습 기능 구현",
+            "description": "퀴즈 종료 후 점수와 오답 항목을 표시하고, 오답을 복습 세션에 활용할 수 있는 기능을 개발합니다.",
+            "dependencies": [
+              4
+            ],
+            "details": "퀴즈 완료 화면에 총점, 정답률, 오답 목록 표시. 오답 항목별 상세 피드백 제공. 오답 자동 저장 및 복습 세션 생성 API 구현. 오답 빈도 기반 우선순위 복습 알고리즘 개발.",
+            "status": "pending",
+            "testStrategy": "다양한 퀴즈 결과 시나리오에 대한 요약 화면 테스트"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "오답 복습 시스템 구현",
+        "description": "이전에 틀린 답안을 자동으로 학습·퀴즈 세션으로 제공하는 연속적인 복습 기능을 구현합니다.",
+        "details": "Create ReviewSession component that queries quiz_results for incorrect answers (is_correct=false). Implement continuous flow: learning session for incorrect sign → immediate quiz session → next incorrect item. Create review selection interface showing incorrect signs with attempt counts. Update quiz_results when review quiz is passed. Add review progress tracking and completion statistics.",
+        "testStrategy": "Test review item selection from incorrect answers, verify continuous learning→quiz flow, test progress updates when review items are mastered",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "데이터베이스 쿼리 및 데이터 모델 설계",
+            "description": "quiz_results 테이블에서 틀린 답안(is_correct=false)을 조회하고 복습에 필요한 데이터 구조를 설계합니다.",
+            "dependencies": [],
+            "details": "quiz_results에서 user_id별로 is_correct=false인 레코드를 조회하는 쿼리 작성. 각 틀린 수화와 시도 횟수를 집계하는 로직 구현. 복습 세션을 위한 ReviewItem 인터페이스 정의 (sign_id, attempt_count, last_attempt_date 등 포함).",
+            "status": "pending",
+            "testStrategy": "Mock 데이터로 쿼리 테스트, 다양한 오답 패턴에 대한 단위 테스트 작성"
+          },
+          {
+            "id": 2,
+            "title": "ReviewSession 컴포넌트 개발",
+            "description": "틀린 수화를 연속적으로 학습하고 즉시 퀴즈로 전환하는 핵심 복습 컴포넌트를 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "학습 모드와 퀴즈 모드를 전환하는 상태 관리 구현. 틀린 수화 학습 → 즉시 퀴즈 → 다음 틀린 항목으로 이동하는 플로우 구현. 각 단계별 UI 컴포넌트 (학습 화면, 퀴즈 화면) 개발. 세션 진행 상태를 추적하는 로직 구현.",
+            "status": "pending",
+            "testStrategy": "컴포넌트 렌더링 테스트, 모드 전환 시나리오 테스트, 사용자 인터랙션 테스트"
+          },
+          {
+            "id": 3,
+            "title": "복습 항목 선택 인터페이스 구현",
+            "description": "사용자가 복습할 틀린 수화들을 선택할 수 있는 인터페이스를 개발합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "틀린 수화 목록을 카드 또는 리스트 형태로 표시. 각 항목에 틀린 횟수, 마지막 시도 일자 표시. 전체 선택/개별 선택 기능 구현. 선택한 항목들로 복습 세션을 시작하는 버튼 구현. 필터링 옵션 (날짜별, 카테고리별) 추가.",
+            "status": "pending",
+            "testStrategy": "UI 컴포넌트 스냅샷 테스트, 선택 로직 단위 테스트"
+          },
+          {
+            "id": 4,
+            "title": "복습 결과 처리 및 데이터베이스 업데이트",
+            "description": "복습 퀴즈 통과 시 quiz_results를 업데이트하고 진행 상황을 추적하는 시스템을 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "복습 퀴즈 정답 시 is_correct를 true로 업데이트하는 API 구현. 복습 세션의 진행률 계산 로직 구현. 세션별 통계 데이터 저장 (시작 시간, 완료 시간, 성공률 등). review_sessions 테이블 스키마 설계 및 구현.",
+            "status": "pending",
+            "testStrategy": "API 엔드포인트 통합 테스트, 데이터베이스 트랜잭션 테스트"
+          },
+          {
+            "id": 5,
+            "title": "복습 진행률 추적 및 통계 대시보드",
+            "description": "복습 진행 상황과 완료 통계를 시각화하는 대시보드 컴포넌트를 개발합니다.",
+            "dependencies": [
+              4
+            ],
+            "details": "실시간 복습 진행률 표시 (프로그레스 바, 퍼센티지). 복습 완료 통계 차트 구현 (일별/주별 복습량, 성공률 추이). 복습이 필요한 항목 수 표시. 복습 세션 히스토리 조회 기능. 성과 배지나 마일스톤 시스템 구현.",
+            "status": "pending",
+            "testStrategy": "차트 렌더링 테스트, 통계 계산 정확성 테스트, 반응형 디자인 테스트"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "진행 상황 시각화 홈 대시보드 구축",
+        "description": "사용자의 진행도, 최신 활동, 일일 추천, 배지, 학습 통계를 직관적으로 시각화하여 보여주는 메인 대시보드를 구축합니다.",
+        "details": "Create HomePage component with dashboard sections: welcome message with nickname, recent learning activity, daily sentence recommendation, consecutive learning days counter, recommended categories/chapters, earned badges display, overall progress percentage chart. Use AntDesign Statistic, Progress, Card, and Badge components. Implement progress calculation APIs: GET /users/dashboard, GET /users/progress, GET /users/badges. Add visual charts using recharts or AntDesign Charts.",
+        "testStrategy": "Test dashboard data loading and display, verify progress calculations are accurate, test badge system functionality, validate responsive design across devices",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "API 엔드포인트 구현",
+            "description": "대시보드 데이터를 제공하는 백엔드 API 엔드포인트들을 구현합니다.",
+            "dependencies": [],
+            "details": "GET /users/dashboard (사용자 기본 정보, 닉네임, 최근 활동), GET /users/progress (전체 진행률, 연속 학습일), GET /users/badges (획득한 배지 목록) API를 구현하고 응답 데이터 구조를 정의합니다.",
+            "status": "pending",
+            "testStrategy": "각 API 엔드포인트에 대한 단위 테스트 작성 및 Postman을 통한 API 응답 검증"
+          },
+          {
+            "id": 2,
+            "title": "HomePage 컴포넌트 기본 구조 생성",
+            "description": "메인 대시보드의 기본 레이아웃과 컴포넌트 구조를 생성합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "React 함수형 컴포넌트로 HomePage를 생성하고, AntDesign의 Layout, Row, Col을 사용하여 반응형 그리드 시스템을 구축합니다. 각 대시보드 섹션을 위한 Card 컴포넌트 배치를 설정합니다.",
+            "status": "pending",
+            "testStrategy": "컴포넌트 렌더링 테스트 및 반응형 레이아웃 동작 확인"
+          },
+          {
+            "id": 3,
+            "title": "사용자 정보 및 활동 섹션 구현",
+            "description": "환영 메시지, 닉네임, 최근 학습 활동을 표시하는 섹션을 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "AntDesign Card와 Typography 컴포넌트를 사용하여 개인화된 환영 메시지를 표시하고, 최근 학습한 챕터나 문장 목록을 보여주는 섹션을 구현합니다. 일일 문장 추천 기능도 포함합니다.",
+            "status": "pending",
+            "testStrategy": "사용자 데이터 로딩 상태 및 표시 내용 검증 테스트"
+          },
+          {
+            "id": 4,
+            "title": "진행도 및 통계 시각화 구현",
+            "description": "학습 진행률, 연속 학습일, 전체 통계를 시각적으로 표현하는 차트를 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "AntDesign의 Progress, Statistic 컴포넌트와 recharts 라이브러리를 사용하여 전체 진행률 원형 차트, 연속 학습일 카운터, 카테고리별 진행도 막대 차트를 구현합니다.",
+            "status": "pending",
+            "testStrategy": "차트 데이터 바인딩 및 시각화 정확성 테스트"
+          },
+          {
+            "id": 5,
+            "title": "배지 시스템 및 추천 섹션 구현",
+            "description": "획득한 배지 표시와 추천 카테고리/챕터 섹션을 구현합니다.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "AntDesign Badge, Avatar 컴포넌트를 사용하여 획득한 배지들을 그리드 형태로 표시하고, 사용자의 학습 패턴을 기반으로 한 추천 카테고리나 챕터를 Card 형태로 보여주는 섹션을 구현합니다.",
+            "status": "pending",
+            "testStrategy": "배지 표시 로직 및 추천 알고리즘 동작 검증 테스트"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "자동 완성 검색 기능 구현",
+        "description": "드롭다운 제안을 통해 사용자가 원하는 수어를 검색하고 학습 콘텐츠로 바로 이동할 수 있는 검색 시스템을 구축합니다.",
+        "details": "Create search API endpoint GET /search?q=keyword that searches sign_content.korean_text with fuzzy matching. Implement React SearchComponent using AntDesign AutoComplete with debounced input (300ms delay). Show dropdown results with sign names and categories. Enable direct navigation to learning session for selected signs. Add search history and popular searches functionality.",
+        "testStrategy": "Test search accuracy with various Korean keywords, verify auto-complete dropdown functionality, test direct navigation to learning content, validate search performance with large datasets",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "프로덕션 인프라 및 배포 파이프라인 구축",
+        "description": "프론트엔드용 S3/CloudFront, 백엔드용 EC2/Docker, 데이터베이스용 RDS를 포함한 AWS 인프라를 구성하고 GitHub Actions를 통한 CI/CD 자동화를 구축합니다.",
+        "details": "Setup AWS infrastructure: S3 bucket for static hosting, CloudFront distribution, EC2 instance with Docker and Nginx reverse proxy, RDS MySQL instance. Create Dockerfiles for NestJS backend and configure ECR repository. Setup GitHub Actions workflows: frontend build→S3 upload→CloudFront invalidation, backend build→Docker push to ECR→EC2 deployment. Configure environment variables and SSL certificates. Setup monitoring and logging.",
+        "testStrategy": "Test complete deployment pipeline from GitHub push to production, verify HTTPS access, test database connectivity, validate CDN performance and caching",
+        "priority": "high",
+        "dependencies": [
+          10,
+          11
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-06-25T06:52:02.117Z",
+      "updated": "2025-06-26T20:00:00.000Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

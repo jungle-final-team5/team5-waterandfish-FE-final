@@ -1,4 +1,4 @@
-
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -11,9 +11,11 @@ import {
   User,
   Settings
 } from 'lucide-react';
+import BadgeModal from '@/components/BadgeModal';
 
 const Home = () => {
   const navigate = useNavigate();
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
 
   const handleCardClick = (cardType: string) => {
     switch (cardType) {
@@ -25,8 +27,7 @@ const Home = () => {
         navigate('/learn');
         break;
       case 'badges':
-        // 뱃지 페이지로 이동 (현재는 홈 유지)
-        console.log('뱃지 페이지 준비중');
+        setIsBadgeModalOpen(true);
         break;
       case 'progress':
         navigate('/learn');
@@ -205,6 +206,12 @@ const Home = () => {
           </div>
         </div>
       </main>
+
+      {/* Badge Modal */}
+      <BadgeModal 
+        isOpen={isBadgeModalOpen} 
+        onClose={() => setIsBadgeModalOpen(false)} 
+      />
     </div>
   );
 };
