@@ -19,7 +19,6 @@ function LockIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-// 사람(유저) 아이콘 SVG
 function UserIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -50,7 +49,8 @@ export default function Signup() {
       await API.post('user/signup', { 
         email, 
         nickname, 
-        password: password1 
+        password1,   // ← 백엔드 DTO와 맞춤!
+        password2    // ← 백엔드 DTO와 맞춤!
       });
       alert('회원가입 성공!');
       navigator('/login');
