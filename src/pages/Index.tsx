@@ -49,6 +49,7 @@ const Index = () => {
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
+
             <div className="w-8 h-8 bg-violet-200 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">🐟</span>
             </div>
@@ -57,7 +58,7 @@ const Index = () => {
           <Button 
             variant="outline" 
             onClick={() => navigate('/login')}
-            className="hover:bg-violet-50"
+            className="hover:bg-violet-50 border border-gray-300"
           >
             로그인
           </Button>
@@ -118,14 +119,6 @@ const Index = () => {
               className="bg-violet-600 hover:bg-violet-700 text-lg px-8 py-4"
             >
               학습하러 가기
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="text-lg px-8 py-4 hover:bg-violet-50"
-            >
-              서비스 소개
             </Button>
           </div>
         </div>
@@ -133,8 +126,8 @@ const Index = () => {
         {/* Features Section */}
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           <div className="text-center p-6 bg-white rounded-xl shadow-sm">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Target className="h-8 w-8 text-blue-600" />
+            <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Target className="h-8 w-8 text-violet-600" />
             </div>
             <h3 className="text-xl font-semibold mb-3">실시간 피드백</h3>
             <p className="text-gray-600">
