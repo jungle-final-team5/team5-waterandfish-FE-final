@@ -1,0 +1,105 @@
+# Overview
+
+수어(수화) 학습자는 늘고 있지만, 영상 강의 위주의 학습은 피드백이 부족하고 동기 부여가 약합니다. 오프라인 수어 교실은 접근성이 낮아, 실시간 모션 감지와 피드백을 제공하는 인터랙티브 수어 학습 서비스가 필요합니다. 본 서비스는 사용자가 직접 손으로 수화를 표현하고, 즉각적인 피드백을 받아 스스로 학습할 수 있는 환경을 제공합니다.
+
+# Core Features
+
+- **웹캠 기반 실시간 손 모션 인식**: Mediapipe 및 딥러닝 모델을 활용해 사용자의 손 동작을 인식하고 분석합니다.
+- **수어 학습 콘텐츠**: 자음/모음/단어/문장별 예제와 정답 포인트셋 제공, 카테고리별 콘텐츠 관리
+- **실시간 피드백**: 사용자의 동작을 실시간으로 분석해 정답/오답 및 개선 힌트 제공
+- **학습 진도 및 복습 관리**: 진도 트래커, 오답 자동 복습 리스트, 학습 결과 리포트
+- **사용자 계정 및 데이터 저장**: 이메일, 닉네임, 좌/우 손 선택, 학습 이력 저장 (localStorage/MVP)
+
+# User Experience
+
+- **타겟 사용자**: 수어 입문자, 농인 가족, 봉사자 등
+- **주요 유저 플로우**:
+    1. 루트페이지 진입(검색창) → 검색어 입력
+        - 드롭다운 검색결과 선택 → 해당 키워드 학습 화면 진입
+        - 또는 '학습하러가기' 클릭 → 로그인 화면
+            - 회원이 아니면 회원가입 → 로그인
+            - 로그인 성공 시 홈 화면 진입
+    2. 홈 화면에서:
+        - **홈화면 주요 구성요소**:
+            - 상단 인사(닉네임 포함 환영 메시지)
+            - 최근 학습(마지막 학습 카테고리/챕터)
+            - 오늘의 문장(추천 문장)
+            - 연속 학습(연속 학습 일수)
+            - 추천 학습(추천 카테고리/챕터, 퀴즈)
+            - 획득한 뱃지(뱃지 아이콘, 상세 툴팁)
+            - 전체 진도율(퍼센트 차트)
+            - 상단 우측 프로필/설정 아이콘
+        - 검색 페이지 이동 가능(검색어 입력 → 드롭다운 결과 선택 → 해당 키워드 학습 화면)
+        - 복습페이지 이동 가능(복습 문제 선택 → 복습 세션 시작)
+            - **복습 세션**: 복습 세션은 퀴즈 세션에서 틀린 문제(수어)에 대해서만 진행됨. 사용자가 복습페이지에서 '틀린 문제'를 선택하면, 해당 수어에 대해 학습 세션과 퀴즈 세션이 연속적으로 자동 진행됨
+                - ① 학습 세션(예시 영상/설명, 따라하기 등) → 완료 시
+                - ② 바로 이어서 퀴즈 세션(문제 풀이, 정답/오답 피드백 등) → 완료 시 다음 복습 문제로 진행 또는 종료
+        - 학습 세션 진입 시:
+            - 카테고리 선택 → 챕터 선택 → 학습 시작 → 학습 완료 → 다음 챕터 학습 반복
+        - 퀴즈 세션 진입 시:
+            - 카테고리 선택 → 챕터 선택 → 퀴즈 시작 → 학습 종료
+    3. 각 주요 화면에서 '뒤로 가기'로 이전 단계로 이동 가능
+    4. 복습페이지에서는 퀴즈 세션에서 틀린 문제만 복습 대상으로 선택할 수 있으며, 선택한 수어에 대해 학습/퀴즈 세션이 연속적으로 진행됨
+- **UI/UX 고려사항**: 실시간 피드백, 시각적 강조(가이드라인, 오답 표시), 반복 학습 유도, 결과 리포트 시각화, 홈화면 대시보드의 직관적 정보 제공 및 동기부여 요소(뱃지, 연속 학습 등)
+
+# Technical Architecture
+
+- **시스템 구성**: 프론트엔드(React+Vite, S3+CloudFront CDN, AntDesign), 백엔드(NestJS, EC2, Nginx Reverse Proxy, Docker, ECR), 데이터베이스(MySQL/Aurora), ML 파이프라인(TensorFlow, S3, EC2), CI/CD(GitHub Actions)
+- **주요 컴포넌트 및 연동**:
+    - **Client**: React+Vite+AntDesign SPA, 브라우저에서 HTTPS로 동작
+    - **Static Hosting**: S3 Website에 FE 정적 파일 업로드, CloudFront CDN으로 전 세계 배포
+    - **Reverse Proxy**: Nginx(EC2)에서 HTTPS 트래픽을 받아 FE/BE로 라우팅
+    - **Backend (NestJS API)**: EC2에서 Docker로 배포, REST API 제공, ECR 연동
+    - **DB**: Amazon RDS(MySQL)로 SQL 데이터 관리, Amazon Aurora로 Vector Query 처리
+    - **ML Pipeline**: S3에 수어 영상 데이터 저장, EC2(GPU)에서 TensorFlow Training, EC2에서 TensorFlow Serving으로 모델 배포/추론(HTTP), NestJS API에서 ML Inference 결과 활용
+    - **CI/CD**: GitHub Actions로 FE/BE 빌드 및 배포 자동화, BE는 Docker 이미지로 빌드 후 ECR에 푸시
+- **데이터 흐름 및 인프라**:
+    - 프론트엔드는 S3/CloudFront로 정적 배포, Nginx Reverse Proxy를 통해 API/정적 파일 라우팅
+    - 백엔드는 NestJS API로 REST 서비스, 데이터는 MySQL과 Aurora에 저장/검색
+    - ML 모델은 EC2에서 서빙, TensorFlow Training/Serving, S3 데이터 연동
+    - 전체 배포 및 빌드는 GitHub Actions로 자동화
+    - 실제 아키텍처 다이어그램은 별도 문서/이미지로 관리
+
+# Development Roadmap
+
+- **1주차**: 데이터셋/모델 조사, 서비스 기획서 작성
+- **2주차**: 웹캠 연동, 손 관절 추출, 학습 UI/콘텐츠 구현, 모델 연동
+- **3주차**: 피드백 로직, 시각 효과, 결과 저장/복습 기능, 리포트 화면
+- **4~5주차**: 테스트, 피드백 개선, 발표 자료 준비
+
+# Logical Dependency Chain
+
+1. 데이터셋/모델 조사 및 기획
+2. 웹캠 연동 및 손 관절 추출(기초 인프라)
+3. 학습 콘텐츠/예시 보기 구현(프론트)
+4. 실시간 인식/피드백(핵심 기능)
+5. 진도/복습/리포트(부가 기능)
+6. 계정/이력 관리(확장)
+
+# Risks and Mitigations
+
+- **모션 인식 정확도/레이턴시**: Mediapipe 최적화, 전처리 필터 적용
+- **모델 성능**: 브라우저 내 추론 최적화, 프레임당 100ms 목표
+- **데이터 저장**: MVP는 localStorage, 추후 서버 연동 고려
+- **UX**: 실시간 피드백/반복 학습 유도, 오답 개선 힌트 제공
+
+# Appendix
+
+- **참고자료**:
+    - 와이어프레임: https://www.figma.com/design/e9yZoMnxKihVxLh8wSSwFN/%EC%A0%9C%EB%AA%A9-%EC%97%86%EC%9D%8C?node-id=0-1&t=HWL2uYlkorteFnMj-1
+    - 기획 발표 슬라이드: https://docs.google.com/presentation/d/1xG0QCGWpaDOMjGiJ4HfltK9I3FhhDCgMgNvN-U6edGA/edit?hl=ko&pli=1&slide=id.g36a5b095c37_0_1310#slide=id.g36a5b095c37_0_1310
+    - 딥러닝 기술 데모: https://www.youtube.com/watch?v=L4sV9M14dr8&feature=youtu.be
+    - 주요 레퍼런스: https://fingerspelling.xyz/
+    - AI-Hub 한국수어 데이터셋: https://www.aihub.or.kr/aidata/30721
+- **확장 아이디어**: 게임/챌린지 모드, 다국어 수어 확장, 검색 엔진 최적화 등
+- **홈화면(메인 대시보드) 와이어프레임 설명**:
+    - 상단 인사(닉네임 포함), 최근 학습, 오늘의 문장, 연속 학습, 추천 학습, 획득한 뱃지, 전체 진도율, 프로필/설정 아이콘 등으로 구성된 대시보드 UI
+    - 각 영역은 사용자 맞춤 정보와 동기부여 요소(뱃지, 연속 학습 등)를 시각적으로 제공
+    - 실제 와이어프레임 이미지는 별도 참고자료(피그마 등)로 관리
+- **시스템 아키텍처 다이어그램 설명**:
+    - 전체 서비스는 프론트엔드(React+Vite+AntDesign, S3+CloudFront), 백엔드(NestJS, EC2, Nginx, Docker, ECR), 데이터베이스(MySQL, Aurora), ML 파이프라인(TensorFlow, S3, EC2), CI/CD(GitHub Actions)로 구성
+    - 프론트엔드는 S3/CloudFront로 정적 배포, Nginx Reverse Proxy를 통해 API/정적 파일 라우팅
+    - 백엔드는 NestJS API로 REST 서비스, 데이터는 MySQL과 Aurora에 저장/검색
+    - ML 모델은 EC2에서 서빙, TensorFlow Training/Serving, S3 데이터 연동
+    - 전체 배포 및 빌드는 GitHub Actions로 자동화
+    - 실제 아키텍처 다이어그램은 별도 문서/이미지로 관리 

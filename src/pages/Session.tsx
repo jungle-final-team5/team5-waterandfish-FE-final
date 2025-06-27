@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -31,6 +30,7 @@ const Session = () => {
   const [timerActive, setTimerActive] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [quizResults, setQuizResults] = useState<{signId: string, correct: boolean, timeSpent: number}[]>([]);
+  const [quizStarted, setQuizStarted] = useState(false);
 
   const isQuizMode = sessionType === 'quiz';
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
@@ -44,6 +44,24 @@ const Session = () => {
       setProgress((currentSignIndex / chapter.signs.length) * 100);
     }
   }, [currentSignIndex, chapter]);
+
+  // 퀴즈 모드에서 새로운 문제가 시작될 때 자동으로 타이머 시작
+  useEffect(() => {
+    if (isQuizMode && currentSign && !feedback) {
+      setQuizStarted(true);
+      setTimerActive(true);
+      setIsRecording(true);
+      
+      // 15초 후 자동으로 시간 초과 처리
+      const timer = setTimeout(() => {
+        if (isRecording && timerActive) {
+          handleTimeUp();
+        }
+      }, QUIZ_TIME_LIMIT * 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentSignIndex, isQuizMode, currentSign, feedback]);
 
   const handleStartRecording = () => {
     setIsRecording(true);
@@ -78,7 +96,13 @@ const Session = () => {
       }
     }
 
-    if (isCorrect) {
+    // 퀴즈 모드에서는 항상 자동으로 다음 문제로 이동
+    if (isQuizMode) {
+      setTimeout(() => {
+        handleNextSign();
+      }, 2000);
+    } else if (isCorrect) {
+      // 학습 모드에서는 정답일 때 자동으로 다음 수어로 이동
       setTimeout(() => {
         handleNextSign();
       }, 2000);
@@ -86,20 +110,23 @@ const Session = () => {
   };
 
   const handleTimeUp = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      setTimerActive(false);
-      setFeedback('incorrect');
-      
-      if (currentSign) {
-        setQuizResults(prev => [...prev, {
-          signId: currentSign.id,
-          correct: false,
-          timeSpent: QUIZ_TIME_LIMIT
-        }]);
-        addToReview(currentSign);
-      }
+    setIsRecording(false);
+    setTimerActive(false);
+    setFeedback('incorrect');
+    
+    if (currentSign) {
+      setQuizResults(prev => [...prev, {
+        signId: currentSign.id,
+        correct: false,
+        timeSpent: QUIZ_TIME_LIMIT
+      }]);
+      addToReview(currentSign);
     }
+
+    // 퀴즈 모드에서는 시간 초과 시에도 자동으로 다음 문제로 이동
+    setTimeout(() => {
+      handleNextSign();
+    }, 2000);
   };
 
   const handleNextSign = () => {
@@ -107,6 +134,7 @@ const Session = () => {
       setCurrentSignIndex(currentSignIndex + 1);
       setFeedback(null);
       setTimerActive(false);
+      setQuizStarted(false);
     } else {
       setSessionComplete(true);
     }
@@ -116,6 +144,7 @@ const Session = () => {
     setFeedback(null);
     setIsRecording(false);
     setTimerActive(false);
+    setQuizStarted(false);
   };
 
   if (!category || !chapter || !currentSign) {
@@ -215,7 +244,7 @@ const Session = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* 퀴즈 타이머 */}
-          {isQuizMode && isRecording && (
+          {isQuizMode && timerActive && (
             <div className="mb-6">
               <QuizTimer 
                 duration={QUIZ_TIME_LIMIT}
@@ -226,11 +255,35 @@ const Session = () => {
           )}
 
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* 예시 영상 */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
-              <ExampleVideo keyword={currentSign.word} />
-            </div>
+            {/* 퀴즈 모드에서는 예시 영상 대신 텍스트만 표시 */}
+            {isQuizMode ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800">수행할 수어</h3>
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <div className="text-6xl mb-6">🤟</div>
+                      <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                        "{currentSign.word}"
+                      </h2>
+                      <p className="text-gray-600">
+                        위 단어를 수어로 표현해보세요
+                      </p>
+                      {!quizStarted && (
+                        <p className="text-sm text-blue-600 mt-2">
+                          퀴즈가 자동으로 시작됩니다
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
+                <ExampleVideo keyword={currentSign.word} autoLoop={true} />
+              </div>
+            )}
 
             {/* 웹캠 및 컨트롤 */}
             <div className="space-y-4">
@@ -238,7 +291,7 @@ const Session = () => {
               <WebcamView isRecording={isRecording} />
               
               <div className="flex justify-center space-x-4">
-                {!isRecording && !feedback && (
+                {!isQuizMode && !isRecording && !feedback && (
                   <Button 
                     onClick={handleStartRecording}
                     className="bg-green-600 hover:bg-green-700"
@@ -257,17 +310,28 @@ const Session = () => {
                   </Button>
                 )}
                 
-                {feedback && (
+                {/* 학습 모드에서 오답일 때만 다시 시도 버튼 표시 */}
+                {feedback && !isQuizMode && feedback === 'incorrect' && (
                   <div className="flex space-x-2">
                     <Button onClick={handleRetry} variant="outline">
                       <RotateCcw className="h-4 w-4 mr-2" />
                       다시 시도
                     </Button>
-                    {feedback === 'correct' && (
-                      <Button onClick={handleNextSign} className="bg-blue-600 hover:bg-blue-700">
-                        다음으로
-                      </Button>
-                    )}
+                  </div>
+                )}
+                
+                {/* 자동 진행 메시지 */}
+                {feedback && (
+                  <div className="text-center">
+                    {isQuizMode ? (
+                      <p className="text-sm text-gray-600">
+                        {feedback === 'correct' ? '정답입니다!' : '오답입니다.'} 잠시 후 다음 문제로 넘어갑니다...
+                      </p>
+                    ) : feedback === 'correct' ? (
+                      <p className="text-sm text-green-600">
+                        정답입니다! 잠시 후 다음 수어로 넘어갑니다...
+                      </p>
+                    ) : null}
                   </div>
                 )}
               </div>
