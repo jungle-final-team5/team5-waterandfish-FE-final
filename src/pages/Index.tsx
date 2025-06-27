@@ -44,20 +44,20 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-100">
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">🤟</span>
+            <div className="w-8 h-8 bg-violet-200 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">🐟</span>
             </div>
-            <span className="text-xl font-bold text-gray-800">SignSense</span>
+            <span className="text-xl font-bold text-gray-800">수어지교</span>
           </div>
           <Button 
             variant="outline" 
             onClick={() => navigate('/login')}
-            className="hover:bg-blue-50"
+            className="hover:bg-violet-50"
           >
             로그인
           </Button>
@@ -70,7 +70,7 @@ const Index = () => {
         <div className="text-center max-w-4xl mx-auto mb-16">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-800 mb-6">
             인터랙티브 수어 학습의
-            <span className="text-blue-600 block">새로운 시작</span>
+            <span className="text-violet-600 block">새로운 시작</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-600 mb-8">
             실시간 모션 인식과 즉각적인 피드백으로 혼자서도 효과적으로 수어를 배워보세요
@@ -88,7 +88,7 @@ const Index = () => {
                   setSearchQuery(e.target.value);
                   handleSearch(e.target.value);
                 }}
-                className="pl-12 pr-4 py-4 text-lg border-2 border-gray-200 focus:border-blue-500 rounded-xl"
+                className="pl-12 pr-4 py-4 text-lg border-2 border-gray-200 focus:border-violet-500 rounded-xl"
               />
             </div>
 
@@ -99,7 +99,7 @@ const Index = () => {
                   <button
                     key={index}
                     onClick={() => handleSearchSelect(result)}
-                    className="w-full px-4 py-3 text-left hover:bg-blue-50 first:rounded-t-xl last:rounded-b-xl transition-colors"
+                    className="w-full px-4 py-3 text-left hover:bg-violet-50 first:rounded-t-xl last:rounded-b-xl transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-gray-800">{result}</span>
@@ -115,7 +115,7 @@ const Index = () => {
             <Button 
               size="lg" 
               onClick={handleStartLearning}
-              className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-4"
+              className="bg-violet-600 hover:bg-violet-700 text-lg px-8 py-4"
             >
               학습하러 가기
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -123,7 +123,7 @@ const Index = () => {
             <Button 
               variant="outline" 
               size="lg"
-              className="text-lg px-8 py-4 hover:bg-blue-50"
+              className="text-lg px-8 py-4 hover:bg-violet-50"
             >
               서비스 소개
             </Button>
@@ -167,7 +167,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="container mx-auto px-4 py-8 mt-16 border-t border-gray-200">
         <div className="text-center text-gray-600">
-          <p>&copy; 2024 SignSense. 모든 권리 보유.</p>
+          <p>&copy; 2025 수어지교. All right reserved.</p>
         </div>
       </footer>
     </div>
