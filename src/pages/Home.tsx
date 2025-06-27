@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -12,10 +12,18 @@ import {
   Settings
 } from 'lucide-react';
 import BadgeModal from '@/components/BadgeModal';
+import axios from 'axios';
 
 const Home = () => {
   const navigate = useNavigate();
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [todaySentence, setTodaySentence] = useState<string>('로딩 중...');
+
+  useEffect(() => {
+    axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/random-sentence`)
+      .then(res => setTodaySentence((res.data as { sentence: string }).sentence))
+      .catch(() => setTodaySentence('문장을 불러오지 못했습니다.'));
+  }, []);
 
   const handleCardClick = (cardType: string) => {
     switch (cardType) {
@@ -73,7 +81,7 @@ const Home = () => {
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Button
             onClick={() => navigate('/search')}
-            className="h-24 bg-blue-600 hover:bg-blue-700 flex-col space-y-2 transform hover:scale-105 transition-all duration-200"
+            className="h-24 bg-violet-600 hover:bg-violet-700 flex-col space-y-2 transform hover:scale-105 transition-all duration-200"
           >
             <Search className="h-8 w-8" />
             <span className="text-lg">수어 검색</span>
@@ -154,29 +162,29 @@ const Home = () => {
             onClick={() => handleCardClick('progress')}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-800 group-hover:text-purple-600 transition-colors">전체 진도율</h3>
-              <Target className="h-5 w-5 text-purple-600 group-hover:scale-110 transition-transform" />
+              <h3 className="font-semibold text-gray-800 group-hover:text-violet-600 transition-colors">전체 진도율</h3>
+              <Target className="h-5 w-5 text-violet-600 group-hover:scale-110 transition-transform" />
             </div>
             <p className="text-sm text-gray-600 mb-2">전체 과정</p>
             <div className="flex items-center space-x-2">
-              <p className="text-2xl font-bold text-purple-600">35%</p>
-              <div className="flex-1 bg-gray-200 rounded-full h-2 group-hover:bg-purple-100 transition-colors">
-                <div className="bg-purple-600 h-2 rounded-full group-hover:animate-pulse transition-all duration-500" style={{ width: '35%' }}></div>
+              <p className="text-2xl font-bold text-violet-600">35%</p>
+              <div className="flex-1 bg-gray-200 rounded-full h-2 group-hover:bg-violet-100 transition-colors">
+                <div className="bg-violet-600 h-2 rounded-full group-hover:animate-pulse transition-all duration-500" style={{ width: '35%' }}></div>
               </div>
             </div>
-            <div className="mt-3 text-xs text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="mt-3 text-xs text-violet-600 opacity-0 group-hover:opacity-100 transition-opacity">
               더 많은 과정을 완료해보세요! →
             </div>
           </div>
         </div>
 
         {/* 오늘의 문장 */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white mb-8 hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-[1.02]">
+        <div className="bg-gradient-to-r from-violet-500 to-violet-600 rounded-xl p-6 text-white mb-8 hover:from-violet-600 hover:to-violet-700 transition-all duration-300 transform hover:scale-[1.02]">
           <h3 className="text-xl font-semibold mb-2">오늘의 문장</h3>
-          <p className="text-2xl font-bold mb-4">"수고하셨습니다"</p>
+          <p className="text-2xl font-bold mb-4">"{todaySentence}"</p>
           <Button 
             variant="secondary"
-            onClick={() => navigate('/learn/수고하셨습니다')}
+            onClick={() => navigate(`/learn/${todaySentence}`)}
             className="hover:scale-105 transition-transform duration-200"
           >
             지금 배우기
