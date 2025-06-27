@@ -1,6 +1,6 @@
 import { useState } from "react";
 import API from '../components/AxiosInstance'
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 function MailIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@ export default function Login() {
             </button>
           </form>
           <p className="mt-3 text-center text-[14px] text-[#333] w-3/4 mx-auto">
-            아직 회원이 아니신가요? 그렇다면... <a href="/signup" className="text-[#7c3aed] underline font-bold">회원가입</a>
+            아직 회원이 아니신가요? 그렇다면... <Link to="/signup" className="text-[#7c3aed] underline font-bold">회원가입</Link>
           </p>
           <div className="text-center my-4 text-[#999] text-[14px] w-3/4 mx-auto">OR</div>
           {/* 소셜 로그인 */}
