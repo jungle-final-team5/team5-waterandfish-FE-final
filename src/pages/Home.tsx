@@ -16,6 +16,7 @@ import StreakModal from '@/components/StreakModal';
 import ProgressModal from '@/components/ProgressModal';
 import { useToast } from '@/hooks/use-toast';
 import { useLearningData } from '@/hooks/useLearningData';
+import API from '@/components/AxiosInstance';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -26,10 +27,44 @@ const Home = () => {
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [nickname, setNickname] = useState<string>('학습자님');
 
+  // 추천 수어 상태 추가
+  const [recommendedSign, setRecommendedSign] = useState<{
+    word: string;
+    categoryId: string;
+    categoryDescription: string;
+  } | null>(null);
+
+  const [recentLearning, setRecentLearning] = useState<{
+    category: string;
+    word: string;
+  } | null>(null);
+
   useEffect(() => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
-  }, []);
+
+    // 최근 학습 불러오기
+    API.get<{category: string; word: string;}>('/api/recent-learning')
+      .then(res => {
+        if (res.data && res.data.word) {
+          setRecentLearning(res.data);
+        }
+      })
+      .catch(() => setRecentLearning(null));
+
+    // 모든 sign을 flat하게 모아서 랜덤 추천
+    const allSigns = categories.flatMap(cat =>
+      cat.chapters.flatMap(chap => chap.signs.map(sign => ({
+        ...sign,
+        categoryId: cat.id,
+        categoryDescription: cat.description
+      })))
+    );
+    if (allSigns.length > 0) {
+      const randomIdx = Math.floor(Math.random() * allSigns.length);
+      setRecommendedSign(allSigns[randomIdx]);
+    }
+  }, [categories]);
 
   // 실제 데이터를 기반으로 전체 진도율 계산
   const calculateOverallProgress = () => {
@@ -168,17 +203,23 @@ const Home = () => {
           {/* 최근 학습 */}
           <div 
             className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer group border border-blue-100"
-            onClick={() => handleCardClick('recent')}
+            onClick={() => recentLearning && navigate(`/learn/${encodeURIComponent(recentLearning.word)}`)}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">최근 학습</h3>
               <BookOpen className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
             </div>
-            <p className="text-sm text-gray-600 mb-2">기본 인사말</p>
-            <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">안녕하세요</p>
-            <div className="mt-4 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
-              클릭해서 계속 학습하기 →
-            </div>
+            {recentLearning ? (
+              <>
+                <p className="text-sm text-gray-600 mb-2">{recentLearning.category}</p>
+                <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{recentLearning.word}</p>
+                <div className="mt-4 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  클릭해서 계속 학습하기 →
+                </div>
+              </>
+            ) : (
+              <p className="text-gray-400 text-center py-6">최근 학습 기록이 없습니다</p>
+            )}
           </div>
 
           {/* 연속 학습 */}
@@ -245,14 +286,19 @@ const Home = () => {
               <h3 className="text-2xl font-bold mb-3 flex items-center">
                 ✨ 오늘의 추천 수어
               </h3>
-              <p className="text-3xl font-bold mb-4">"수고하셨습니다"</p>
-              <p className="text-blue-100 mb-6">일상에서 자주 사용하는 감사 표현을 배워보세요</p>
+              <p className="text-3xl font-bold mb-4">
+                {recommendedSign ? `"${recommendedSign.word}"` : '...'}
+              </p>
+              <p className="text-blue-100 mb-6">
+                {recommendedSign?.categoryDescription || '랜덤 추천 수어를 배워보세요'}
+              </p>
             </div>
           </div>
           <Button 
             variant="secondary"
-            onClick={() => navigate('/learn/수고하셨습니다')}
+            onClick={() => recommendedSign && navigate(`/learn/${encodeURIComponent(recommendedSign.word)}`)}
             className="bg-white/90 hover:bg-white/100 border-white/90 hover:scale-105 transition-all duration-200 backdrop-blur-sm"
+            disabled={!recommendedSign}
           >
             <BookOpen className="h-4 w-4 mr-2" />
             지금 배우기
