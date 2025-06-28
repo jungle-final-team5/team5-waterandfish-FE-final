@@ -31,7 +31,7 @@ const Chapters = () => {
             <Button
               variant="ghost"
               onClick={() => navigate('/learn')}
-              className="hover:bg-blue-50"
+              className="hover:bg-violet-50"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               카테고리로
@@ -79,7 +79,7 @@ const Chapters = () => {
                 <div className="flex space-x-3">
                   <Button 
                     onClick={() => navigate(`/learn/session/${categoryId}/${chapter.id}/learning`)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-violet-600 hover:bg-violet-700"
                   >
                     <Play className="h-4 w-4 mr-2" />
                     학습하기
