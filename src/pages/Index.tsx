@@ -44,7 +44,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-100">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100">
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
@@ -126,8 +126,8 @@ const Index = () => {
         {/* Features Section */}
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           <div className="text-center p-6 bg-white rounded-xl shadow-sm">
-            <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Target className="h-8 w-8 text-violet-600" />
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Target className="h-8 w-8 text-blue-600" />
             </div>
             <h3 className="text-xl font-semibold mb-3">실시간 피드백</h3>
             <p className="text-gray-600">
