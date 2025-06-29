@@ -16,6 +16,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import WebcamView from '@/components/WebcamView';
+import ExampleAnim from '@/components/ExampleAnim';
 import ExampleVideo from '@/components/ExampleVideo';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 
@@ -162,6 +163,7 @@ const Learn = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
               <ExampleVideo keyword={learningData.keyword} />
+             
               
               {currentStepData.type === 'example' && (
                 <div className="flex justify-center">
