@@ -1,6 +1,7 @@
 import { useState } from "react";
 import API from '../components/AxiosInstance'
 import { useNavigate, Link } from "react-router-dom";
+
 function MailIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -8,6 +9,7 @@ function MailIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
 function LockIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -22,15 +24,36 @@ export default function Login() {
   const [emailFocus, setEmailFocus] = useState(false);
   const [pwFocus, setPwFocus] = useState(false);
   const navigator = useNavigate();
-  // 로그인 연동 확인용 submit 함수
+
   const login = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await API.post('auth/signin', { email:email, password:pw });
+      const response = await API.post('auth/signin', { email: email, password: pw });
+      
+      // localStorage 완전 초기화 후 새로운 데이터 저장
+      localStorage.clear();
+      
+      // 토큰은 쿠키에 저장되므로 사용자 정보만 localStorage에 저장
+      const userData = (response.data as any).user;
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('nickname', userData.nickname);
+      
+      alert('로그인 성공!');
       navigator('/home');
-    } catch {
-      alert('❌ 로그인 실패');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || '로그인에 실패했습니다.';
+      alert(`❌ ${errorMessage}`);
     }
+  };
+
+  // Google 소셜 로그인
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+  };
+
+  // Kakao 소셜 로그인
+  const handleKakaoLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`;
   };
 
   return (
@@ -111,7 +134,7 @@ export default function Login() {
             {/* 구글 로그인 */}
             <button
               type="button"
-              onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`}
+              onClick={handleGoogleLogin}
               className="flex items-center justify-center h-12 w-full rounded-[8px] bg-white shadow-[0_4px_10px_rgba(100,100,100,0.25)] border border-[#e0e0e0]"
             >
               <img src="/search 1.svg" alt="Google" className="w-6 h-6 mr-8 ml-5" />
@@ -120,7 +143,7 @@ export default function Login() {
             {/* 카카오 로그인 */}
             <button
               type="button"
-              onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`}
+              onClick={handleKakaoLogin}
               className="flex items-center justify-center h-12 w-full rounded-[8px] bg-[#FEE500] shadow-[0_4px_10px_rgba(100,100,100,0.25)] border-none"
             >
               <img src="/kakao_login_medium_narrow.png" alt="Kakao" className="w-50 h-12" />

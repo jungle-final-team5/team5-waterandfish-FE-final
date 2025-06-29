@@ -16,6 +16,7 @@ import StreakModal from '@/components/StreakModal';
 import ProgressModal from '@/components/ProgressModal';
 import { useToast } from '@/hooks/use-toast';
 import { useLearningData } from '@/hooks/useLearningData';
+import API from '@/components/AxiosInstance';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -56,14 +57,24 @@ const Home = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // 백엔드 로그아웃 API 호출 (쿠키 삭제)
+      await API.post('auth/logout');
+    } catch (error) {
+      console.error('로그아웃 API 호출 실패:', error);
+    }
+    
+    // localStorage 클리어
+    localStorage.clear();
+    
     toast({
       title: "로그아웃",
       description: "성공적으로 로그아웃되었습니다.",
     });
     
     setTimeout(() => {
-      navigate('/login');
+      navigate('/');
     }, 1000);
   };
 
@@ -120,7 +131,7 @@ const Home = () => {
         {/* Welcome Section */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-violet-600 mb-3">
-            {getGreeting()}, {nickname}! 👋
+            {getGreeting()}, {nickname}님! 👋
           </h1>
           <p className="text-gray-600 text-lg">오늘도 수어 학습을 시작해볼까요?</p>
         </div>
