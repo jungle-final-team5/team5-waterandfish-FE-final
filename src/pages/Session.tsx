@@ -21,6 +21,7 @@ import { SignWord } from '@/types/learning';
 const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
+
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
 
   const [data, setData] = useState(null);
@@ -111,22 +112,41 @@ const Session = () => {
   };
 
   // 학습 모드에서 자동 시작
-  useEffect(() => {
-    if (!isQuizMode && currentSign && !feedback && !autoStarted) {
-      // 2초 후 자동으로 시작
-      const timer = setTimeout(() => {
-        handleStartRecording();
-        setAutoStarted(true);
-      }, 2000);
 
-      return () => clearTimeout(timer);
+  useEffect(() => {
+    if (isPlaying && data) {
+      animationIntervalRef.current = setInterval(() => {
+        console.log(`[Session] 프레임 업데이트: ${currentFrame} → ${currentFrame + 1}`);
+        if (currentFrame < data.pose.length - 1) {
+          setCurrentFrame(prev => prev + 1);
+        } else {
+          setCurrentFrame(0);
+        }
+      }, 1000 / animationSpeed);
+    } else {
+      if (animationIntervalRef.current) {
+        clearInterval(animationIntervalRef.current);
+        animationIntervalRef.current = null;
+      }
     }
-  }, [currentSignIndex, isQuizMode, currentSign, feedback, autoStarted]);
 
-  // 새로운 문제로 넘어갈 때 autoStarted 리셋
-  useEffect(() => {
-    setAutoStarted(false);
-  }, [currentSignIndex]);
+    return () => {
+      if (animationIntervalRef.current) {
+        clearInterval(animationIntervalRef.current);
+      }
+    };
+  }, [isPlaying, animationSpeed, data, currentFrame]);
+
+  const loadData = async () => {
+    try {
+      // 첫 번째 JSON 파일만 로드
+      const response = await fetch('/result/KETI_SL_0000000414_landmarks.json');
+      const landmarkData = await response.json();
+      setData(landmarkData);
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+    }
+  };
 
   const handleStartRecording = () => {
     setIsRecording(true);
@@ -234,6 +254,27 @@ const Session = () => {
     setTimerActive(false);
     setQuizStarted(false);
     setAutoStarted(false);
+  };
+
+  // 누락된 함수들 추가
+  const markSignCompleted = (signId: string) => {
+    // 수어 완료 처리 로직
+    console.log('수어 완료:', signId);
+  };
+
+  const getChapterProgress = (chapter: any) => {
+    // 챕터 진행률 계산 로직
+    return { percentage: 0 };
+  };
+
+  const markChapterCompleted = (chapterId: string) => {
+    // 챕터 완료 처리 로직
+    console.log('챕터 완료:', chapterId);
+  };
+
+  const markCategoryCompleted = (categoryId: string) => {
+    // 카테고리 완료 처리 로직
+    console.log('카테고리 완료:', categoryId);
   };
 
   if (!category || !chapter || !currentSign) {
@@ -372,6 +413,7 @@ const Session = () => {
                 <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
                 {/* <ExampleVideo keyword={currentSign.word} autoLoop={true} /> */}
                 <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
+
               </div>
             )}
 
