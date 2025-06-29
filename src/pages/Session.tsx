@@ -21,7 +21,6 @@ import { SignWord } from '@/types/learning';
 const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
-
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
 
   const [data, setData] = useState(null);
@@ -77,42 +76,6 @@ const Session = () => {
   }, [currentSignIndex, isQuizMode, currentSign, feedback]);
 
   // 애니메이션 재생/정지 처리
-  useEffect(() => {
-    if (isPlaying && data) {
-      animationIntervalRef.current = setInterval(() => {
-        if (currentFrame < data.pose.length - 1) {
-          setCurrentFrame(prev => prev + 1);
-        } else {
-          setCurrentFrame(0);
-        }
-      }, 1000 / animationSpeed);
-    } else {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current);
-        animationIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current);
-      }
-    };
-  }, [isPlaying, animationSpeed, data, currentFrame]);
-
-    const loadData = async () => {
-    try {
-      // 첫 번째 JSON 파일만 로드
-      const response = await fetch('/result/KETI_SL_0000000414_landmarks.json');
-      const landmarkData = await response.json();
-      setData(landmarkData);
-    } catch (error) {
-      console.error('데이터 로드 실패:', error);
-    }
-  };
-
-  // 학습 모드에서 자동 시작
-
   useEffect(() => {
     if (isPlaying && data) {
       animationIntervalRef.current = setInterval(() => {
@@ -254,27 +217,6 @@ const Session = () => {
     setTimerActive(false);
     setQuizStarted(false);
     setAutoStarted(false);
-  };
-
-  // 누락된 함수들 추가
-  const markSignCompleted = (signId: string) => {
-    // 수어 완료 처리 로직
-    console.log('수어 완료:', signId);
-  };
-
-  const getChapterProgress = (chapter: any) => {
-    // 챕터 진행률 계산 로직
-    return { percentage: 0 };
-  };
-
-  const markChapterCompleted = (chapterId: string) => {
-    // 챕터 완료 처리 로직
-    console.log('챕터 완료:', chapterId);
-  };
-
-  const markCategoryCompleted = (categoryId: string) => {
-    // 카테고리 완료 처리 로직
-    console.log('카테고리 완료:', categoryId);
   };
 
   if (!category || !chapter || !currentSign) {
