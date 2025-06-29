@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -12,7 +12,7 @@ import {
   Clock
 } from 'lucide-react';
 import WebcamView from '@/components/WebcamView';
-import ExampleVideo from '@/components/ExampleVideo';
+import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import QuizTimer from '@/components/QuizTimer';
 import { useLearningData } from '@/hooks/useLearningData';
@@ -22,7 +22,10 @@ const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
   const { getCategoryById, getChapterById, addToReview } = useLearningData();
-  
+
+  const [data, setData] = useState(null);
+  const [currentFrame, setCurrentFrame] = useState(0);
+
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -32,12 +35,20 @@ const Session = () => {
   const [quizResults, setQuizResults] = useState<{signId: string, correct: boolean, timeSpent: number}[]>([]);
   const [quizStarted, setQuizStarted] = useState(false);
 
+  const [isPlaying, setIsPlaying] = useState(true); // 자동 재생 활성화
+  const [animationSpeed, setAnimationSpeed] = useState(5);
+  const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const isQuizMode = sessionType === 'quiz';
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
 
   const category = categoryId ? getCategoryById(categoryId) : null;
   const chapter = categoryId && chapterId ? getChapterById(categoryId, chapterId) : null;
   const currentSign = chapter?.signs[currentSignIndex];
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   useEffect(() => {
     if (chapter) {
@@ -62,6 +73,42 @@ const Session = () => {
       return () => clearTimeout(timer);
     }
   }, [currentSignIndex, isQuizMode, currentSign, feedback]);
+
+  // 애니메이션 재생/정지 처리
+  useEffect(() => {
+    if (isPlaying && data) {
+      animationIntervalRef.current = setInterval(() => {
+        console.log(`[Session] 프레임 업데이트: ${currentFrame} → ${currentFrame + 1}`);
+        if (currentFrame < data.pose.length - 1) {
+          setCurrentFrame(prev => prev + 1);
+        } else {
+          setCurrentFrame(0);
+        }
+      }, 1000 / animationSpeed);
+    } else {
+      if (animationIntervalRef.current) {
+        clearInterval(animationIntervalRef.current);
+        animationIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (animationIntervalRef.current) {
+        clearInterval(animationIntervalRef.current);
+      }
+    };
+  }, [isPlaying, animationSpeed, data, currentFrame]);
+
+    const loadData = async () => {
+    try {
+      // 첫 번째 JSON 파일만 로드
+      const response = await fetch('/result/KETI_SL_0000000414_landmarks.json');
+      const landmarkData = await response.json();
+      setData(landmarkData);
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+    }
+  };
 
   const handleStartRecording = () => {
     setIsRecording(true);
@@ -281,7 +328,8 @@ const Session = () => {
             ) : (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
-                <ExampleVideo keyword={currentSign.word} autoLoop={true} />
+                {/* <ExampleVideo keyword={currentSign.word} autoLoop={true} /> */}
+                <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
               </div>
             )}
 
