@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +19,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import API from '@/components/AxiosInstance';
 
 const Profile = () => {
   const [nickname, setNickname] = useState('사용자');
@@ -63,24 +63,36 @@ const Profile = () => {
     setConfirmPassword('');
   };
 
-  const handleAccountDelete = () => {
-    if (deletePassword !== '123456') {
+  // 회원 탈퇴(비밀번호 검증 포함)
+  const handleAccountDelete = async () => {
+    if (!deletePassword) {
       toast({
         title: "오류",
-        description: "비밀번호가 일치하지 않습니다.",
+        description: "비밀번호를 입력하세요.",
         variant: "destructive",
       });
       return;
     }
 
-    toast({
-      title: "탈퇴 완료",
-      description: "계정이 성공적으로 삭제되었습니다.",
-    });
-    
-    setTimeout(() => {
-      navigate('/');
-    }, 1500);
+    try {
+      await API.delete('user/delete-account', {
+        data: { password: deletePassword }
+      } as any); // 타입 에러 방지용 as any
+      toast({
+        title: "탈퇴 완료",
+        description: "계정이 성공적으로 삭제되었습니다.",
+      });
+      localStorage.clear();
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+    } catch (error: any) {
+      toast({
+        title: "오류",
+        description: error?.response?.data?.detail || "계정 삭제에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -293,20 +305,20 @@ const Profile = () => {
                         <AlertDialogTitle>계정 탈퇴</AlertDialogTitle>
                         <AlertDialogDescription>
                           정말로 계정을 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-                          <div className="mt-4">
-                            <Label htmlFor="deletePassword" className="text-sm font-medium">
-                              비밀번호 확인
-                            </Label>
-                            <Input
-                              id="deletePassword"
-                              type="password"
-                              placeholder="비밀번호를 입력하세요"
-                              value={deletePassword}
-                              onChange={(e) => setDeletePassword(e.target.value)}
-                              className="mt-2"
-                            />
-                          </div>
                         </AlertDialogDescription>
+                        <div className="mt-4">
+                          <Label htmlFor="deletePassword" className="text-sm font-medium">
+                            비밀번호 확인
+                          </Label>
+                          <Input
+                            id="deletePassword"
+                            type="password"
+                            placeholder="비밀번호를 입력하세요"
+                            value={deletePassword}
+                            onChange={(e) => setDeletePassword(e.target.value)}
+                            className="mt-2"
+                          />
+                        </div>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setDeletePassword('')}>
