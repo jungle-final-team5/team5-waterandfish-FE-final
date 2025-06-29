@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Category, Chapter, SignWord, QuizResult } from '@/types/learning';
 
 // 샘플 데이터
@@ -61,9 +61,40 @@ const sampleCategories: Category[] = [
   }
 ];
 
+interface LearningProgress {
+  completedSigns: Set<string>;
+  completedChapters: Set<string>;
+  completedCategories: Set<string>;
+}
+
 export const useLearningData = () => {
   const [categories] = useState<Category[]>(sampleCategories);
   const [reviewSigns, setReviewSigns] = useState<SignWord[]>([]);
+  const [progress, setProgress] = useState<LearningProgress>(() => {
+    const saved = localStorage.getItem('learningProgress');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        completedSigns: new Set(parsed.completedSigns || []),
+        completedChapters: new Set(parsed.completedChapters || []),
+        completedCategories: new Set(parsed.completedCategories || [])
+      };
+    }
+    return {
+      completedSigns: new Set(['hello', 'goodbye', 'happy', 'sad']), // 샘플 데이터
+      completedChapters: new Set(['basic-emotions']), // 샘플 데이터
+      completedCategories: new Set(['emotions']) // 샘플 데이터
+    };
+  });
+
+  useEffect(() => {
+    const progressData = {
+      completedSigns: Array.from(progress.completedSigns),
+      completedChapters: Array.from(progress.completedChapters),
+      completedCategories: Array.from(progress.completedCategories)
+    };
+    localStorage.setItem('learningProgress', JSON.stringify(progressData));
+  }, [progress]);
 
   const getCategoryById = (id: string): Category | undefined => {
     return categories.find(cat => cat.id === id);
@@ -87,12 +118,64 @@ export const useLearningData = () => {
     setReviewSigns(prev => prev.filter(s => s.id !== signId));
   };
 
+  const markSignCompleted = (signId: string) => {
+    setProgress(prev => ({
+      ...prev,
+      completedSigns: new Set([...prev.completedSigns, signId])
+    }));
+  };
+
+  const markChapterCompleted = (chapterId: string) => {
+    setProgress(prev => ({
+      ...prev,
+      completedChapters: new Set([...prev.completedChapters, chapterId])
+    }));
+  };
+
+  const markCategoryCompleted = (categoryId: string) => {
+    setProgress(prev => ({
+      ...prev,
+      completedCategories: new Set([...prev.completedCategories, categoryId])
+    }));
+  };
+
+  const getChapterProgress = (chapter: Chapter): { completed: number; total: number; percentage: number } => {
+    const completed = chapter.signs.filter(sign => progress.completedSigns.has(sign.id)).length;
+    const total = chapter.signs.length;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { completed, total, percentage };
+  };
+
+  const getCategoryProgress = (category: Category): { completed: number; total: number; percentage: number } => {
+    const allSigns = category.chapters.flatMap(chapter => chapter.signs);
+    const completed = allSigns.filter(sign => progress.completedSigns.has(sign.id)).length;
+    const total = allSigns.length;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { completed, total, percentage };
+  };
+
+  const isChapterCompleted = (chapterId: string): boolean => {
+    return progress.completedChapters.has(chapterId);
+  };
+
+  const isCategoryCompleted = (categoryId: string): boolean => {
+    return progress.completedCategories.has(categoryId);
+  };
+
   return {
     categories,
     reviewSigns,
+    progress,
     getCategoryById,
     getChapterById,
     addToReview,
-    removeFromReview
+    removeFromReview,
+    markSignCompleted,
+    markChapterCompleted,
+    markCategoryCompleted,
+    getChapterProgress,
+    getCategoryProgress,
+    isChapterCompleted,
+    isCategoryCompleted
   };
 };

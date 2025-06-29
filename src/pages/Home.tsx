@@ -14,19 +14,30 @@ import {
 import BadgeModal from '@/components/BadgeModal';
 import StreakModal from '@/components/StreakModal';
 import ProgressModal from '@/components/ProgressModal';
+import HandPreferenceModal from '@/components/HandPreferenceModal';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { useLearningData } from '@/hooks/useLearningData';
 import API from '@/components/AxiosInstance';
 
 const Home = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { logout } = useAuth();
   const { categories } = useLearningData();
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [nickname, setNickname] = useState<string>('학습자님');
+  const [isHandPreferenceModalOpen, setIsHandPreferenceModalOpen] = useState(false);
 
+  // 첫 방문 확인 및 손 선호도 모달 표시
+  useEffect(() => {
+    const hasSetHandPreference = localStorage.getItem('hasSetHandPreference');
+    if (!hasSetHandPreference) {
+      setIsHandPreferenceModalOpen(true);
+    }
+  }, []);
   // 추천 수어 상태 추가
   const [recommendedSign, setRecommendedSign] = useState<{
     word: string;
@@ -394,6 +405,10 @@ const Home = () => {
       <ProgressModal 
         isOpen={isProgressModalOpen} 
         onClose={() => setIsProgressModalOpen(false)} 
+      />
+      <HandPreferenceModal
+        isOpen={isHandPreferenceModalOpen} 
+        onClose={() => setIsHandPreferenceModalOpen(false)} 
       />
     </div>
   );
