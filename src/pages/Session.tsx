@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import WebcamView from '@/components/WebcamView';
 import ExampleAnim from '@/components/ExampleAnim';
+import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import QuizTimer from '@/components/QuizTimer';
 import { useLearningData } from '@/hooks/useLearningData';
@@ -22,6 +24,10 @@ const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
   const { getCategoryById, getChapterById, addToReview } = useLearningData();
+
+  const [data, setData] = useState(null);
+  const [currentFrame, setCurrentFrame] = useState(0);
+
 
   const [data, setData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -39,12 +45,20 @@ const Session = () => {
   const [animationSpeed, setAnimationSpeed] = useState(5);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [isPlaying, setIsPlaying] = useState(true); // 자동 재생 활성화
+  const [animationSpeed, setAnimationSpeed] = useState(5);
+  const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const isQuizMode = sessionType === 'quiz';
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
 
   const category = categoryId ? getCategoryById(categoryId) : null;
   const chapter = categoryId && chapterId ? getChapterById(categoryId, chapterId) : null;
   const currentSign = chapter?.signs[currentSignIndex];
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -78,6 +92,7 @@ const Session = () => {
   useEffect(() => {
     if (isPlaying && data) {
       animationIntervalRef.current = setInterval(() => {
+        console.log(`[Session] 프레임 업데이트: ${currentFrame} → ${currentFrame + 1}`);
         if (currentFrame < data.pose.length - 1) {
           setCurrentFrame(prev => prev + 1);
         } else {
@@ -351,6 +366,8 @@ const Session = () => {
             ) : (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
+                {/* <ExampleVideo keyword={currentSign.word} autoLoop={true} /> */}
+                <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
                 {/* <ExampleVideo keyword={currentSign.word} autoLoop={true} /> */}
                 <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
               </div>
