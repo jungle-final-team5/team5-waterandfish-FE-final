@@ -1,4 +1,3 @@
-// src/pages/Signup.tsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import API from '../components/AxiosInstance';
@@ -31,17 +30,17 @@ function UserIcon(props: React.SVGProps<SVGSVGElement>) {
 export default function Signup() {
   const [email, setEmail] = useState('');
   const [nickname, setNickname] = useState('');
-  const [password1, setPassword1] = useState('');
-  const [password2, setPassword2] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [emailFocus, setEmailFocus] = useState(false);
   const [nicknameFocus, setNicknameFocus] = useState(false);
-  const [pw1Focus, setPw1Focus] = useState(false);
-  const [pw2Focus, setPw2Focus] = useState(false);
+  const [passwordFocus, setPasswordFocus] = useState(false);
+  const [confirmPasswordFocus, setConfirmPasswordFocus] = useState(false);
   const navigator = useNavigate();
 
   const signup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (password1 !== password2) {
+    if (password !== confirmPassword) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
@@ -49,14 +48,23 @@ export default function Signup() {
       await API.post('user/signup', { 
         email, 
         nickname, 
-        password1,   // ← 백엔드 DTO와 맞춤!
-        password2    // ← 백엔드 DTO와 맞춤!
+        password: password   // password로 보내야 함
       });
       alert('회원가입 성공!');
       navigator('/login');
     } catch {
       alert('❌ 회원가입 실패');
     }
+  };
+
+  // Google 소셜 로그인
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+  };
+
+  // Kakao 소셜 로그인
+  const handleKakaoLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`;
   };
 
   return (
@@ -128,16 +136,16 @@ export default function Signup() {
               </span>
               <input
                 type="password"
-                value={password1}
-                onChange={e => setPassword1(e.target.value)}
-                onFocus={() => setPw1Focus(true)}
-                onBlur={() => setPw1Focus(false)}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onFocus={() => setPasswordFocus(true)}
+                onBlur={() => setPasswordFocus(false)}
                 className="w-full pl-10 pr-3 py-3 border border-[#ccc] rounded-[8px] outline-none bg-white text-[16px] font-medium peer"
                 required
               />
               <label
                 className={`absolute left-10 top-1/2 -translate-y-1/2 text-[#b0a7c3] bg-white px-1 pointer-events-none transition-all duration-200
-                  ${pw1Focus || password1
+                  ${passwordFocus || password
                     ? 'text-xs top-2 -translate-y-0'
                     : 'text-base'
                   }`}
@@ -152,16 +160,16 @@ export default function Signup() {
               </span>
               <input
                 type="password"
-                value={password2}
-                onChange={e => setPassword2(e.target.value)}
-                onFocus={() => setPw2Focus(true)}
-                onBlur={() => setPw2Focus(false)}
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                onFocus={() => setConfirmPasswordFocus(true)}
+                onBlur={() => setConfirmPasswordFocus(false)}
                 className="w-full pl-10 pr-3 py-3 border border-[#ccc] rounded-[8px] outline-none bg-white text-[16px] font-medium peer"
                 required
               />
               <label
                 className={`absolute left-10 top-1/2 -translate-y-1/2 text-[#b0a7c3] bg-white px-1 pointer-events-none transition-all duration-200
-                  ${pw2Focus || password2
+                  ${confirmPasswordFocus || confirmPassword
                     ? 'text-xs top-2 -translate-y-0'
                     : 'text-base'
                   }`}
@@ -185,7 +193,7 @@ export default function Signup() {
             {/* 구글 회원가입 */}
             <button
               type="button"
-              onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`}
+              onClick={handleGoogleLogin}
               className="flex items-center justify-center h-12 w-full rounded-[8px] bg-white shadow-[0_4px_10px_rgba(100,100,100,0.25)] border border-[#e0e0e0]"
             >
               <img src="/search 1.svg" alt="Google" className="w-6 h-6 mr-8 ml-5" />
@@ -194,7 +202,7 @@ export default function Signup() {
             {/* 카카오 회원가입 */}
             <button
               type="button"
-              onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`}
+              onClick={handleKakaoLogin}
               className="flex items-center justify-center h-12 w-full rounded-[8px] bg-[#FEE500] shadow-[0_4px_10px_rgba(100,100,100,0.25)] border-none"
             >
               <img src="/kakao_login_medium_narrow.png" alt="Kakao" className="w-50 h-12" />
