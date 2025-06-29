@@ -78,7 +78,6 @@ const Session = () => {
   useEffect(() => {
     if (isPlaying && data) {
       animationIntervalRef.current = setInterval(() => {
-        console.log(`[Session] 프레임 업데이트: ${currentFrame} → ${currentFrame + 1}`);
         if (currentFrame < data.pose.length - 1) {
           setCurrentFrame(prev => prev + 1);
         } else {

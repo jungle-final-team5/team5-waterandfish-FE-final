@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -21,12 +21,58 @@ import ExampleVideo from '@/components/ExampleVideo';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 
 const Learn = () => {
+  const [data, setData] = useState(null);
+  const [currentFrame, setCurrentFrame] = useState(0);
+
   const navigate = useNavigate();
   const { keyword } = useParams();
   const [currentStep, setCurrentStep] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [progress, setProgress] = useState(0);
+
+  const [isPlaying, setIsPlaying] = useState(true); // 자동 재생 활성화
+  const [animationSpeed, setAnimationSpeed] = useState(5);
+  const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+    loadData();
+  }, []);
+
+    // 애니메이션 재생/정지 처리
+  useEffect(() => {
+    if (isPlaying && data) {
+      animationIntervalRef.current = setInterval(() => {
+        if (currentFrame < data.pose.length - 1) {
+          setCurrentFrame(prev => prev + 1);
+        } else {
+          setCurrentFrame(0);
+        }
+      }, 1000 / animationSpeed);
+    } else {
+      if (animationIntervalRef.current) {
+        clearInterval(animationIntervalRef.current);
+        animationIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (animationIntervalRef.current) {
+        clearInterval(animationIntervalRef.current);
+      }
+    };
+  }, [isPlaying, animationSpeed, data, currentFrame]);
+
+    const loadData = async () => {
+    try {
+      // 첫 번째 JSON 파일만 로드
+      const response = await fetch('/result/KETI_SL_0000000414_landmarks.json');
+      const landmarkData = await response.json();
+      setData(landmarkData);
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+    }
+  };
 
   // 샘플 학습 데이터
   const learningData = {
@@ -162,7 +208,10 @@ const Learn = () => {
             {/* Example Video Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
-              <ExampleVideo keyword={learningData.keyword} />
+              {/* <ExampleVideo keyword={learningData.keyword} /> */}
+                <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
+
+
              
               
               {currentStepData.type === 'example' && (
