@@ -21,10 +21,12 @@ import { SignWord } from '@/types/learning';
 const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
-  const { getCategoryById, getChapterById, addToReview } = useLearningData();
+
+  const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
 
   const [data, setData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
+
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -75,6 +77,42 @@ const Session = () => {
   }, [currentSignIndex, isQuizMode, currentSign, feedback]);
 
   // 애니메이션 재생/정지 처리
+  useEffect(() => {
+    if (isPlaying && data) {
+      animationIntervalRef.current = setInterval(() => {
+        if (currentFrame < data.pose.length - 1) {
+          setCurrentFrame(prev => prev + 1);
+        } else {
+          setCurrentFrame(0);
+        }
+      }, 1000 / animationSpeed);
+    } else {
+      if (animationIntervalRef.current) {
+        clearInterval(animationIntervalRef.current);
+        animationIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (animationIntervalRef.current) {
+        clearInterval(animationIntervalRef.current);
+      }
+    };
+  }, [isPlaying, animationSpeed, data, currentFrame]);
+
+    const loadData = async () => {
+    try {
+      // 첫 번째 JSON 파일만 로드
+      const response = await fetch('/result/KETI_SL_0000000414_landmarks.json');
+      const landmarkData = await response.json();
+      setData(landmarkData);
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+    }
+  };
+
+  // 학습 모드에서 자동 시작
+
   useEffect(() => {
     if (isPlaying && data) {
       animationIntervalRef.current = setInterval(() => {
@@ -375,8 +413,7 @@ const Session = () => {
                 <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
                 {/* <ExampleVideo keyword={currentSign.word} autoLoop={true} /> */}
                 <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
-                {/* <ExampleVideo keyword={currentSign.word} autoLoop={true} /> */}
-                <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
+
               </div>
             )}
 

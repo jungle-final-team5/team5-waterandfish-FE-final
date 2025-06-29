@@ -207,15 +207,17 @@ const Learn = () => {
             {/* Example Video Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
+
               <ExampleVideo keyword={learningData.keyword} />
-             
+
               {/* <ExampleVideo keyword={learningData.keyword} /> */}
                 <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
 
 
              
+
               <ExampleVideo keyword={learningData.keyword} />
-              
+
               {currentStepData.type === 'example' && (
                 <div className="flex justify-center">
                   <Button onClick={handleNextStep} className="bg-blue-600 hover:bg-blue-700">
