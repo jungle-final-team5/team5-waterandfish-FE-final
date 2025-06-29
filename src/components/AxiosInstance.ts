@@ -29,48 +29,37 @@ const API = axios.create({
 
 // 응답 인터셉터 - 토큰 만료 처리
 API.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
+    // 401 에러 & 재시도 플래그가 없는 경우만 처리
     if (error.response?.status === 401 && !originalRequest._retry) {
       console.log('🔐 401 에러 감지 - 토큰 갱신 시작');
-      
+
       if (isRefreshing) {
-        console.log('⏳ 이미 토큰 갱신 중 - 대기열에 추가');
         // 이미 토큰 갱신 중이면 대기열에 추가
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(() => {
-          return API(originalRequest);
-        }).catch((err) => {
-          return Promise.reject(err);
-        });
+        })
+          .then(() => API(originalRequest))
+          .catch((err) => Promise.reject(err));
       }
-      
+
       originalRequest._retry = true;
       isRefreshing = true;
-      
+
       try {
-        console.log('🔄 토큰 갱신 요청 전송...');
         // 백엔드에서 자동으로 리프레시 토큰을 사용해 새 액세스 토큰 발급
-        const response = await API.post('auth/refresh');
-        console.log('✅ 토큰 갱신 성공');
-        
-        // 대기열에 있는 요청들 처리
-        processQueue(null, response.data);
-        
+        await API.post('auth/refresh');
+        processQueue(null);
+
         // 토큰 갱신 성공 시 원래 요청 재시도
-        console.log('🔄 원래 요청 재시도...');
         return API(originalRequest);
       } catch (refreshError) {
         // 리프레시 토큰도 만료된 경우 로그아웃
-        console.error('❌ 토큰 갱신 실패:', refreshError);
         processQueue(refreshError, null);
-        localStorage.removeItem('user');
-        localStorage.removeItem('nickname');
+        localStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
