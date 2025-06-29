@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,6 @@ import {
   BookOpen
 } from 'lucide-react';
 import WebcamView from '@/components/WebcamView';
-import ExampleAnim from '@/components/ExampleAnim';
 import ExampleAnim from '@/components/ExampleAnim';
 import ExampleVideo from '@/components/ExampleVideo';
 import FeedbackDisplay from '@/components/FeedbackDisplay';

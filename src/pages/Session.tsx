@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -14,7 +13,6 @@ import {
 } from 'lucide-react';
 import WebcamView from '@/components/WebcamView';
 import ExampleAnim from '@/components/ExampleAnim';
-import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import QuizTimer from '@/components/QuizTimer';
 import { useLearningData } from '@/hooks/useLearningData';
@@ -27,11 +25,6 @@ const Session = () => {
 
   const [data, setData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
-
-
-  const [data, setData] = useState(null);
-  const [currentFrame, setCurrentFrame] = useState(0);
-
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -44,10 +37,7 @@ const Session = () => {
   const [isPlaying, setIsPlaying] = useState(true); // 자동 재생 활성화
   const [animationSpeed, setAnimationSpeed] = useState(5);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const [isPlaying, setIsPlaying] = useState(true); // 자동 재생 활성화
-  const [animationSpeed, setAnimationSpeed] = useState(5);
-  const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [autoStarted, setAutoStarted] = useState(false);
 
   const isQuizMode = sessionType === 'quiz';
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
@@ -55,10 +45,6 @@ const Session = () => {
   const category = categoryId ? getCategoryById(categoryId) : null;
   const chapter = categoryId && chapterId ? getChapterById(categoryId, chapterId) : null;
   const currentSign = chapter?.signs[currentSignIndex];
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   useEffect(() => {
     loadData();
@@ -113,7 +99,7 @@ const Session = () => {
     };
   }, [isPlaying, animationSpeed, data, currentFrame]);
 
-    const loadData = async () => {
+  const loadData = async () => {
     try {
       // 첫 번째 JSON 파일만 로드
       const response = await fetch('/result/KETI_SL_0000000414_landmarks.json');
@@ -230,6 +216,27 @@ const Session = () => {
     setTimerActive(false);
     setQuizStarted(false);
     setAutoStarted(false);
+  };
+
+  // 누락된 함수들 추가
+  const markSignCompleted = (signId: string) => {
+    // 수어 완료 처리 로직
+    console.log('수어 완료:', signId);
+  };
+
+  const getChapterProgress = (chapter: any) => {
+    // 챕터 진행률 계산 로직
+    return { percentage: 0 };
+  };
+
+  const markChapterCompleted = (chapterId: string) => {
+    // 챕터 완료 처리 로직
+    console.log('챕터 완료:', chapterId);
+  };
+
+  const markCategoryCompleted = (categoryId: string) => {
+    // 카테고리 완료 처리 로직
+    console.log('카테고리 완료:', categoryId);
   };
 
   if (!category || !chapter || !currentSign) {
