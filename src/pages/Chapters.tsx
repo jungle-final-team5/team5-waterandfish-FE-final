@@ -2,13 +2,15 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, FileText, MessageSquare, Play } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 
 const Chapters = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
-  const { getCategoryById } = useLearningData();
+  const { getCategoryById, getChapterProgress, isChapterCompleted } = useLearningData();
 
   const category = categoryId ? getCategoryById(categoryId) : null;
 
@@ -31,7 +33,7 @@ const Chapters = () => {
             <Button
               variant="ghost"
               onClick={() => navigate('/learn')}
-              className="hover:bg-violet-50"
+              className="hover:bg-blue-50"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               카테고리로
@@ -48,52 +50,78 @@ const Chapters = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {category.chapters.map((chapter, index) => (
-            <Card key={chapter.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-3">
-                  {chapter.type === 'word' ? (
-                    <FileText className="h-6 w-6 text-blue-600" />
-                  ) : (
-                    <MessageSquare className="h-6 w-6 text-green-600" />
-                  )}
-                  <div>
-                    <span>챕터 {index + 1}: {chapter.title}</span>
-                    <div className="text-sm font-normal text-gray-600">
-                      {chapter.type === 'word' ? '단어' : '문장'} • {chapter.signs.length}개 수어
+          {category.chapters.map((chapter, index) => {
+            const chapterProgress = getChapterProgress(chapter);
+            const isCompleted = isChapterCompleted(chapter.id);
+            
+            return (
+              <Card key={chapter.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {chapter.type === 'word' ? (
+                        <FileText className="h-6 w-6 text-blue-600" />
+                      ) : (
+                        <MessageSquare className="h-6 w-6 text-green-600" />
+                      )}
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span>챕터 {index + 1}: {chapter.title}</span>
+                          {isCompleted && (
+                            <Badge className="bg-green-500 text-white text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              완료
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm font-normal text-gray-600">
+                          {chapter.type === 'word' ? '단어' : '문장'} • {chapter.signs.length}개 수어
+                        </div>
+                      </div>
                     </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* 진도 표시 */}
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-gray-600">학습 진도</span>
+                      <span className="text-sm font-semibold text-gray-800">
+                        {chapterProgress.completed}/{chapterProgress.total} ({chapterProgress.percentage}%)
+                      </span>
+                    </div>
+                    <Progress value={chapterProgress.percentage} className="h-2" />
                   </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-                  {chapter.signs.map((sign) => (
-                    <div 
-                      key={sign.id}
-                      className="text-center p-2 bg-gray-100 rounded text-sm"
+
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+                    {chapter.signs.map((sign) => (
+                      <div 
+                        key={sign.id}
+                        className="text-center p-2 bg-gray-100 rounded text-sm"
+                      >
+                        {sign.word}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex space-x-3">
+                    <Button 
+                      onClick={() => navigate(`/learn/session/${categoryId}/${chapter.id}/learning`)}
+                      className="bg-blue-600 hover:bg-blue-700"
                     >
-                      {sign.word}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex space-x-3">
-                  <Button 
-                    onClick={() => navigate(`/learn/session/${categoryId}/${chapter.id}/learning`)}
-                    className="bg-violet-600 hover:bg-violet-700"
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    학습하기
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => navigate(`/learn/session/${categoryId}/${chapter.id}/quiz`)}
-                  >
-                    퀴즈 풀기
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                      <Play className="h-4 w-4 mr-2" />
+                      {isCompleted ? '복습하기' : '학습하기'}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => navigate(`/learn/session/${categoryId}/${chapter.id}/quiz`)}
+                    >
+                      퀴즈 풀기
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </main>
     </div>
