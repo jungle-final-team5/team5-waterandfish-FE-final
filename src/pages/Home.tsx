@@ -43,6 +43,7 @@ const Home = () => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
 
+
     // 최근 학습 불러오기
     API.get<{category: string; word: string;}>('/api/recent-learning')
       .then(res => {
@@ -74,6 +75,14 @@ const Home = () => {
 
   const overallProgress = calculateOverallProgress();
 
+  // 실제 데이터를 기반으로 전체 진도율 계산
+  const calculateOverallProgress = () => {
+    const sampleProgress = [70, 100, 20, 45, 0]; // 각 카테고리별 진도율
+    return Math.round(sampleProgress.reduce((sum, progress) => sum + progress, 0) / sampleProgress.length);
+  };
+
+  const overallProgress = calculateOverallProgress();
+
   const handleCardClick = (cardType: string) => {
     switch (cardType) {
       case 'recent':
@@ -91,14 +100,26 @@ const Home = () => {
     }
   };
 
-  const handleLogout = () => {
+
+  const handleLogout = async () => {
+    try {
+      // 백엔드 로그아웃 API 호출 (쿠키 삭제)
+      await API.post('auth/logout');
+    } catch (error) {
+      console.error('로그아웃 API 호출 실패:', error);
+    }
+    
+    // localStorage 클리어
+    localStorage.clear();
+    
     toast({
       title: "로그아웃",
       description: "성공적으로 로그아웃되었습니다.",
     });
     
     setTimeout(() => {
-      navigate('/login');
+
+      navigate('/');
     }, 1000);
   };
 
@@ -155,7 +176,9 @@ const Home = () => {
         {/* Welcome Section */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-violet-600 mb-3">
-            {getGreeting()}, {nickname}! 👋
+
+            {getGreeting()}, {nickname}님! 👋
+
           </h1>
           <p className="text-gray-600 text-lg">오늘도 수어 학습을 시작해볼까요?</p>
         </div>
@@ -203,7 +226,9 @@ const Home = () => {
           {/* 최근 학습 */}
           <div 
             className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer group border border-blue-100"
+
             onClick={() => recentLearning && navigate(`/learn/${encodeURIComponent(recentLearning.word)}`)}
+
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">최근 학습</h3>
@@ -286,12 +311,14 @@ const Home = () => {
               <h3 className="text-2xl font-bold mb-3 flex items-center">
                 ✨ 오늘의 추천 수어
               </h3>
+
               <p className="text-3xl font-bold mb-4">
                 {recommendedSign ? `"${recommendedSign.word}"` : '...'}
               </p>
               <p className="text-blue-100 mb-6">
                 {recommendedSign?.categoryDescription || '랜덤 추천 수어를 배워보세요'}
               </p>
+
             </div>
           </div>
           <Button 
