@@ -216,6 +216,7 @@ const Learn = () => {
 
 
              
+              <ExampleVideo keyword={learningData.keyword} />
               
               {currentStepData.type === 'example' && (
                 <div className="flex justify-center">
