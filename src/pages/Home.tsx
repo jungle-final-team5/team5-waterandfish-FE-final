@@ -75,13 +75,6 @@ const Home = () => {
 
   const overallProgress = calculateOverallProgress();
 
-  // 실제 데이터를 기반으로 전체 진도율 계산
-  const calculateOverallProgress = () => {
-    const sampleProgress = [70, 100, 20, 45, 0]; // 각 카테고리별 진도율
-    return Math.round(sampleProgress.reduce((sum, progress) => sum + progress, 0) / sampleProgress.length);
-  };
-
-  const overallProgress = calculateOverallProgress();
 
   const handleCardClick = (cardType: string) => {
     switch (cardType) {
@@ -103,14 +96,18 @@ const Home = () => {
 
   const handleLogout = async () => {
     try {
+      console.log('🚪 로그아웃 시도...');
       // 백엔드 로그아웃 API 호출 (쿠키 삭제)
-      await API.post('auth/logout');
+      const response = await API.post('auth/logout');
+      console.log('✅ 로그아웃 API 성공:', response.data);
     } catch (error) {
-      console.error('로그아웃 API 호출 실패:', error);
+      console.error('❌ 로그아웃 API 호출 실패:', error);
+      // API 실패해도 프론트엔드에서는 로그아웃 처리
     }
     
     // localStorage 클리어
     localStorage.clear();
+    console.log('🧹 localStorage 클리어 완료');
     
     toast({
       title: "로그아웃",
@@ -118,7 +115,6 @@ const Home = () => {
     });
     
     setTimeout(() => {
-
       navigate('/');
     }, 1000);
   };
