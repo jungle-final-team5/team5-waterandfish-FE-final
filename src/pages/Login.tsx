@@ -1,6 +1,7 @@
 import { useState } from "react";
 import API from '../components/AxiosInstance'
 import { useNavigate, Link } from "react-router-dom";
+
 function MailIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -8,6 +9,7 @@ function MailIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
 function LockIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -22,15 +24,54 @@ export default function Login() {
   const [emailFocus, setEmailFocus] = useState(false);
   const [pwFocus, setPwFocus] = useState(false);
   const navigator = useNavigate();
-  // 로그인 연동 확인용 submit 함수
+
   const login = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await API.post('auth/signin', { email:email, password:pw });
+      console.log('🔐 로그인 시도:', { email });
+      const response = await API.post('auth/signin', { email: email, password: pw });
+      
+      console.log('📥 로그인 응답:', response.data);
+      
+      // localStorage 완전 초기화 후 새로운 데이터 저장
+      localStorage.clear();
+      
+      // 응답 구조 확인 및 사용자 정보 저장
+      let userData;
+      const responseData = response.data as any;
+      if (responseData.user) {
+        // 기존 구조: { user: { ... } }
+        userData = responseData.user;
+      } else if (responseData.nickname) {
+        // 새로운 구조: { nickname, email, ... }
+        userData = responseData;
+      } else {
+        console.error('❌ 예상치 못한 응답 구조:', responseData);
+        alert('로그인 응답 구조가 예상과 다릅니다.');
+        return;
+      }
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('nickname', userData.nickname);
+      
+      console.log('✅ 로그인 성공, 사용자 정보 저장됨:', userData);
+      alert('로그인 성공!');
       navigator('/home');
-    } catch {
-      alert('❌ 로그인 실패');
+    } catch (error: any) {
+      console.error('❌ 로그인 실패:', error);
+      const errorMessage = error.response?.data?.detail || '로그인에 실패했습니다.';
+      alert(`❌ ${errorMessage}`);
     }
+  };
+
+  // Google 소셜 로그인
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+  };
+
+  // Kakao 소셜 로그인
+  const handleKakaoLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`;
   };
 
   return (
@@ -111,7 +152,7 @@ export default function Login() {
             {/* 구글 로그인 */}
             <button
               type="button"
-              onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`}
+              onClick={handleGoogleLogin}
               className="flex items-center justify-center h-12 w-full rounded-[8px] bg-white shadow-[0_4px_10px_rgba(100,100,100,0.25)] border border-[#e0e0e0]"
             >
               <img src="/search 1.svg" alt="Google" className="w-6 h-6 mr-8 ml-5" />
@@ -120,7 +161,7 @@ export default function Login() {
             {/* 카카오 로그인 */}
             <button
               type="button"
-              onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/kakao`}
+              onClick={handleKakaoLogin}
               className="flex items-center justify-center h-12 w-full rounded-[8px] bg-[#FEE500] shadow-[0_4px_10px_rgba(100,100,100,0.25)] border-none"
             >
               <img src="/kakao_login_medium_narrow.png" alt="Kakao" className="w-50 h-12" />

@@ -52,8 +52,8 @@ const WebcamView = ({ isRecording = false }: WebcamViewProps) => {
   };
 
   return (
-    <Card className="relative overflow-hidden">
-      <div className="aspect-video bg-gray-900 relative">
+    <Card className="relative overflow-hidden h-full">
+      <div className="aspect-video bg-gray-900 relative h-full min-h-[400px]">
         {hasPermission ? (
           <>
             <video
@@ -65,15 +65,15 @@ const WebcamView = ({ isRecording = false }: WebcamViewProps) => {
             />
             {isRecording && (
               <div className="absolute inset-0 border-4 border-red-500 animate-pulse">
-                <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                <div className="absolute top-6 left-6 bg-red-500 text-white px-4 py-2 rounded-full text-base font-medium">
                   REC
                 </div>
               </div>
             )}
             {/* 손 가이드 오버레이 */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="border-2 border-dashed border-white/50 rounded-lg w-64 h-48 flex items-center justify-center">
-                <span className="text-white/70 text-sm">손을 이 영역에 위치시켜주세요</span>
+              <div className="border-3 border-dashed border-white/50 rounded-lg w-80 h-60 flex items-center justify-center">
+                <span className="text-white/70 text-lg">손을 이 영역에 위치시켜주세요</span>
               </div>
             </div>
           </>
@@ -81,17 +81,17 @@ const WebcamView = ({ isRecording = false }: WebcamViewProps) => {
           <div className="flex flex-col items-center justify-center h-full text-white">
             {error ? (
               <>
-                <CameraOff className="h-16 w-16 mb-4 text-gray-400" />
-                <p className="text-gray-400 mb-4 text-center">{error}</p>
-                <Button onClick={requestPermission} variant="outline" className="text-white border-white hover:bg-white hover:text-gray-900">
-                  <Camera className="h-4 w-4 mr-2" />
+                <CameraOff className="h-20 w-20 mb-6 text-gray-400" />
+                <p className="text-gray-400 mb-6 text-center text-lg">{error}</p>
+                <Button onClick={requestPermission} variant="outline" className="text-white border-white hover:bg-white hover:text-gray-900 text-lg px-6 py-3">
+                  <Camera className="h-5 w-5 mr-2" />
                   웹캠 권한 허용
                 </Button>
               </>
             ) : (
               <>
-                <Camera className="h-16 w-16 mb-4 text-gray-400" />
-                <p className="text-gray-400">웹캠을 연결하는 중...</p>
+                <Camera className="h-20 w-20 mb-6 text-gray-400" />
+                <p className="text-gray-400 text-lg">웹캠을 연결하는 중...</p>
               </>
             )}
           </div>

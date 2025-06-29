@@ -21,7 +21,7 @@ import { SignWord } from '@/types/learning';
 const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
-  const { getCategoryById, getChapterById, addToReview } = useLearningData();
+  const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
 
   const [data, setData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -38,6 +38,7 @@ const Session = () => {
   const [isPlaying, setIsPlaying] = useState(true); // 자동 재생 활성화
   const [animationSpeed, setAnimationSpeed] = useState(5);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [autoStarted, setAutoStarted] = useState(false);
 
   const isQuizMode = sessionType === 'quiz';
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
@@ -109,6 +110,24 @@ const Session = () => {
     }
   };
 
+  // 학습 모드에서 자동 시작
+  useEffect(() => {
+    if (!isQuizMode && currentSign && !feedback && !autoStarted) {
+      // 2초 후 자동으로 시작
+      const timer = setTimeout(() => {
+        handleStartRecording();
+        setAutoStarted(true);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentSignIndex, isQuizMode, currentSign, feedback, autoStarted]);
+
+  // 새로운 문제로 넘어갈 때 autoStarted 리셋
+  useEffect(() => {
+    setAutoStarted(false);
+  }, [currentSignIndex]);
+
   const handleStartRecording = () => {
     setIsRecording(true);
     setFeedback(null);
@@ -128,6 +147,11 @@ const Session = () => {
     setFeedback(isCorrect ? 'correct' : 'incorrect');
     setIsRecording(false);
     setTimerActive(false);
+
+    // 학습 진도 업데이트
+    if (isCorrect && currentSign) {
+      markSignCompleted(currentSign.id);
+    }
 
     if (isQuizMode && currentSign) {
       const timeSpent = QUIZ_TIME_LIMIT - (timerActive ? QUIZ_TIME_LIMIT : 0);
@@ -182,6 +206,24 @@ const Session = () => {
       setTimerActive(false);
       setQuizStarted(false);
     } else {
+      // 챕터 완료 처리
+      if (chapter) {
+        const chapterProgress = getChapterProgress(chapter);
+        if (chapterProgress.percentage === 100) {
+          markChapterCompleted(chapter.id);
+        }
+        
+        // 카테고리 완료 확인
+        if (category) {
+          const allChaptersCompleted = category.chapters.every(ch => {
+            const progress = getChapterProgress(ch);
+            return progress.percentage === 100;
+          });
+          if (allChaptersCompleted) {
+            markCategoryCompleted(category.id);
+          }
+        }
+      }
       setSessionComplete(true);
     }
   };
@@ -191,6 +233,7 @@ const Session = () => {
     setIsRecording(false);
     setTimerActive(false);
     setQuizStarted(false);
+    setAutoStarted(false);
   };
 
   if (!category || !chapter || !currentSign) {
@@ -288,7 +331,7 @@ const Session = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* 퀴즈 타이머 */}
           {isQuizMode && timerActive && (
             <div className="mb-6">
@@ -300,23 +343,23 @@ const Session = () => {
             </div>
           )}
 
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid lg:grid-cols-2 gap-12">
             {/* 퀴즈 모드에서는 예시 영상 대신 텍스트만 표시 */}
             {isQuizMode ? (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800">수행할 수어</h3>
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <div className="text-6xl mb-6">🤟</div>
-                      <h2 className="text-3xl font-bold text-gray-800 mb-4">
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold text-gray-800">수행할 수어</h3>
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 min-h-[400px]">
+                  <CardContent className="pt-8">
+                    <div className="text-center flex flex-col justify-center h-full min-h-[350px]">
+                      <div className="text-8xl mb-8">🤟</div>
+                      <h2 className="text-4xl font-bold text-gray-800 mb-6">
                         "{currentSign.word}"
                       </h2>
-                      <p className="text-gray-600">
+                      <p className="text-lg text-gray-600">
                         위 단어를 수어로 표현해보세요
                       </p>
                       {!quizStarted && (
-                        <p className="text-sm text-blue-600 mt-2">
+                        <p className="text-sm text-blue-600 mt-4">
                           퀴즈가 자동으로 시작됩니다
                         </p>
                       )}
@@ -333,35 +376,35 @@ const Session = () => {
             )}
 
             {/* 웹캠 및 컨트롤 */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">따라하기</h3>
-              <WebcamView isRecording={isRecording} />
+            <div className="space-y-6">
+              <h3 className="text-xl font-semibold text-gray-800">따라하기</h3>
+              <div className="min-h-[400px]">
+                <WebcamView isRecording={isRecording} />
+              </div>
               
-              <div className="flex justify-center space-x-4">
-                {!isQuizMode && !isRecording && !feedback && (
-                  <Button 
-                    onClick={handleStartRecording}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    시작하기
-                  </Button>
-                )}
-                
+              <div className="flex flex-col items-center space-y-4">
                 {isRecording && (
-                  <Button disabled className="bg-red-600">
+                  <Button disabled className="bg-red-600 text-lg px-8 py-3">
                     <div className="animate-pulse flex items-center">
-                      <div className="w-3 h-3 bg-white rounded-full mr-2" />
+                      <div className="w-3 h-3 bg-white rounded-full mr-3" />
                       {isQuizMode ? '퀴즈 진행 중...' : '인식 중...'}
                     </div>
                   </Button>
                 )}
                 
+                {!isRecording && !feedback && !autoStarted && !isQuizMode && (
+                  <div className="text-center">
+                    <p className="text-sm text-blue-600 mb-2">
+                      잠시 후 자동으로 시작됩니다...
+                    </p>
+                  </div>
+                )}
+                
                 {/* 학습 모드에서 오답일 때만 다시 시도 버튼 표시 */}
                 {feedback && !isQuizMode && feedback === 'incorrect' && (
                   <div className="flex space-x-2">
-                    <Button onClick={handleRetry} variant="outline">
-                      <RotateCcw className="h-4 w-4 mr-2" />
+                    <Button onClick={handleRetry} variant="outline" className="text-lg px-8 py-3">
+                      <RotateCcw className="h-5 w-5 mr-2" />
                       다시 시도
                     </Button>
                   </div>
@@ -371,11 +414,11 @@ const Session = () => {
                 {feedback && (
                   <div className="text-center">
                     {isQuizMode ? (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-base text-gray-600">
                         {feedback === 'correct' ? '정답입니다!' : '오답입니다.'} 잠시 후 다음 문제로 넘어갑니다...
                       </p>
                     ) : feedback === 'correct' ? (
-                      <p className="text-sm text-green-600">
+                      <p className="text-base text-green-600">
                         정답입니다! 잠시 후 다음 수어로 넘어갑니다...
                       </p>
                     ) : null}
