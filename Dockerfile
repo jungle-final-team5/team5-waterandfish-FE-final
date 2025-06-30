@@ -1,5 +1,5 @@
 # 1단계: 빌드
-FROM node:18.20.2-alpine AS builder
+FROM node:20.14.0-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 COPY .env.production .env.production
