@@ -1,6 +1,6 @@
+
 import { useState, useEffect } from 'react';
 import { Category, Chapter, SignWord, QuizResult } from '@/types/learning';
-import API from '@/components/AxiosInstance';
 
 // 샘플 데이터
 const sampleCategories: Category[] = [
@@ -68,8 +68,7 @@ interface LearningProgress {
 }
 
 export const useLearningData = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories] = useState<Category[]>(sampleCategories);
   const [reviewSigns, setReviewSigns] = useState<SignWord[]>([]);
   const [progress, setProgress] = useState<LearningProgress>(() => {
     const saved = localStorage.getItem('learningProgress');
@@ -87,27 +86,6 @@ export const useLearningData = () => {
       completedCategories: new Set(['emotions']) // 샘플 데이터
     };
   });
-
-  // 백엔드에서 카테고리 데이터 가져오기
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        console.log('🔍 카테고리 데이터 요청 중...');
-        const response = await API.get<Category[]>('/learning/categories');
-        console.log('✅ 카테고리 데이터 받음:', response.data);
-        setCategories(response.data);
-      } catch (error) {
-        console.error('❌ 카테고리 데이터 가져오기 실패:', error);
-        // 에러 시 빈 배열로 설정
-        setCategories([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategories();
-  }, []);
 
   useEffect(() => {
     const progressData = {
@@ -186,7 +164,6 @@ export const useLearningData = () => {
 
   return {
     categories,
-    loading,
     reviewSigns,
     progress,
     getCategoryById,

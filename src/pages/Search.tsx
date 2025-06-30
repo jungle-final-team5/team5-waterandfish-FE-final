@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -21,12 +22,12 @@ import { useLearningData } from '@/hooks/useLearningData';
 
 const SearchPage = () => {
   const navigate = useNavigate();
-  const { categories, loading } = useLearningData();
+  const { categories } = useLearningData();
   const [searchTerm, setSearchTerm] = useState('');
   const [open, setOpen] = useState(false);
 
-  // 모든 수어 단어들을 평면화하여 검색 가능한 목록 생성 (로딩이 완료된 후에만)
-  const allSigns = !loading ? categories.flatMap(category => 
+  // 모든 수어 단어들을 평면화하여 검색 가능한 목록 생성
+  const allSigns = categories.flatMap(category => 
     category.chapters.flatMap(chapter => 
       chapter.signs.map(sign => ({
         ...sign,
@@ -36,7 +37,7 @@ const SearchPage = () => {
         chapterId: chapter.id
       }))
     )
-  ) : [];
+  );
 
   // 검색어에 따른 필터링
   const filteredSigns = allSigns.filter(sign =>
