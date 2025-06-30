@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,14 +21,22 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import API from '@/components/AxiosInstance';
 
+// GET /user/profile 또는 /user/me
+interface UserProfile {
+  handedness: string,
+  nickname: string;
+}
+
+
 const Profile = () => {
   const [nickname, setNickname] = useState('사용자');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [dominantHand, setDominantHand] = useState('right');
+  const [dominantHand, setDominantHand] = useState('R');
   const [deletePassword, setDeletePassword] = useState('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,17 +49,61 @@ const Profile = () => {
     totalTime: 24
   };
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (newPassword && newPassword !== confirmPassword) {
-      toast({
-        title: "오류",
-        description: "새 비밀번호가 일치하지 않습니다.",
-        variant: "destructive",
-      });
-      return;
+  const fetchUserProfile = async () => {
+    try {
+      setIsLoading(true);
+      const response = await API.get<UserProfile>('/user/me');
+      setNickname(response.data.nickname);
+      console.log(response.data.handedness);
+      setDominantHand(response.data.handedness === 'R' ? 'R' : 'L');
+      
+      // 통계 데이터도 함께 업데이트
+      const newStats = {
+     //   totalLearned: response.data.total_learned,
+      //  streak: response.data.streak_days,
+      //  accuracy: response.data.accuracy,
+      //  totalTime: response.data.total_time
+      };
+      // stats 상태도 useState로 변경 필요
+      
+    } catch (error) {
+      if (error.response?.status === 401) {
+        navigate('/login');
+      } else {
+        toast({
+          title: "오류",
+          description: "사용자 정보를 불러올 수 없습니다.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+    useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+
+const handleProfileUpdate = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (newPassword && newPassword !== confirmPassword) {
+    toast({
+      title: "오류",
+      description: "새 비밀번호가 일치하지 않습니다.",
+      variant: "destructive",
+    });
+    return;
+  }
+  console.log(dominantHand);
+  try {
+    // 백엔드 API 호출
+    await API.put('/user/me', {
+      nickname: nickname,
+      handedness: dominantHand
+    });
 
     toast({
       title: "성공",
@@ -61,7 +113,17 @@ const Profile = () => {
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
-  };
+  } catch (error) {
+    toast({
+      title: "오류",
+      description: error?.response?.data?.detail || "프로필 업데이트에 실패했습니다.",
+      variant: "destructive",
+    });
+  }
+};
+
+
+  
 
   // 회원 탈퇴(비밀번호 검증 포함)
   const handleAccountDelete = async () => {
@@ -252,8 +314,8 @@ const Profile = () => {
                         <input
                           type="radio"
                           name="hand"
-                          value="right"
-                          checked={dominantHand === 'right'}
+                          value="R"
+                          checked={dominantHand === 'R'}
                           onChange={(e) => setDominantHand(e.target.value)}
                           className="text-blue-600 focus:ring-blue-500"
                         />
@@ -263,8 +325,8 @@ const Profile = () => {
                         <input
                           type="radio"
                           name="hand"
-                          value="left"
-                          checked={dominantHand === 'left'}
+                          value="L"
+                          checked={dominantHand === 'L'}
                           onChange={(e) => setDominantHand(e.target.value)}
                           className="text-blue-600 focus:ring-blue-500"
                         />
