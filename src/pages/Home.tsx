@@ -16,14 +16,12 @@ import StreakModal from '@/components/StreakModal';
 import ProgressModal from '@/components/ProgressModal';
 import HandPreferenceModal from '@/components/HandPreferenceModal';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
 import { useLearningData } from '@/hooks/useLearningData';
 import API from '@/components/AxiosInstance';
 
 const Home = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { logout } = useAuth();
   const { categories } = useLearningData();
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
@@ -38,6 +36,7 @@ const Home = () => {
       setIsHandPreferenceModalOpen(true);
     }
   }, []);
+
   // 추천 수어 상태 추가
   const [recommendedSign, setRecommendedSign] = useState<{
     word: string;
@@ -53,7 +52,6 @@ const Home = () => {
   useEffect(() => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
-
 
     // 최근 학습 불러오기
     API.get<{category: string; word: string;}>('/api/recent-learning')
@@ -86,7 +84,6 @@ const Home = () => {
 
   const overallProgress = calculateOverallProgress();
 
-
   const handleCardClick = (cardType: string) => {
     switch (cardType) {
       case 'recent':
@@ -103,7 +100,6 @@ const Home = () => {
         break;
     }
   };
-
 
   const handleLogout = async () => {
     try {
