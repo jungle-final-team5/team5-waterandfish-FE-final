@@ -4,8 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build
-
+RUN npm run build -- --mode production
 # 2단계: 정적 파일 서빙
 FROM nginx:1.25.3-alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
