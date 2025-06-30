@@ -6,33 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
+import {Lesson,Chapter,Category} from '../types/learning';
 import API from '@/components/AxiosInstance';
-interface Lesson {
-  id: string;
-  sign: string;
-}
 
-interface Chapter {
-  id: string;
-  title: string;
-  type: string;
-  signlength: number;
-  signs: Lesson[];
-}
-
-interface CategoryData {
-  ctitle: string;
-  cdes: string;
-  chapters: Chapter[];
-}
 const Chapters = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
-  const [categoryData, setCategoryData] = useState<CategoryData | null>(null);
+  const [categoryData, setCategoryData] = useState<Category | null>(null);
   useEffect(() => {
     if (!categoryId) return;
 
-    API.get<CategoryData>(`/learning/chapter/${categoryId}`)
+    API.get<Category>(`/learning/chapter/${categoryId}`)
       .then(res => setCategoryData(res.data))
       .catch(err => console.error('카테고리 정보 불러오기 실패:', err));
   }, [categoryId]);
@@ -64,9 +48,9 @@ const Chapters = () => {
             <div>
               <h1 className="text-xl font-bold text-gray-800">
                 {/* {category.icon}  */}
-                {categoryData.ctitle}
+                {categoryData.title}
               </h1>
-              <p className="text-sm text-gray-600">{categoryData.cdes}</p>
+              <p className="text-sm text-gray-600">{categoryData.description}</p>
             </div>
           </div>
         </div>
@@ -99,7 +83,7 @@ const Chapters = () => {
                           )}
                         </div>
                         <div className="text-sm font-normal text-gray-600">
-                          {chapter.type === 'word' ? '단어' : '문장'} • {chapter.signlength}개 수어
+                          {chapter.type === 'word' ? '단어' : '문장'} • {chapter.signs.length}개 수어
                         </div>
                       </div>
                     </div>
@@ -123,7 +107,7 @@ const Chapters = () => {
                         key={lesson.id}
                         className="text-center p-2 bg-gray-100 rounded text-sm"
                       >
-                        {lesson.sign}
+                        {lesson.word}
                       </div>
                     ))}
                   </div>

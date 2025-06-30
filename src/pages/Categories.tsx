@@ -8,12 +8,7 @@ import { ArrowLeft, BookOpen, CheckCircle } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
 import API from '@/components/AxiosInstance';
-interface Category {
-  id: string;
-  title: string;
-  description: string;
-  chapter_count: number;
-}
+import { Category } from '@/types/learning';
 const Categories = () => {
   const navigate = useNavigate();
   // const { categories, getCategoryProgress, isCategoryCompleted } = useLearningData();
@@ -99,7 +94,7 @@ const Categories = () => {
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">
-                      {category.chapter_count}개 챕터
+                      {category.chapters.length}개 챕터
                     </span>
                     <Button size="sm">
                       <BookOpen className="h-4 w-4 mr-2" />
