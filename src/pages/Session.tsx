@@ -21,8 +21,9 @@ import { Lesson } from '@/types/learning';
 const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
+  
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
-
+  
   const [data, setData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
 
@@ -273,7 +274,7 @@ const Session = () => {
       </div>
     );
   }
-
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
