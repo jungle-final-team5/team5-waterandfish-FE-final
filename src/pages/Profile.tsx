@@ -71,17 +71,7 @@ const Profile = () => {
       setIsLoading(true);
       const response = await API.get<UserProfile>('/user/me');
       setNickname(response.data.nickname);
-      console.log(response.data.handedness);
       setDominantHand(response.data.handedness === 'R' ? 'R' : 'L');
-      
-      // 통계 데이터도 함께 업데이트
-      const newStats = {
-     //   totalLearned: response.data.total_learned,
-      //  streak: response.data.streak_days,
-      //  accuracy: response.data.accuracy,
-      //  totalTime: response.data.total_time
-      };
-      // stats 상태도 useState로 변경 필요
       
     } catch (error) {
       if (error.response?.status === 401) {
@@ -114,7 +104,9 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
     });
     return;
   }
-  console.log(dominantHand);
+  
+
+  
   try {
     // 백엔드 API 호출
     await API.put('/user/me', {
@@ -122,6 +114,7 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
       handedness: dominantHand
     });
 
+    // TODO : 소셜 로그인으로 인한 유저를 고려 할 것!
     toast({
       title: "성공",
       description: "프로필이 성공적으로 업데이트되었습니다.",
