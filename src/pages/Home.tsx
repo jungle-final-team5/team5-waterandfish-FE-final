@@ -22,7 +22,7 @@ import API from '@/components/AxiosInstance';
 const Home = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { categories } = useLearningData();
+  const { categories, loading } = useLearningData();
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
@@ -62,19 +62,21 @@ const Home = () => {
       })
       .catch(() => setRecentLearning(null));
 
-    // 모든 sign을 flat하게 모아서 랜덤 추천
-    const allSigns = categories.flatMap(cat =>
-      cat.chapters.flatMap(chap => chap.signs.map(sign => ({
-        ...sign,
-        categoryId: cat.id,
-        categoryDescription: cat.description
-      })))
-    );
-    if (allSigns.length > 0) {
-      const randomIdx = Math.floor(Math.random() * allSigns.length);
-      setRecommendedSign(allSigns[randomIdx]);
+    // 모든 sign을 flat하게 모아서 랜덤 추천 (로딩이 완료된 후에만)
+    if (!loading && categories.length > 0) {
+      const allSigns = categories.flatMap(cat =>
+        cat.chapters.flatMap(chap => chap.signs.map(sign => ({
+          ...sign,
+          categoryId: cat.id,
+          categoryDescription: cat.description
+        })))
+      );
+      if (allSigns.length > 0) {
+        const randomIdx = Math.floor(Math.random() * allSigns.length);
+        setRecommendedSign(allSigns[randomIdx]);
+      }
     }
-  }, [categories]);
+  }, [categories, loading]);
 
   // 실제 데이터를 기반으로 전체 진도율 계산
   const calculateOverallProgress = () => {
