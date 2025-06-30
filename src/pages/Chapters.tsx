@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle } from 'lucide-react';
+import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle, RotateCcw } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
 import {Lesson,Chapter,Category} from '../types/learning';
@@ -117,7 +117,14 @@ const Chapters = () => {
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <Play className="h-4 w-4 mr-2" />
-                      {isCompleted ? '복습하기' : '학습하기'}
+                      학습하기
+                    </Button>
+                    <Button 
+                      onClick={() => navigate(`/learn/session/${categoryId}/${chapter.id}/learning`)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      복습하기
                     </Button>
                     <Button 
                       variant="outline"

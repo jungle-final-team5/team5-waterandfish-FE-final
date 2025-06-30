@@ -16,6 +16,7 @@ import SearchPage from "./pages/Search";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
+import TestPage from "./pages/TestPage";
 import { AuthProvider } from "@/hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/review" element={<Review />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/test" element={<TestPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
