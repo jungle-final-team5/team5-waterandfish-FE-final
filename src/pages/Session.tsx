@@ -36,7 +36,7 @@ const Session = () => {
   const [quizStarted, setQuizStarted] = useState(false);
 
   const [isPlaying, setIsPlaying] = useState(true); // 자동 재생 활성화
-  const [animationSpeed, setAnimationSpeed] = useState(5);
+  const [animationSpeed, setAnimationSpeed] = useState(30);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [autoStarted, setAutoStarted] = useState(false);
 
@@ -79,7 +79,6 @@ const Session = () => {
   useEffect(() => {
     if (isPlaying && data) {
       animationIntervalRef.current = setInterval(() => {
-        console.log(`[Session] 프레임 업데이트: ${currentFrame} → ${currentFrame + 1}`);
         if (currentFrame < data.pose.length - 1) {
           setCurrentFrame(prev => prev + 1);
         } else {
@@ -353,7 +352,6 @@ const Session = () => {
             ) : (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
-                {/* <ExampleVideo keyword={currentSign.word} autoLoop={true} /> */}
                 <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
 
               </div>

@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import WebcamView from '@/components/WebcamView';
 import ExampleAnim from '@/components/ExampleAnim';
-import ExampleVideo from '@/components/ExampleVideo';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 
 const Learn = () => {
@@ -31,7 +30,7 @@ const Learn = () => {
   const [progress, setProgress] = useState(0);
 
   const [isPlaying, setIsPlaying] = useState(true); // 자동 재생 활성화
-  const [animationSpeed, setAnimationSpeed] = useState(5);
+  const [animationSpeed, setAnimationSpeed] = useState(30);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
@@ -207,17 +206,7 @@ const Learn = () => {
             {/* Example Video Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
-
-              <ExampleVideo keyword={learningData.keyword} />
-
-              {/* <ExampleVideo keyword={learningData.keyword} /> */}
                 <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
-
-
-             
-
-              <ExampleVideo keyword={learningData.keyword} />
-
               {currentStepData.type === 'example' && (
                 <div className="flex justify-center">
                   <Button onClick={handleNextStep} className="bg-blue-600 hover:bg-blue-700">
