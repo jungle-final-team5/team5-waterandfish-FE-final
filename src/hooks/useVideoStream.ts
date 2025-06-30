@@ -43,6 +43,8 @@ export const useVideoStream = () => {
       });
       
       console.log('✅ 비디오 스트림 시작됨');
+      console.log('실제 설정된 stream:', stream);
+      console.log('streamRef.current:', streamRef.current);
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
@@ -108,6 +110,16 @@ export const useVideoStream = () => {
       return null;
     }
   }, [state.isStreaming]);
+
+  // state 변경 추적을 위한 useEffect
+  useEffect(() => {
+    console.log('📊 VideoStream state 변경됨:', {
+      isStreaming: state.isStreaming,
+      hasError: !!state.error,
+      hasStream: !!state.stream,
+      streamId: state.stream?.id || 'null'
+    });
+  }, [state]);
 
   // 컴포넌트 언마운트 시 스트림 정리
   useEffect(() => {
