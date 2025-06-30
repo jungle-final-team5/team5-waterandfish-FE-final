@@ -64,14 +64,14 @@ const Home = () => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
 
-    // 최근 학습 불러오기
-    API.get<{category: string; word: string;}>('/api/recent-learning')
-      .then(res => {
-        if (res.data && res.data.word) {
-          setRecentLearning(res.data);
-        }
-      })
-      .catch(() => setRecentLearning(null));
+    // 최근 학습 불러오기 부분 주석 처리 또는 조건문 추가
+    // API.get<{category: string; word: string;}>('/api/recent-learning')
+    //   .then(res => {
+    //     if (res.data && res.data.word) {
+    //       setRecentLearning(res.data);
+    //     }
+    //   })
+    //   .catch(() => setRecentLearning(null));
   }, []);
 
   // 추천 수어는 categories/로딩이 끝났을 때만 실행

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -174,7 +173,7 @@ const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingT
       </Card>
 
       {/* CSS 스타일 */}
-      <style jsx>{`
+      <style>{`
         .onboarding-highlight {
           position: relative;
           z-index: 51;

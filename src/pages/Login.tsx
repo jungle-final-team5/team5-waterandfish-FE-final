@@ -1,6 +1,7 @@
 import { useState } from "react";
 import API from '../components/AxiosInstance'
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 function MailIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -24,6 +25,7 @@ export default function Login() {
   const [emailFocus, setEmailFocus] = useState(false);
   const [pwFocus, setPwFocus] = useState(false);
   const navigator = useNavigate();
+  const { login: setAuthLogin } = useAuth();
 
   const login = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -53,6 +55,8 @@ export default function Login() {
       
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('nickname', userData.nickname);
+      
+      setAuthLogin(); // 인증 상태 true로 변경
       
       console.log('✅ 로그인 성공, 사용자 정보 저장됨:', userData);
       alert('로그인 성공!');
