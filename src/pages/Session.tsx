@@ -280,7 +280,7 @@ const Session = () => {
 
   // 분류 결과와 정답 비교 로직 (4-8, 4-9 구현)
   useEffect(() => {
-    if (!currentResult || !currentSign || feedback) {
+    if (!currentResult || !currentSign) {
       return; // 분류 결과가 없거나 이미 피드백이 있으면 무시
     }
 
@@ -294,9 +294,11 @@ const Session = () => {
       isCorrect,
       confidence: (confidence * 100).toFixed(1) + '%'
     });
+    console.log('currentResult', currentResult);
+    console.log('currentSign', currentSign);
 
     // 신뢰도가 일정 수준 이상일 때만 결과 처리 (오탐지 방지)
-    if (confidence >= 0.5) {
+    if (confidence >= 0.3) {
       setFeedback(isCorrect ? 'correct' : 'incorrect');
       setIsRecording(false);
       setTimerActive(false);
@@ -321,9 +323,10 @@ const Session = () => {
 
       // 정답이면 자동으로 다음 수어로 이동 (4-8 구현)
       if (isCorrect) {
+        console.log('🎉 정답! 3초 후 다음 수어로 이동합니다.');
         setTimeout(() => {
           handleNextSign(); // 다음 수어로 이동 또는 완료 처리
-        }, 2000);
+        }, 3000); // 3초로 증가하여 성공 피드백을 충분히 볼 수 있도록
       }
     }
   }, [currentResult, currentSign, feedback, isQuizMode, timerActive]);
@@ -410,7 +413,7 @@ const Session = () => {
     // 퀴즈 모드에서는 시간 초과 시에도 자동으로 다음 문제로 이동
     setTimeout(() => {
       handleNextSign();
-    }, 2000);
+    }, 3000); // 3초로 통일
   };
 
   const handleNextSign = () => {
@@ -612,11 +615,34 @@ const Session = () => {
                     </div>
                   </CardContent>
                 </Card>
+                
+                {/* 퀴즈 모드 건너뛰기 버튼 */}
+                {quizStarted && !feedback && (
+                  <div className="flex justify-center">
+                    <Button 
+                      onClick={handleNextSign}
+                      variant="outline"
+                      className="border-gray-400 text-gray-600 hover:bg-gray-50"
+                    >
+                      건너뛰기
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
                 <ExampleAnim data={data} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true} />
+                
+                {/* 현재 수어 텍스트 표시 */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="text-center">
+                    <p className="text-sm text-blue-600 mb-2">따라해보세요</p>
+                    <h2 className="text-3xl font-bold text-blue-800">
+                      "{currentSign.word}"
+                    </h2>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -693,23 +719,41 @@ const Session = () => {
               {!isQuizMode && isConnected && state.isStreaming && (
                 <div className="flex justify-center space-x-4">
                   {!isRecording && !feedback && (
-                    <Button 
-                      onClick={handleStartRecording}
-                      className="bg-green-600 hover:bg-green-700"
-                      disabled={!isTransmitting}
-                    >
-                      <Camera className="h-4 w-4 mr-2" />
-                      수어 시작하기
-                    </Button>
+                    <>
+                      <Button 
+                        onClick={handleStartRecording}
+                        className="bg-green-600 hover:bg-green-700"
+                        disabled={!isTransmitting}
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        수어 시작하기
+                      </Button>
+                      <Button 
+                        onClick={handleNextSign}
+                        variant="outline"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        건너뛰기
+                      </Button>
+                    </>
                   )}
                   
                   {isRecording && (
-                    <Button disabled className="bg-red-600">
-                      <div className="animate-pulse flex items-center">
-                        <div className="w-3 h-3 bg-white rounded-full mr-2" />
-                        인식 중...
-                      </div>
-                    </Button>
+                    <>
+                      <Button disabled className="bg-red-600">
+                        <div className="animate-pulse flex items-center">
+                          <div className="w-3 h-3 bg-white rounded-full mr-2" />
+                          인식 중...
+                        </div>
+                      </Button>
+                      <Button 
+                        onClick={handleNextSign}
+                        variant="outline"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        건너뛰기
+                      </Button>
+                    </>
                   )}
                   
                   {feedback && (
@@ -718,11 +762,9 @@ const Session = () => {
                         <RotateCcw className="h-4 w-4 mr-2" />
                         다시 시도
                       </Button>
-                      {feedback === 'correct' && (
-                        <Button onClick={handleNextSign} className="bg-blue-600 hover:bg-blue-700">
-                          다음 수어
-                        </Button>
-                      )}
+                      <Button onClick={handleNextSign} className="bg-blue-600 hover:bg-blue-700">
+                        {feedback === 'correct' ? '다음 수어' : '건너뛰기'}
+                      </Button>
                     </div>
                   )}
                 </div>
