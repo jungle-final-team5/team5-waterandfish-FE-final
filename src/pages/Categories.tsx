@@ -6,11 +6,31 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, BookOpen, CheckCircle } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
-
+import { useEffect, useRef, useState } from 'react';
+import API from '@/components/AxiosInstance';
+import { Category } from '@/types/learning';
 const Categories = () => {
   const navigate = useNavigate();
-  const { categories, getCategoryProgress, isCategoryCompleted } = useLearningData();
-
+  // const { categories, getCategoryProgress, isCategoryCompleted } = useLearningData();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const isCompleted = useRef(false);
+  useEffect(() => {
+    API.get('/learning/categories')  // FastAPI 주소에 맞게 수정
+      .then(res => {
+      console.log("응답 데이터:", res.data);  // 👈 여기 반드시 찍어보세요
+      setCategories(res.data as Category[]);
+    })
+      .catch(err => {
+    console.error('카테고리 불러오기 실패');
+    if (err.response) {
+      console.error('서버 응답 에러:', err.response.status, err.response.data);
+    } else if (err.request) {
+      console.error('요청은 전송됐지만 응답 없음:', err.request);
+    } else {
+      console.error('요청 설정 에러:', err.message);
+    }
+  });;
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -35,8 +55,8 @@ const Categories = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((category) => {
-            const categoryProgress = getCategoryProgress(category);
-            const isCompleted = isCategoryCompleted(category.id);
+            // const categoryProgress = getCategoryProgress(category);
+            // const isCompleted = isCategoryCompleted(category.id);
             
             return (
               <Card 
@@ -47,22 +67,22 @@ const Categories = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <span className="text-3xl">{category.icon}</span>
+                      {/* <span className="text-3xl">{category.icon}</span> */}
                       <span>{category.title}</span>
                     </div>
-                    {isCompleted && (
+                    {/* {isCompleted && (
                       <Badge className="bg-green-500 text-white">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         완료
                       </Badge>
-                    )}
+                    )} */}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 mb-4">{category.description}</p>
                   
                   {/* 진도 표시 */}
-                  <div className="mb-4">
+                  {/* <div className="mb-4">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-gray-600">진도</span>
                       <span className="text-sm font-semibold text-gray-800">
@@ -70,7 +90,7 @@ const Categories = () => {
                       </span>
                     </div>
                     <Progress value={categoryProgress.percentage} className="h-2" />
-                  </div>
+                  </div> */}
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">
@@ -78,7 +98,7 @@ const Categories = () => {
                     </span>
                     <Button size="sm">
                       <BookOpen className="h-4 w-4 mr-2" />
-                      {isCompleted ? '복습하기' : '시작하기'}
+                      {isCompleted.current ? '복습하기' : '시작하기'}
                     </Button>
                   </div>
                 </CardContent>

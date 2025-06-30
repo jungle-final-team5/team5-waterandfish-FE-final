@@ -1,9 +1,9 @@
 
-export interface SignWord {
+export interface Lesson {
   id: string;
   word: string;
   category: string;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty?: 'easy' | 'medium' | 'hard';
   videoUrl?: string;
   description?: string;
 }
@@ -12,7 +12,7 @@ export interface Chapter {
   id: string;
   title: string;
   type: 'word' | 'sentence';
-  signs: SignWord[];
+  signs: Lesson[];
   categoryId: string;
 }
 

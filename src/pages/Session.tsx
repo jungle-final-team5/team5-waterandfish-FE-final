@@ -16,7 +16,7 @@ import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import QuizTimer from '@/components/QuizTimer';
 import { useLearningData } from '@/hooks/useLearningData';
-import { SignWord } from '@/types/learning';
+import { Lesson } from '@/types/learning';
 
 const Session = () => {
   const navigate = useNavigate();

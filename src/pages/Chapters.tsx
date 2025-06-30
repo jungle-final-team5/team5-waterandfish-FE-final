@@ -1,4 +1,3 @@
-
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,15 +5,23 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
+import { useEffect, useRef, useState } from 'react';
+import {Lesson,Chapter,Category} from '../types/learning';
+import API from '@/components/AxiosInstance';
 
 const Chapters = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
-  const { getCategoryById, getChapterProgress, isChapterCompleted } = useLearningData();
+  const [categoryData, setCategoryData] = useState<Category | null>(null);
+  useEffect(() => {
+    if (!categoryId) return;
 
-  const category = categoryId ? getCategoryById(categoryId) : null;
-
-  if (!category) {
+    API.get<Category>(`/learning/chapter/${categoryId}`)
+      .then(res => setCategoryData(res.data))
+      .catch(err => console.error('카테고리 정보 불러오기 실패:', err));
+  }, [categoryId]);
+  const isCompleted = useRef(false);
+  if (!categoryData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -40,9 +47,10 @@ const Chapters = () => {
             </Button>
             <div>
               <h1 className="text-xl font-bold text-gray-800">
-                {category.icon} {category.title}
+                {/* {category.icon}  */}
+                {categoryData.title}
               </h1>
-              <p className="text-sm text-gray-600">{category.description}</p>
+              <p className="text-sm text-gray-600">{categoryData.description}</p>
             </div>
           </div>
         </div>
@@ -50,9 +58,9 @@ const Chapters = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {category.chapters.map((chapter, index) => {
-            const chapterProgress = getChapterProgress(chapter);
-            const isCompleted = isChapterCompleted(chapter.id);
+          {categoryData.chapters.map((chapter, index) => {
+            // const chapterProgress = getChapterProgress(chapter);
+            // const isCompleted = isChapterCompleted(chapter.id);
             
             return (
               <Card key={chapter.id} className="hover:shadow-lg transition-shadow">
@@ -83,7 +91,7 @@ const Chapters = () => {
                 </CardHeader>
                 <CardContent>
                   {/* 진도 표시 */}
-                  <div className="mb-4">
+                  {/* <div className="mb-4">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-gray-600">학습 진도</span>
                       <span className="text-sm font-semibold text-gray-800">
@@ -91,15 +99,15 @@ const Chapters = () => {
                       </span>
                     </div>
                     <Progress value={chapterProgress.percentage} className="h-2" />
-                  </div>
+                  </div> */}
 
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-                    {chapter.signs.map((sign) => (
+                    {chapter.signs.map((lesson) => (
                       <div 
-                        key={sign.id}
+                        key={lesson.id}
                         className="text-center p-2 bg-gray-100 rounded text-sm"
                       >
-                        {sign.word}
+                        {lesson.word}
                       </div>
                     ))}
                   </div>
