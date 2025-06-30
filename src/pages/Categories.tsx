@@ -1,3 +1,4 @@
+
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,30 +9,7 @@ import { useLearningData } from '@/hooks/useLearningData';
 
 const Categories = () => {
   const navigate = useNavigate();
-  const { categories, loading, getCategoryProgress, isCategoryCompleted } = useLearningData();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">카테고리를 불러오는 중...</h2>
-          <p className="text-gray-600">잠시만 기다려주세요</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (categories.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">카테고리가 없습니다</h2>
-          <p className="text-gray-600 mb-4">관리자가 카테고리를 추가해주세요</p>
-          <Button onClick={() => navigate('/home')}>홈으로 돌아가기</Button>
-        </div>
-      </div>
-    );
-  }
+  const { categories, getCategoryProgress, isCategoryCompleted } = useLearningData();
 
   return (
     <div className="min-h-screen bg-gray-50">
