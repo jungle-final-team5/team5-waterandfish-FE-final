@@ -39,7 +39,7 @@ const Home = () => {
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isHandPreferenceModalOpen, setIsHandPreferenceModalOpen] = useState(false);
-  const [nickname, setNickname] = useState<string>('학습자님');
+  const [nickname, setNickname] = useState<string>('학습자');
   // 첫 방문 확인 및 손 선호도 모달 표시
   useEffect(() => {
     const hasSetHandPreference = localStorage.getItem('hasSetHandPreference');
@@ -72,8 +72,10 @@ const Home = () => {
         }
       })
       .catch(() => setRecentLearning(null));
+  }, []);
 
-    // 모든 sign을 flat하게 모아서 랜덤 추천 (로딩이 완료된 후에만)
+  // 추천 수어는 categories/로딩이 끝났을 때만 실행
+  useEffect(() => {
     if (!loading && categories.length > 0) {
       const allSigns = categories.flatMap(cat =>
         cat.chapters.flatMap(chap => chap.signs.map(sign => ({
@@ -87,7 +89,7 @@ const Home = () => {
         setRecommendedSign(allSigns[randomIdx]);
       }
     }
-  }, [showStreakAchievement, learningStats.consecutiveDays]);
+  }, [categories, loading]);
 
   // 실제 데이터를 기반으로 전체 진도율 계산
   const calculateOverallProgress = () => {
