@@ -1,3 +1,4 @@
+
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,44 +6,13 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
-import { useEffect, useState } from 'react';
-import API from '@/components/AxiosInstance';
-import { Category } from '@/types/learning';
 
 const Chapters = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
-  const { getChapterProgress, isChapterCompleted } = useLearningData();
-  const [category, setCategory] = useState<Category | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { getCategoryById, getChapterProgress, isChapterCompleted } = useLearningData();
 
-  useEffect(() => {
-    const fetchCategory = async () => {
-      if (!categoryId) return;
-      
-      try {
-        setLoading(true);
-        const response = await API.get<Category>(`/learning/chapter/${categoryId}`);
-        setCategory(response.data);
-      } catch (error) {
-        console.error('카테고리 정보 가져오기 실패:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategory();
-  }, [categoryId]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">로딩 중...</h2>
-        </div>
-      </div>
-    );
-  }
+  const category = categoryId ? getCategoryById(categoryId) : null;
 
   if (!category) {
     return (
