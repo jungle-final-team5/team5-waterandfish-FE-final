@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Category, Chapter, SignWord, QuizResult } from '@/types/learning';
 
@@ -69,6 +68,7 @@ interface LearningProgress {
 
 export const useLearningData = () => {
   const [categories] = useState<Category[]>(sampleCategories);
+  const [loading] = useState(false);
   const [reviewSigns, setReviewSigns] = useState<SignWord[]>([]);
   const [progress, setProgress] = useState<LearningProgress>(() => {
     const saved = localStorage.getItem('learningProgress');
@@ -81,9 +81,9 @@ export const useLearningData = () => {
       };
     }
     return {
-      completedSigns: new Set(['hello', 'goodbye', 'happy', 'sad']), // 샘플 데이터
-      completedChapters: new Set(['basic-emotions']), // 샘플 데이터
-      completedCategories: new Set(['emotions']) // 샘플 데이터
+      completedSigns: new Set(),
+      completedChapters: new Set(),
+      completedCategories: new Set()
     };
   });
 
@@ -164,6 +164,7 @@ export const useLearningData = () => {
 
   return {
     categories,
+    loading,
     reviewSigns,
     progress,
     getCategoryById,

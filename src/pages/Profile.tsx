@@ -53,22 +53,8 @@ const Profile = () => {
       setNickname(userData.nickname || '사용자');
       setUserEmail(userData.email || '');
       
-      // 소셜 로그인 사용자 여부 확인 로직 수정
-      // provider 필드가 있거나 password 필드가 없으면 소셜 사용자
-      const hasProvider = userData.provider || userData.auth_provider;
-      const hasPassword = userData.password || userData.has_password;
-      
-      console.log('🔍 소셜 로그인 판단:', { 
-        hasProvider, 
-        hasPassword, 
-        provider: userData.provider,
-        auth_provider: userData.auth_provider,
-        password: userData.password,
-        has_password: userData.has_password
-      });
-      
-      // provider가 있으면 소셜 로그인, 없으면 일반 로그인
-      setIsSocialUser(!!hasProvider);
+      // 소셜 로그인 사용자 여부 확인 로직 단순화
+      setIsSocialUser(Boolean(userData.provider));
     }
   }, []);
 
