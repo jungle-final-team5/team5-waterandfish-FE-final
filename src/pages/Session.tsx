@@ -57,7 +57,7 @@ const Session = () => {
   const category = categoryId ? getCategoryById(categoryId) : null;
   const chapter = categoryId && chapterId ? getChapterById(categoryId, chapterId) : null;
   const currentSign = chapter?.signs[currentSignIndex];
-
+  const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const signs = chapter?.signs;
@@ -85,8 +85,10 @@ const Session = () => {
       try {
         // 분류 결과 콜백 설정
         signClassifierClient.onResult((result) => {
-          setCurrentResult(result);
-          console.log('�� 분류 결과:', result);
+          if(isMovingNextSign==false) {  
+            setCurrentResult(result);
+            console.log('분류 결과:', result);
+          }
         });
 
         // 연결 재시도 로직
@@ -280,7 +282,7 @@ const Session = () => {
 
   // 분류 결과와 정답 비교 로직 (4-8, 4-9 구현)
   useEffect(() => {
-    if (!currentResult || !currentSign) {
+    if (!currentResult || !currentSign || isMovingNextSign) {
       return; // 분류 결과가 없거나 이미 피드백이 있으면 무시
     }
 
@@ -298,7 +300,7 @@ const Session = () => {
     console.log('currentSign', currentSign);
 
     // 신뢰도가 일정 수준 이상일 때만 결과 처리 (오탐지 방지)
-    if (confidence >= 0.3) {
+    if (confidence >= 0.5) {
       setFeedback(isCorrect ? 'correct' : 'incorrect');
       setIsRecording(false);
       setTimerActive(false);
@@ -323,6 +325,7 @@ const Session = () => {
 
       // 정답이면 자동으로 다음 수어로 이동 (4-8 구현)
       if (isCorrect) {
+        setIsMovingNextSign(true);
         console.log('🎉 정답! 3초 후 다음 수어로 이동합니다.');
         setTimeout(() => {
           handleNextSign(); // 다음 수어로 이동 또는 완료 처리
@@ -417,6 +420,7 @@ const Session = () => {
   };
 
   const handleNextSign = () => {
+    setIsMovingNextSign(false);
     if (chapter && currentSignIndex < chapter.signs.length - 1) {
       setCurrentSignIndex(currentSignIndex + 1);
       setFeedback(null);
