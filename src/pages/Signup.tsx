@@ -45,7 +45,7 @@ export default function Signup() {
       return;
     }
     try {
-      await API.post('auth/signup', { 
+      await API.post('user/signup', { 
         email, 
         nickname, 
         password: password   // password로 보내야 함
