@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Medal, Award, Star, Target, Calendar } from 'lucide-react';
+import { Trophy, Medal, Award, Star, Target, Calendar, Zap, Book, Heart, Crown, Flame, Shield } from 'lucide-react';
 
 interface BadgeModalProps {
   isOpen: boolean;
@@ -66,6 +66,87 @@ const BadgeModal = ({ isOpen, onClose }: BadgeModalProps) => {
       description: "한 달 연속 학습을 완료했습니다",
       icon: <Star className="h-8 w-8 text-orange-600" />,
       color: "bg-orange-100",
+      earned: false,
+      earnedDate: null
+    },
+    {
+      id: 7,
+      name: "번개 학습자",
+      description: "하루에 20개 이상의 수어를 학습했습니다",
+      icon: <Zap className="h-8 w-8 text-yellow-500" />,
+      color: "bg-yellow-50",
+      earned: true,
+      earnedDate: "2024-01-18"
+    },
+    {
+      id: 8,
+      name: "지식 탐험가",
+      description: "모든 카테고리를 한 번씩 학습했습니다",
+      icon: <Book className="h-8 w-8 text-indigo-600" />,
+      color: "bg-indigo-100",
+      earned: false,
+      earnedDate: null
+    },
+    {
+      id: 9,
+      name: "열정적인 학습자",
+      description: "100일 연속 학습을 완료했습니다",
+      icon: <Heart className="h-8 w-8 text-pink-600" />,
+      color: "bg-pink-100",
+      earned: false,
+      earnedDate: null
+    },
+    {
+      id: 10,
+      name: "수어 왕",
+      description: "모든 챕터를 완료했습니다",
+      icon: <Crown className="h-8 w-8 text-amber-600" />,
+      color: "bg-amber-100",
+      earned: false,
+      earnedDate: null
+    },
+    {
+      id: 11,
+      name: "연속 달성자",
+      description: "30일 연속 학습 목표를 달성했습니다",
+      icon: <Flame className="h-8 w-8 text-red-500" />,
+      color: "bg-red-50",
+      earned: true,
+      earnedDate: "2024-02-10"
+    },
+    {
+      id: 12,
+      name: "수어 수호자",
+      description: "친구 5명을 앱에 초대했습니다",
+      icon: <Shield className="h-8 w-8 text-teal-600" />,
+      color: "bg-teal-100",
+      earned: false,
+      earnedDate: null
+    },
+    {
+      id: 13,
+      name: "실전 전문가",
+      description: "실전 모드에서 50회 성공했습니다",
+      icon: <Target className="h-8 w-8 text-cyan-600" />,
+      color: "bg-cyan-100",
+      earned: false,
+      earnedDate: null
+    },
+    {
+      id: 14,
+      name: "복습 마스터",
+      description: "복습 기능을 50회 사용했습니다",
+      icon: <Book className="h-8 w-8 text-emerald-600" />,
+      color: "bg-emerald-100",
+      earned: true,
+      earnedDate: "2024-02-05"
+    },
+    {
+      id: 15,
+      name: "속도왕",
+      description: "10초 안에 정답을 맞춘 횟수 100회 달성",
+      icon: <Zap className="h-8 w-8 text-violet-600" />,
+      color: "bg-violet-100",
       earned: false,
       earnedDate: null
     }
