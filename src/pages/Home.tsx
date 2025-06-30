@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   BookOpen, 
   Search, 
@@ -9,33 +10,43 @@ import {
   Calendar,
   Target,
   User,
-  LogOut
+  LogOut,
+  Bell
 } from 'lucide-react';
 import BadgeModal from '@/components/BadgeModal';
 import StreakModal from '@/components/StreakModal';
 import ProgressModal from '@/components/ProgressModal';
 import HandPreferenceModal from '@/components/HandPreferenceModal';
+import OnboardingTour from '@/components/OnboardingTour';
+import { NotificationDrawer } from '@/components/NotificationDrawer';
 import { useToast } from '@/hooks/use-toast';
 import { useLearningData } from '@/hooks/useLearningData';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
+import { useNotificationHistory } from '@/hooks/useNotificationHistory';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import API from '@/components/AxiosInstance';
-
 const Home = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { categories } = useLearningData();
+  const { categories, loading } = useLearningData();
+  const { showStreakAchievement } = useNotifications();
+  const { learningStats } = useBadgeSystem();
+  const { unreadCount } = useNotificationHistory();
+  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, completeOnboarding } = useOnboarding();
+  
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
-  const [nickname, setNickname] = useState<string>('학습자님');
   const [isHandPreferenceModalOpen, setIsHandPreferenceModalOpen] = useState(false);
-
+  const [nickname, setNickname] = useState<string>('학습자님');
   // 첫 방문 확인 및 손 선호도 모달 표시
   useEffect(() => {
     const hasSetHandPreference = localStorage.getItem('hasSetHandPreference');
     if (!hasSetHandPreference) {
       setIsHandPreferenceModalOpen(true);
     }
-  }, []);
+}, []);
 
   // 추천 수어 상태 추가
   const [recommendedSign, setRecommendedSign] = useState<{
@@ -62,19 +73,21 @@ const Home = () => {
       })
       .catch(() => setRecentLearning(null));
 
-    // 모든 sign을 flat하게 모아서 랜덤 추천
-    const allSigns = categories.flatMap(cat =>
-      cat.chapters.flatMap(chap => chap.signs.map(sign => ({
-        ...sign,
-        categoryId: cat.id,
-        categoryDescription: cat.description
-      })))
-    );
-    if (allSigns.length > 0) {
-      const randomIdx = Math.floor(Math.random() * allSigns.length);
-      setRecommendedSign(allSigns[randomIdx]);
+    // 모든 sign을 flat하게 모아서 랜덤 추천 (로딩이 완료된 후에만)
+    if (!loading && categories.length > 0) {
+      const allSigns = categories.flatMap(cat =>
+        cat.chapters.flatMap(chap => chap.signs.map(sign => ({
+          ...sign,
+          categoryId: cat.id,
+          categoryDescription: cat.description
+        })))
+      );
+      if (allSigns.length > 0) {
+        const randomIdx = Math.floor(Math.random() * allSigns.length);
+        setRecommendedSign(allSigns[randomIdx]);
+      }
     }
-  }, [categories]);
+  }, [showStreakAchievement, learningStats.consecutiveDays]);
 
   // 실제 데이터를 기반으로 전체 진도율 계산
   const calculateOverallProgress = () => {
@@ -151,6 +164,25 @@ const Home = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              <NotificationDrawer>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="hover:bg-blue-50 transition-colors relative"
+                  data-tour="notification-button"
+                >
+                  <Bell className="h-4 w-4 mr-2" />
+                  알림
+                  {unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                    >
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </NotificationDrawer>
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -184,6 +216,10 @@ const Home = () => {
 
           </h1>
           <p className="text-gray-600 text-lg">오늘도 수어 학습을 시작해볼까요?</p>
+          <div className="mt-4 inline-flex items-center px-4 py-2 bg-blue-50 rounded-full text-blue-700 text-sm">
+            <Trophy className="h-4 w-4 mr-2" />
+            전체 진도율 {overallProgress}% 달성 중
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -215,6 +251,7 @@ const Home = () => {
             onClick={() => navigate('/review')}
             variant="outline"
             className="h-28 hover:bg-purple-50 border-2 border-purple-200 hover:border-purple-300 flex-col space-y-3 transform hover:scale-105 transition-all duration-300 rounded-2xl shadow-lg"
+            data-tour="review-button"
           >
             <RotateCcw className="h-10 w-10 text-purple-600" />
             <div>
@@ -241,9 +278,9 @@ const Home = () => {
               <>
                 <p className="text-sm text-gray-600 mb-2">{recentLearning.category}</p>
                 <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{recentLearning.word}</p>
-                <div className="mt-4 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                  클릭해서 계속 학습하기 →
-                </div>
+            <div className="mt-4 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+              클릭해서 계속 학습하기 →
+            </div>
               </>
             ) : (
               <p className="text-gray-400 text-center py-6">최근 학습 기록이 없습니다</p>
@@ -402,10 +439,21 @@ const Home = () => {
         isOpen={isProgressModalOpen} 
         onClose={() => setIsProgressModalOpen(false)} 
       />
-      <HandPreferenceModal
+
+      <HandPreferenceModal 
         isOpen={isHandPreferenceModalOpen} 
         onClose={() => setIsHandPreferenceModalOpen(false)} 
       />
+
+      {/* 온보딩 투어 */}
+      {isOnboardingActive && (
+        <OnboardingTour
+          currentStep={currentStep}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          onComplete={completeOnboarding}
+        />
+      )}
     </div>
   );
 };

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Lock, Hand, Trash2, Trophy, Target, Clock, Star } from 'lucide-react';
+import { ArrowLeft, User, Lock, Hand, Trash2, Trophy, Target, Clock, Star, Mail } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,12 +34,43 @@ const Profile = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [dominantHand, setDominantHand] = useState('R');
-  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteEmail, setDeleteEmail] = useState('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState('');
+  const [isSocialUser, setIsSocialUser] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // 사용자 정보 로드
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      const userData = JSON.parse(user);
+      console.log('🔍 사용자 데이터:', userData);
+      
+      setNickname(userData.nickname || '사용자');
+      setUserEmail(userData.email || '');
+      
+      // 소셜 로그인 사용자 여부 확인 로직 수정
+      // provider 필드가 있거나 password 필드가 없으면 소셜 사용자
+      const hasProvider = userData.provider || userData.auth_provider;
+      const hasPassword = userData.password || userData.has_password;
+      
+      console.log('🔍 소셜 로그인 판단:', { 
+        hasProvider, 
+        hasPassword, 
+        provider: userData.provider,
+        auth_provider: userData.auth_provider,
+        password: userData.password,
+        has_password: userData.has_password
+      });
+      
+      // provider가 있으면 소셜 로그인, 없으면 일반 로그인
+      setIsSocialUser(!!hasProvider);
+    }
+  }, []);
 
   // 임시 통계 데이터
   const stats = {
@@ -125,20 +156,29 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
 
   
 
-  // 회원 탈퇴(비밀번호 검증 포함)
+  // 회원 탈퇴(이메일 검증 포함)
   const handleAccountDelete = async () => {
-    if (!deletePassword) {
+    if (!deleteEmail) {
       toast({
         title: "오류",
-        description: "비밀번호를 입력하세요.",
+        description: "이메일을 입력하세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (deleteEmail !== userEmail) {
+      toast({
+        title: "오류",
+        description: "등록된 이메일과 일치하지 않습니다.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      await API.delete('user/delete-account', {
-        data: { password: deletePassword }
+      await API.delete('auth/delete-account', {
+        data: { email: deleteEmail }
       } as any); // 타입 에러 방지용 as any
       toast({
         title: "탈퇴 완료",
@@ -185,59 +225,54 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
                   </div>
                   <h2 className="text-xl font-semibold text-gray-800 mb-2">{nickname}</h2>
                   <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                    활성 사용자
+                    {isSocialUser ? '소셜 로그인 사용자' : '일반 사용자'}
                   </Badge>
+                  {userEmail && (
+                    <p className="text-sm text-gray-600 mt-2">{userEmail}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             {/* Stats Cards */}
-            <div className="space-y-4">
-              <Card className="bg-gradient-to-r from-green-400 to-green-600 text-white shadow-lg border-0">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-green-100 text-sm">학습한 단어</p>
-                      <p className="text-2xl font-bold">{stats.totalLearned}개</p>
-                    </div>
-                    <Target className="h-8 w-8 text-green-100" />
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+                <CardContent className="pt-4">
+                  <div className="flex items-center space-x-2">
+                    <Trophy className="h-5 w-5 text-yellow-500" />
+                    <span className="text-sm font-medium text-gray-700">총 학습</span>
                   </div>
+                  <p className="text-2xl font-bold text-gray-800 mt-1">{stats.totalLearned}</p>
                 </CardContent>
               </Card>
-
-              <Card className="bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-lg border-0">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-orange-100 text-sm">연속 학습</p>
-                      <p className="text-2xl font-bold">{stats.streak}일</p>
-                    </div>
-                    <Trophy className="h-8 w-8 text-orange-100" />
+              
+              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+                <CardContent className="pt-4">
+                  <div className="flex items-center space-x-2">
+                    <Target className="h-5 w-5 text-green-500" />
+                    <span className="text-sm font-medium text-gray-700">연속</span>
                   </div>
+                  <p className="text-2xl font-bold text-gray-800 mt-1">{stats.streak}일</p>
                 </CardContent>
               </Card>
-
-              <Card className="bg-gradient-to-r from-purple-400 to-pink-500 text-white shadow-lg border-0">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-purple-100 text-sm">정확도</p>
-                      <p className="text-2xl font-bold">{stats.accuracy}%</p>
-                    </div>
-                    <Star className="h-8 w-8 text-purple-100" />
+              
+              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+                <CardContent className="pt-4">
+                  <div className="flex items-center space-x-2">
+                    <Star className="h-5 w-5 text-blue-500" />
+                    <span className="text-sm font-medium text-gray-700">정확도</span>
                   </div>
+                  <p className="text-2xl font-bold text-gray-800 mt-1">{stats.accuracy}%</p>
                 </CardContent>
               </Card>
-
-              <Card className="bg-gradient-to-r from-blue-400 to-cyan-500 text-white shadow-lg border-0">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-100 text-sm">총 학습시간</p>
-                      <p className="text-2xl font-bold">{stats.totalTime}시간</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-blue-100" />
+              
+              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+                <CardContent className="pt-4">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-5 w-5 text-purple-500" />
+                    <span className="text-sm font-medium text-gray-700">총 시간</span>
                   </div>
+                  <p className="text-2xl font-bold text-gray-800 mt-1">{stats.totalTime}h</p>
                 </CardContent>
               </Card>
             </div>
@@ -247,7 +282,7 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
           <div className="lg:col-span-2">
             <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0">
               <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-800">프로필 설정</CardTitle>
+                <CardTitle className="text-xl font-semibold text-gray-800">설정</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleProfileUpdate} className="space-y-6">
@@ -269,78 +304,78 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
 
                   <Separator className="my-6" />
 
-                  {/* Password Change Section */}
-                  <div className="space-y-4">
-                    <Label className="flex items-center text-sm font-medium text-gray-700">
-                      <Lock className="h-4 w-4 mr-2 text-gray-500" />
-                      비밀번호 변경
-                    </Label>
-                    
-                    <div className="space-y-3">
-                      <Input
-                        type="password"
-                        placeholder="현재 비밀번호"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                        type="password"
-                        placeholder="새 비밀번호"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                        type="password"
-                        placeholder="새 비밀번호 확인"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
+                  {/* Password Change Section - 소셜 로그인 사용자가 아닌 경우에만 표시 */}
+                  {!isSocialUser && (
+                    <>
+                      <div className="space-y-4">
+                        <Label className="flex items-center text-sm font-medium text-gray-700">
+                          <Lock className="h-4 w-4 mr-2 text-gray-500" />
+                          비밀번호 변경
+                        </Label>
+                        
+                        <div className="space-y-3">
+                          <Input
+                            type="password"
+                            placeholder="현재 비밀번호"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                          />
+                          <Input
+                            type="password"
+                            placeholder="새 비밀번호"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                          />
+                          <Input
+                            type="password"
+                            placeholder="새 비밀번호 확인"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
 
-                  <Separator className="my-6" />
+                      <Separator className="my-6" />
+                    </>
+                  )}
 
                   {/* Dominant Hand Section */}
                   <div className="space-y-3">
                     <Label className="flex items-center text-sm font-medium text-gray-700">
                       <Hand className="h-4 w-4 mr-2 text-gray-500" />
-                      주로 사용하는 손
+                      주 사용 손
                     </Label>
                     <div className="flex space-x-4">
-                      <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                      <label className="flex items-center space-x-2">
                         <input
                           type="radio"
-                          name="hand"
+                          name="dominantHand"
                           value="R"
                           checked={dominantHand === 'R'}
                           onChange={(e) => setDominantHand(e.target.value)}
                           className="text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="text-gray-700">오른손</span>
+                        <span className="text-sm text-gray-700">오른손</span>
                       </label>
-                      <label className="flex items-center space-x-2 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                      <label className="flex items-center space-x-2">
                         <input
                           type="radio"
-                          name="hand"
+                          name="dominantHand"
                           value="L"
                           checked={dominantHand === 'L'}
                           onChange={(e) => setDominantHand(e.target.value)}
                           className="text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="text-gray-700">왼손</span>
+                        <span className="text-sm text-gray-700">왼손</span>
                       </label>
                     </div>
                   </div>
 
-                  {/* Update Button */}
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12 text-base font-medium"
-                  >
-                    프로필 업데이트
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+                    설정 저장
                   </Button>
                 </form>
 
@@ -367,23 +402,36 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
                         <AlertDialogTitle>계정 탈퇴</AlertDialogTitle>
                         <AlertDialogDescription>
                           정말로 계정을 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                          {isSocialUser && (
+                            <div className="mt-2 p-2 bg-blue-50 rounded text-blue-700 text-sm">
+                              💡 소셜 로그인 사용자는 등록된 이메일을 입력해주세요.
+                            </div>
+                          )}
                         </AlertDialogDescription>
                         <div className="mt-4">
-                          <Label htmlFor="deletePassword" className="text-sm font-medium">
-                            비밀번호 확인
+                          <Label htmlFor="deleteEmail" className="text-sm font-medium">
+                            이메일 확인
                           </Label>
-                          <Input
-                            id="deletePassword"
-                            type="password"
-                            placeholder="비밀번호를 입력하세요"
-                            value={deletePassword}
-                            onChange={(e) => setDeletePassword(e.target.value)}
-                            className="mt-2"
-                          />
+                          <div className="relative mt-2">
+                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              id="deleteEmail"
+                              type="email"
+                              placeholder="등록된 이메일을 입력하세요"
+                              value={deleteEmail}
+                              onChange={(e) => setDeleteEmail(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                          {/* {userEmail && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              등록된 이메일: {userEmail}
+                            </p>
+                          )} */}
                         </div>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeletePassword('')}>
+                        <AlertDialogCancel onClick={() => setDeleteEmail('')}>
                           취소
                         </AlertDialogCancel>
                         <AlertDialogAction
