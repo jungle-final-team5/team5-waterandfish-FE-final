@@ -10,6 +10,8 @@ RUN npm run build
 FROM nginx:1.25.3-alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+COPY .env.production .env
+
 # ✅ 이 줄 추가
 # COPY nginx.conf /etc/nginx/conf.d/default.conf
 
