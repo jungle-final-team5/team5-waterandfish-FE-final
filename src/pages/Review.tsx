@@ -4,11 +4,43 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, BookOpen, Trash2, Play } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
+import { useEffect, useState } from 'react';
+import API from '@/components/AxiosInstance';
+
+interface Sign {
+  id: string;
+  word: string;
+  category: string;
+  // 필요에 따라 추가 필드들...
+}
 
 const Review = () => {
   const navigate = useNavigate();
-  const { reviewSigns, removeFromReview } = useLearningData();
+  const [reviewSigns, setReviewSigns] = useState<Sign[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const username = "zxcv";
+  useEffect(() => {
+    if (!username) return;
 
+    async function fetchFailedLessons() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await API.get(`/learning/progress/failures-by-username/${username}`);
+        console.log("응답 데이터:", res.data);
+        setReviewSigns(res.data as Sign[]);
+      } catch (err: any) {
+        setError("데이터를 불러오는 중 오류가 발생했습니다.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchFailedLessons();
+  }, [username]);
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -48,9 +80,9 @@ const Review = () => {
               </h2>
               <Button 
                 variant="outline" 
-                onClick={() => {
-                  reviewSigns.forEach(sign => removeFromReview(sign.id));
-                }}
+                // onClick={() => {
+                //   reviewSigns.forEach(sign => removeFromReview(sign.id));
+                // }}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 모두 삭제
@@ -78,7 +110,7 @@ const Review = () => {
                       <Button 
                         size="sm"
                         variant="outline"
-                        onClick={() => removeFromReview(sign.id)}
+                        // onClick={() => removeFromReview(sign.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
