@@ -49,4 +49,4 @@ jobs:
             docker ps -aq --filter "publish=80" | xargs -r docker stop
             docker ps -aq --filter "publish=80" | xargs -r docker rm
             docker build -t waterandfish-fe .
-            docker run -d -p 80:80 --name waterandfish-frontend waterandfish-fe
+            docker run -d -p 80:80 -p 443:443 --name waterandfish-frontend waterandfish-fe
