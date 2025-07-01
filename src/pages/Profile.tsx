@@ -39,6 +39,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userEmail, setUserEmail] = useState('');
   const [isSocialUser, setIsSocialUser] = useState(false);
+  const [handPreference, setHandPreference] = useState('right');
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -55,6 +56,13 @@ const Profile = () => {
       
       // 소셜 로그인 사용자 여부 확인 로직 단순화
       setIsSocialUser(Boolean(userData.provider));
+    }
+  }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('handPreference');
+    if (stored === 'left' || stored === 'right') {
+      setHandPreference(stored);
     }
   }, []);
 
@@ -426,6 +434,8 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
               </CardContent>
             </Card>
           </div>
+        </div>
+        <div style={{ margin: '16px 0' }}>
         </div>
       </div>
     </div>
