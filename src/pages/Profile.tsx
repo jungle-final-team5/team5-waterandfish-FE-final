@@ -103,7 +103,7 @@ const Profile = () => {
 
 const handleProfileUpdate = async (e: React.FormEvent) => {
   e.preventDefault();
-  
+
   if (newPassword && newPassword !== confirmPassword) {
     toast({
       title: "오류",
@@ -112,22 +112,29 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
     });
     return;
   }
-  
 
-  
   try {
-    // 백엔드 API 호출
+    // 닉네임만 변경
     await API.put('/user/me', {
       nickname: nickname,
       handedness: dominantHand
     });
 
-    // TODO : 소셜 로그인으로 인한 유저를 고려 할 것!
+    // 닉네임을 localStorage에도 저장 (Home에서 반영되도록)
+    localStorage.setItem('nickname', nickname);
+
+    // 비밀번호 변경 요청 (입력된 경우만)
+    if (newPassword) {
+      await API.put('/user/password', {
+        currentPassword,
+        newPassword
+      });
+    }
+
     toast({
       title: "성공",
       description: "프로필이 성공적으로 업데이트되었습니다.",
     });
-    
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
