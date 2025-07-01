@@ -24,6 +24,8 @@ import SessionHeader from '@/components/SessionHeader';
 import QuizDisplay from '@/components/QuizDisplay';
 import LearningDisplay from '@/components/LearningDisplay';
 import WebcamSection from '@/components/WebcamSection';
+import { createPoseHandler } from '@/components/detect/usePoseHandler';
+import HandDetectionIndicator from '@/components/HandDetectionIndicator';
 
 const Session = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -33,6 +35,9 @@ const Session = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const { videoRef, canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
   const [transmissionCount, setTransmissionCount] = useState(0);
+  const [isCrossed, setIsCrossed] = useState(false);
+  const initialPose = useRef<boolean>(false);
+  const [isHandDetected, setIsHandDetected] = useState(false);
 
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
@@ -83,6 +88,72 @@ const Session = () => {
       return false;
     }
   };
+
+  // MediaPipe pose detection 설정
+  useEffect(() => {
+    if (!state.isStreaming || !videoRef.current) return;
+
+    console.log('🎯 MediaPipe pose detection 시작');
+    const pose = createPoseHandler((rightShoulder, rightWrist, isHandDetected) => {
+      const shoulderVisibility = rightShoulder as typeof rightShoulder & { visibility: number } ;
+      const wristVisibility = rightWrist as typeof rightWrist & { visibility: number };
+      if ((shoulderVisibility.visibility ?? 0) < 0.5 || (wristVisibility.visibility ?? 0 ) < 0.5) {
+        setIsHandDetected(false);
+        initialPose.current = false;
+        setIsCrossed(false);
+        return;
+      }
+      // 손 감지 상태 업데이트      
+      if (isHandDetected && rightWrist && rightShoulder) {
+        if (rightWrist.x < rightShoulder.x) {
+          initialPose.current = true;
+          console.log('🤚 초기 포즈 감지됨 (손이 어깨 왼쪽)');
+        }
+        if (initialPose.current && rightWrist.x > rightShoulder.x) {
+          setIsCrossed(true);
+          console.log('✋ 손이 어깨를 가로질렀습니다');
+        }
+      } 
+    });
+
+    // 비디오가 준비되면 MediaPipe에 연결
+    const video = videoRef.current;
+    if (video.readyState >= 2) {
+      console.log('📹 비디오 준비됨, MediaPipe 연결 시작');
+      
+      const processFrame = async () => {
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          await pose.send({ image: video });
+        }
+        if (state.isStreaming) {
+          requestAnimationFrame(processFrame);
+        }
+      };
+      
+      processFrame();
+    } else {
+      // 비디오가 준비될 때까지 대기
+      const onVideoReady = async () => {
+        console.log('📹 비디오 준비됨, MediaPipe 연결 시작');
+        
+        const processFrame = async () => {
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            await pose.send({ image: video });
+          }
+          if (state.isStreaming) {
+            requestAnimationFrame(processFrame);
+          }
+        };
+        
+        processFrame();
+      };
+      
+      video.addEventListener('loadeddata', onVideoReady);
+      return () => {
+        video.removeEventListener('loadeddata', onVideoReady);
+      };
+    }
+  }, [state.isStreaming, videoRef.current]);
 
   // 자동 연결 및 스트림 시작
   useEffect(() => {
@@ -292,7 +363,7 @@ const Session = () => {
     }
 
     // 분류 1위와 정답 수어 비교
-    const isCorrect = currentResult.prediction.toLowerCase() === currentSign.word.toLowerCase();
+    const isCorrect = (currentResult.prediction.toLowerCase() === currentSign.word.toLowerCase()) && isCrossed;
     const confidence = currentResult.confidence;
 
     console.log('🎯 분류 결과 비교:', {
@@ -563,6 +634,13 @@ const Session = () => {
   
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* 손 감지 상태 표시 인디케이터 */}
+      <HandDetectionIndicator 
+        isHandDetected={isHandDetected}
+        isConnected={isConnected}
+        isStreaming={state.isStreaming}
+      />
+      
       <SessionHeader 
         isQuizMode={isQuizMode}
         currentSign={currentSign}
