@@ -162,7 +162,7 @@ const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayPr
 
   // 오답일 때는 기존 스타일 유지
   return (
-    <Card className="border-2 border-red-500 bg-red-50">
+/*     <Card className="border-2 border-red-500 bg-red-50">
       <CardContent className="pt-6">
         <div className="flex items-start space-x-4">
           <div className="p-2 rounded-full bg-red-500">
@@ -194,7 +194,8 @@ const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayPr
           </div>
         </div>
       </CardContent>
-    </Card>
+    </Card> */
+    <div></div>
   );
 };
 

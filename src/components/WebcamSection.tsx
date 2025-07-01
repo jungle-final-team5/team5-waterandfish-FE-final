@@ -147,10 +147,10 @@ const WebcamSection = ({
           
           {feedback && (
             <div className="flex space-x-2">
-              <Button onClick={handleRetry} variant="outline">
+{/*               <Button onClick={handleRetry} variant="outline">
                 <RotateCcw className="h-4 w-4 mr-2" />
                 다시 시도
-              </Button>
+              </Button> */}
               <Button onClick={handleNextSign} className="bg-blue-600 hover:bg-blue-700">
                 {feedback === 'correct' ? '다음 수어' : '건너뛰기'}
               </Button>
