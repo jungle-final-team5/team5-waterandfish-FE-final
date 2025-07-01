@@ -69,6 +69,7 @@ const Session = () => {
   const currentSign = chapter?.signs[currentSignIndex];
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const detectTimer = useRef<NodeJS.Timeout | null>(null);
 
   const signs = chapter?.signs;
 
@@ -95,6 +96,9 @@ const Session = () => {
 
     console.log('🎯 MediaPipe pose detection 시작');
     const pose = createPoseHandler((rightShoulder, rightWrist, isHandDetected) => {
+      if(detectTimer.current) {
+        return;
+      }
       const shoulderVisibility = rightShoulder as typeof rightShoulder & { visibility: number } ;
       const wristVisibility = rightWrist as typeof rightWrist & { visibility: number };
       if ((shoulderVisibility.visibility ?? 0) < 0.5 || (wristVisibility.visibility ?? 0 ) < 0.5) {
@@ -110,8 +114,13 @@ const Session = () => {
           console.log('🤚 초기 포즈 감지됨 (손이 어깨 왼쪽)');
         }
         if (initialPose.current && rightWrist.x > rightShoulder.x) {
-          setIsCrossed(true);
-          console.log('✋ 손이 어깨를 가로질렀습니다');
+          if (!detectTimer.current) {
+            setIsCrossed(true);
+            console.log('✋ 손이 어깨를 가로질렀습니다');
+            detectTimer.current = setTimeout(() => {
+              detectTimer.current = null;
+            }, 5000);
+          }
         }
       } 
     });
