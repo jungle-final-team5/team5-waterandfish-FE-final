@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react';
 
 interface FeedbackDisplayProps {
   feedback: 'correct' | 'incorrect';
+  prediction?: string;
+  onComplete?: () => void;
 }
 
-const FeedbackDisplay = ({ feedback }: FeedbackDisplayProps) => {
+const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayProps) => {
   const isCorrect = feedback === 'correct';
   const [countdown, setCountdown] = useState(3);
+  const [waitingForNone, setWaitingForNone] = useState(false);
 
   useEffect(() => {
     if (isCorrect) {
@@ -16,6 +19,8 @@ const FeedbackDisplay = ({ feedback }: FeedbackDisplayProps) => {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
+            // 3초 경과 후 prediction 체크
+            checkPredictionAndComplete();
             return 0;
           }
           return prev - 1;
@@ -25,6 +30,25 @@ const FeedbackDisplay = ({ feedback }: FeedbackDisplayProps) => {
       return () => clearInterval(timer);
     }
   }, [isCorrect]);
+
+  const checkPredictionAndComplete = () => {
+    if (prediction && prediction.toLowerCase() === 'none') {
+      console.log('✅ Prediction이 None입니다. 다음으로 진행합니다.');
+      onComplete?.();
+    } else {
+      console.log('⏳ Prediction이 아직 None이 아닙니다. 대기 중...');
+      setWaitingForNone(true);
+    }
+  };
+
+  // prediction이 변경될 때마다 체크
+  useEffect(() => {
+    if (waitingForNone && prediction && prediction.toLowerCase() === 'none') {
+      console.log('✅ Prediction이 None으로 변경되었습니다. 다음으로 진행합니다.');
+      onComplete?.();
+      setWaitingForNone(false);
+    }
+  }, [prediction, waitingForNone, onComplete]);
 
   if (isCorrect) {
     return (
@@ -48,7 +72,7 @@ const FeedbackDisplay = ({ feedback }: FeedbackDisplayProps) => {
                   수어 동작을 정확하게 수행했습니다!
                 </p>
                 
-                {/* 카운트다운 */}
+                {/* 카운트다운 및 대기 상태 */}
                 {countdown > 0 ? (
                   <div className="flex items-center justify-center space-x-2">
                     <span className="text-sm text-green-600">다음 수어까지</span>
@@ -56,6 +80,11 @@ const FeedbackDisplay = ({ feedback }: FeedbackDisplayProps) => {
                       {countdown}
                     </div>
                     <span className="text-sm text-green-600">초</span>
+                  </div>
+                ) : waitingForNone ? (
+                  <div className="text-sm text-green-600">
+                    <div className="animate-spin inline-block w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full mr-2"></div>
+                    손을 내려주세요...
                   </div>
                 ) : (
                   <div className="text-sm text-green-600">
