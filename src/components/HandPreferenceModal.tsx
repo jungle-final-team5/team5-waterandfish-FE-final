@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import API from '@/components/AxiosInstance';
 
 interface HandPreferenceModalProps {
   isOpen: boolean;
@@ -20,17 +20,45 @@ interface HandPreferenceModalProps {
 const HandPreferenceModal = ({ isOpen, onClose }: HandPreferenceModalProps) => {
   const [selectedHand, setSelectedHand] = useState('right');
   const { toast } = useToast();
+  const [shouldShow, setShouldShow] = useState(false);
 
-  const handleSave = () => {
+  useEffect(() => {
+    // 유저 정보에서 handedness 확인
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setShouldShow(user.handedness === null || user.handedness === undefined);
+      } catch {
+        setShouldShow(false);
+      }
+    } else {
+      setShouldShow(false);
+    }
+  }, [isOpen]);
+
+  if (!shouldShow) return null;
+
+  const handleSave = async () => {
     // 로컬 스토리지에 손 선호도 저장
     localStorage.setItem('handPreference', selectedHand);
     localStorage.setItem('hasSetHandPreference', 'true');
-    
-    toast({
-      title: "설정 완료",
-      description: `${selectedHand === 'right' ? '오른손' : '왼손'}으로 설정되었습니다.`,
-    });
-    
+    try {
+      // 서버에 handedness 정보 PATCH (right → 'R', left → 'L')
+      await API.put('/user/me', {
+        handedness: selectedHand === 'right' ? 'R' : 'L'
+      });
+      toast({
+        title: "설정 완료",
+        description: `${selectedHand === 'right' ? '오른손' : '왼손'}으로 설정되었습니다.`,
+      });
+    } catch (error) {
+      toast({
+        title: "오류",
+        description: "서버에 손 선호도 저장에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
     onClose();
   };
 

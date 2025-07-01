@@ -26,6 +26,7 @@ import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import { useNotificationHistory } from '@/hooks/useNotificationHistory';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import API from '@/components/AxiosInstance';
+
 const Home = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -46,7 +47,7 @@ const Home = () => {
     if (!hasSetHandPreference) {
       setIsHandPreferenceModalOpen(true);
     }
-}, []);
+  }, []);
 
   // 추천 수어 상태 추가
   const [recommendedSign, setRecommendedSign] = useState<{
@@ -74,6 +75,26 @@ const Home = () => {
     //   .catch(() => setRecentLearning(null));
   }, []);
 
+  // 자음/모음만 있는지 판별하는 함수
+  function isletterOnly(text: string) {
+    return /^[\u3131-\u314E\u314F-\u3163]+$/.test(text);
+  }
+
+  // 오늘 날짜 기반 seed 생성
+  function getTodaySeed() {
+    const today = new Date();
+    return today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  }
+
+  // seed 기반 랜덤 인덱스 생성
+  function seededRandom(seed: string, max: number) {
+    let hash = 5381;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) + hash) + seed.charCodeAt(i);
+    }
+    return Math.abs(hash) % max;
+  }
+
   // 추천 수어는 categories/로딩이 끝났을 때만 실행
   useEffect(() => {
     if (!loading && categories.length > 0) {
@@ -84,9 +105,13 @@ const Home = () => {
           categoryDescription: cat.description
         })))
       );
-      if (allSigns.length > 0) {
-        const randomIdx = Math.floor(Math.random() * allSigns.length);
-        setRecommendedSign(allSigns[randomIdx]);
+      const filteredSigns = allSigns.filter(sign => !isletterOnly(sign.word));
+      if (filteredSigns.length > 0) {
+        const seed = getTodaySeed();
+        const randomIdx = seededRandom(seed, filteredSigns.length);
+        setRecommendedSign(filteredSigns[randomIdx]);
+      } else {
+        setRecommendedSign(null);
       }
     }
   }, [categories, loading]);
@@ -218,10 +243,6 @@ const Home = () => {
 
           </h1>
           <p className="text-gray-600 text-lg">오늘도 수어 학습을 시작해볼까요?</p>
-          <div className="mt-4 inline-flex items-center px-4 py-2 bg-blue-50 rounded-full text-blue-700 text-sm">
-            <Trophy className="h-4 w-4 mr-2" />
-            전체 진도율 {overallProgress}% 달성 중
-          </div>
         </div>
 
         {/* Quick Actions */}
