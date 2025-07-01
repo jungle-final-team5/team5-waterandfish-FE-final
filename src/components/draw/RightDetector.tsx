@@ -59,7 +59,7 @@ function islieul(landmarks) {
         landmarks[8].x > landmarks[6].x &&
         landmarks[16].x > landmarks[14].x &&
         landmarks[20].x < landmarks[18].x &&
-        Math.abs(landmarks[12].y - landmarks[8].y)<0.115
+        Math.abs(landmarks[12].y - landmarks[8].y)<0.1
     )
 }
 function istiguet(landmarks) {
@@ -70,7 +70,7 @@ function istiguet(landmarks) {
         landmarks[8].x > landmarks[6].x &&
         landmarks[16].x > landmarks[14].x&&
         landmarks[20].x < landmarks[18].x &&
-        Math.abs(landmarks[12].y - landmarks[8].y)>0.15
+        Math.abs(landmarks[12].y - landmarks[8].y)>0.13
     )
 }
 function isbieup(landmarks) {

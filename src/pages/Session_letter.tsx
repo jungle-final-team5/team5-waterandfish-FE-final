@@ -11,20 +11,22 @@ import { detectGesture } from '../components/draw/RightDetector';
 
 const LetterSession = () => {
   const navigate = useNavigate();
-  const { setType } = useParams();
+  const { setType,qOrs } = useParams();
   const [sets] = useState(() => {
     if (setType === 'consonant') {
-      return ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ'];
+      return ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
     } else if (setType === 'vowel') {
-      return ['ㅏ', 'ㅑ', 'ㅓ', 'ㅕ'];
+      return ['ㅏ', 'ㅑ', 'ㅓ', 'ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ'];
     } else {
       return [];
     }
   });
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDone, setIsDone] = useState(false);
 
   const times = useRef(10);
+  const qors = useRef<boolean>(qOrs === 'quiz');
   const timeref = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -119,8 +121,10 @@ const LetterSession = () => {
       }
     }
     pileref.current.textContent = '';
-    times.current = 10;
-    if (timeref.current) timeref.current.textContent = times.current.toString();
+    if(qors.current){
+      times.current = 10;
+      if (timeref.current) timeref.current.textContent = times.current.toString();
+    }
   };
 
   useEffect(() => {
@@ -132,7 +136,9 @@ const LetterSession = () => {
     std.current = true;
     divword(words);
     setTimeout(comges, 1000);
-    setTimeout(timedown, 1000);
+    if(qors.current){
+      setTimeout(timedown, 1000);
+    }
   }, [words]);
 
   useEffect(() => {
@@ -215,7 +221,8 @@ const LetterSession = () => {
                 돌아가기
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-gray-800">자음 테스트</h1>
+                {setType === 'consonant'?(<h1 className="text-xl font-bold text-gray-800">자음 테스트</h1>):
+                (<h1 className="text-xl font-bold text-gray-800">모음 테스트</h1>)}
                 <p className="text-sm text-gray-600">
                   문제 {currentIndex + 1}/{sets.length}
                 </p>
@@ -230,7 +237,7 @@ const LetterSession = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-6">
+          {qors.current?(<div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>현재 문제</CardTitle>
@@ -241,7 +248,20 @@ const LetterSession = () => {
                 <div ref={pileref} className="text-center text-3xl mt-4" />
               </CardContent>
             </Card>
-          </div>
+          </div>):(<div className="space-y-6">
+            <Card>
+              <CardHeader>
+                {setType === 'consonant'?(<CardTitle>자음 연습</CardTitle>):
+                (<CardTitle>모음 연습</CardTitle>)}
+              </CardHeader>
+              <CardContent>
+                <div ref={decref} className="text-5xl text-center font-bold" />
+                {setType === 'consonant'?(<img src="/consonant.jpg" alt="자음표" className="mx-auto my-4 w-[480px] h-auto"/>):
+                (<img src="/vowel.jpg" alt="모음표" className="mx-auto my-4 w-[480px] h-auto"/>)}
+                <div ref={pileref} className="text-center text-3xl mt-4" />
+              </CardContent>
+            </Card>
+          </div>)}
 
           <div className="space-y-6">
             <Card>
