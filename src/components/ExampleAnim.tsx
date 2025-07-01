@@ -104,7 +104,7 @@ const LandmarkViewerTSX = ({
   ];
 
   // 카메라 컨트롤 변수
-  const cameraInitPos: CameraPosition = { x: -0.408, y: 0.334, z: -0.355 };
+  const cameraInitPos: CameraPosition = { x: -0.408, y: 0.334, z: -0.855 };
   const cameraInitRot: CameraRotation = { x: 0, y: 0, z: 0 };
   const yawRef = useRef(-10.3 * Math.PI / 180);
   const pitchRef = useRef(178.7 * Math.PI / 180);
