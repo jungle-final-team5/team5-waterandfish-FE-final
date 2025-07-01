@@ -90,7 +90,7 @@ export default function Login() {
         </div>
         {/* 흰색 카드 */}
         <div className="absolute right-10 top-0 w-[600px] h-[650px] bg-white rounded-[40px] shadow-[0_4px_24px_rgba(0,0,0,0.25)] flex flex-col justify-center items-center p-10 z-20">
-          <h2 className="text-2xl font-bold mb-8">로그인1</h2>
+          <h2 className="text-2xl font-bold mb-8">로그인</h2>
           <form className="w-full flex flex-col gap-5" onSubmit={login}>
             {/* 이메일 */}
             <div className="relative w-3/4 mx-auto mb-5">
