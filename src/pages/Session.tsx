@@ -26,6 +26,7 @@ import LearningDisplay from '@/components/LearningDisplay';
 import WebcamSection from '@/components/WebcamSection';
 import { createPoseHandler } from '@/components/detect/usePoseHandler';
 import HandDetectionIndicator from '@/components/HandDetectionIndicator';
+import API from '@/components/AxiosInstance';
 
 const Session = () => {
   const [isConnected, setIsConnected] = useState(false);
@@ -41,7 +42,25 @@ const Session = () => {
 
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
-  
+  useEffect(() => {
+
+  API.get(`/learning/chapters/${chapterId}`)
+    .then(res => {
+      const type = (res.data as { type: string }).type;
+      if (type == '자음') {
+        navigate("/test/letter/consonant/study");
+      } else if (type == '모음') {
+        navigate("/test/letter/vowel/study");
+      } else {
+        navigate("/not-found");
+      }
+    })
+    .catch(err => {
+      console.error('타입 조회 실패:', err);
+      navigate("/not-found");
+    })
+    ;
+  }, [chapterId, categoryId, sessionType, navigate]);
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
   
   const [data, setData] = useState(null);
