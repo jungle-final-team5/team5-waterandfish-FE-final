@@ -25,7 +25,7 @@ interface OnboardingTourProps {
 const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingTourProps) => {
   const steps = [
     {
-      title: "SignSense에 오신 것을 환영합니다! 🎉",
+      title: "수어지교에 오신 것을 환영합니다! 🎉",
       description: "수어 학습의 새로운 경험을 시작해보세요. 실시간 모션 인식으로 효과적인 학습이 가능합니다.",
       icon: <div className="text-4xl">🤟</div>,
       position: "center"

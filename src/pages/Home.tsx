@@ -173,6 +173,22 @@ const Home = () => {
     return '좋은 저녁입니다';
   };
 
+  // handedness가 없을 때만 온보딩 투어 표시
+  const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setShouldShowOnboarding(user.handedness === null || user.handedness === undefined || user.handedness === "");
+      } catch {
+        setShouldShowOnboarding(false);
+      }
+    } else {
+      setShouldShowOnboarding(false);
+    }
+  }, [isOnboardingActive]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
@@ -469,7 +485,7 @@ const Home = () => {
       />
 
       {/* 온보딩 투어 */}
-      {isOnboardingActive && (
+      {isOnboardingActive && shouldShowOnboarding && (
         <OnboardingTour
           currentStep={currentStep}
           onNext={nextStep}
