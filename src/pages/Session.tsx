@@ -1,15 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  ArrowLeft,
-  Camera,
   CheckCircle,
   XCircle,
-  RotateCcw,
-  Clock,
   RefreshCw
 } from 'lucide-react';
 
@@ -51,8 +46,6 @@ const Session = () => {
         navigate("/test/letter/consonant/study");
       } else if (type == '모음') {
         navigate("/test/letter/vowel/study");
-      } else {
-        navigate("/not-found");
       }
     })
     .catch(err => {

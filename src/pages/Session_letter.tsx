@@ -270,7 +270,7 @@ const LetterSession = () => {
               </CardHeader>
               <CardContent className="flex flex-col items-center">
                 <video ref={videoRef} style={{ display: 'none' }} autoPlay muted playsInline width="640" height="480" />
-                <canvas ref={canvasRef} width="640" height="480" className="border border-gray-300" />
+                <canvas ref={canvasRef} width="640" height="480" className="border border-gray-300"  style={{ transform: 'scaleX(-1)' }}/>
                 <div ref={resultRef} className="text-center text-xl mt-4" />
                 {isDone && currentIndex === sets.length - 1 && (
                   <Button className="mt-4" onClick={() => navigate('/result')}>
