@@ -51,21 +51,17 @@ const BadgeModal = ({ isOpen, onClose }: BadgeModalProps) => {
   
   // 날짜 포맷팅 함수
   const formatDate = (dateString: string | null): string => {
-    console.log('포맷팅할 날짜 문자열:', dateString);
     if (!dateString) return '-';
     
     try {
       const date = new Date(dateString);
-      console.log('변환된 Date 객체:', date);
       const formatted = date.toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       });
-      console.log('포맷팅 결과:', formatted);
       return formatted;
     } catch (error) {
-      console.error('날짜 포맷팅 오류:', error);
       return dateString; // 오류 발생 시 원래 문자열 반환
     }
   };
