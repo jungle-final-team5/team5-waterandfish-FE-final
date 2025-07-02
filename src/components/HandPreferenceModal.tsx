@@ -28,7 +28,7 @@ const HandPreferenceModal = ({ isOpen, onClose }: HandPreferenceModalProps) => {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        setShouldShow(user.handedness === null || user.handedness === undefined);
+        setShouldShow(user.handedness === null || user.handedness === undefined || user.handedness === "");
       } catch {
         setShouldShow(false);
       }

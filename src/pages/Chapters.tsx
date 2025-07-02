@@ -113,14 +113,14 @@ const Chapters = () => {
                   </div>
                   <div className="flex space-x-3">
                     <Button 
-                      onClick={() => navigate(`/learn/session/${categoryId}/${chapter.id}/learning`)}
+                      onClick={() => navigate(`/learn/guide/${categoryId}/${chapter.id}/learning`)}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <Play className="h-4 w-4 mr-2" />
                       학습하기
                     </Button>
                     <Button 
-                      onClick={() => navigate(`/learn/session/${categoryId}/${chapter.id}/learning`)}
+                      onClick={() => navigate(`/learn/guide/${categoryId}/${chapter.id}/learning`)}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <RotateCcw className="h-4 w-4 mr-2" />
@@ -128,7 +128,7 @@ const Chapters = () => {
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={() => navigate(`/learn/session/${categoryId}/${chapter.id}/quiz`)}
+                      onClick={() => navigate(`/learn/guide/${categoryId}/${chapter.id}/quiz`)}
                     >
                       퀴즈 풀기
                     </Button>

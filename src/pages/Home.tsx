@@ -34,7 +34,7 @@ const Home = () => {
   const { showStreakAchievement } = useNotifications();
   const { learningStats } = useBadgeSystem();
   const { unreadCount } = useNotificationHistory();
-  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, completeOnboarding } = useOnboarding();
+    const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
@@ -172,6 +172,22 @@ const Home = () => {
     if (currentTime < 18) return '좋은 오후입니다';
     return '좋은 저녁입니다';
   };
+
+  // handedness가 없을 때만 온보딩 투어 표시
+  const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setShouldShowOnboarding(user.handedness === null || user.handedness === undefined || user.handedness === "");
+      } catch {
+        setShouldShowOnboarding(false);
+      }
+    } else {
+      setShouldShowOnboarding(false);
+    }
+  }, [isOnboardingActive]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -469,12 +485,13 @@ const Home = () => {
       />
 
       {/* 온보딩 투어 */}
-      {isOnboardingActive && (
+      {isOnboardingActive && shouldShowOnboarding && (
         <OnboardingTour
           currentStep={currentStep}
           onNext={nextStep}
           onSkip={skipOnboarding}
           onComplete={completeOnboarding}
+          onPrevious={previousStep}
         />
       )}
     </div>

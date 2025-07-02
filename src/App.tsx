@@ -19,6 +19,7 @@ import AuthCallback from "./pages/AuthCallback";
 import TestPage from "./pages/TestPage";
 import { AuthProvider } from "@/hooks/useAuth";
 import LetterSession from "./pages/Session_letter";
+import LearningGuide from "./pages/LearningGuide";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/home" element={<Home />} />
             <Route path="/learn" element={<Categories />} />
             <Route path="/learn/category/:categoryId" element={<Chapters />} />
+            <Route path="/learn/guide/:categoryId/:chapterId/:sessionType" element={<LearningGuide />} />
             <Route path="/learn/session/:categoryId/:chapterId/:sessionType" element={<Session />} />
             <Route path="/learn/:keyword" element={<Learn />} />
             <Route path="/test/letter/:setType/:qOrs" element={<LetterSession />}/>
