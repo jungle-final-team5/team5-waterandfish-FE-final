@@ -1,4 +1,5 @@
 
+import API from '@/components/AxiosInstance';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award, Star, Target, Calendar, Zap, Book, Heart, Crown, Flame, Shield } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface BadgeModalProps {
   isOpen: boolean;
@@ -150,10 +152,26 @@ const BadgeModal = ({ isOpen, onClose }: BadgeModalProps) => {
       earned: false,
       earnedDate: null
     }
-  ];
+  ]
 
   const earnedBadges = badges.filter(badge => badge.earned);
   const unearnedBadges = badges.filter(badge => !badge.earned);
+    useEffect(() => {
+    API.get('/badge/earned')  // FastAPI 주소에 맞게 수정
+      .then(res => {
+      console.log("응답 데이터:", res.data);  // 👈 여기 반드시 찍어보세요
+    })
+      .catch(err => {
+    console.error('카테고리 불러오기 실패');
+    if (err.response) {
+      console.error('서버 응답 에러:', err.response.status, err.response.data);
+    } else if (err.request) {
+      console.error('요청은 전송됐지만 응답 없음:', err.request);
+    } else {
+      console.error('요청 설정 에러:', err.message);
+    }
+  });
+  },[])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
