@@ -16,6 +16,10 @@ export const useOnboarding = () => {
     setCurrentStep(prev => prev + 1);
   };
 
+  const previousStep = () => {
+    setCurrentStep(prev => prev - 1);
+  };
+
   const skipOnboarding = () => {
     setIsOnboardingActive(false);
     localStorage.setItem('hasSeenOnboarding', 'true');
@@ -30,6 +34,7 @@ export const useOnboarding = () => {
     isOnboardingActive,
     currentStep,
     nextStep,
+    previousStep,
     skipOnboarding,
     completeOnboarding
   };

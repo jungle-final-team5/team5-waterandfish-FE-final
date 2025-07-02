@@ -34,7 +34,7 @@ const Home = () => {
   const { showStreakAchievement } = useNotifications();
   const { learningStats } = useBadgeSystem();
   const { unreadCount } = useNotificationHistory();
-  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, completeOnboarding } = useOnboarding();
+    const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
@@ -491,6 +491,7 @@ const Home = () => {
           onNext={nextStep}
           onSkip={skipOnboarding}
           onComplete={completeOnboarding}
+          onPrevious={previousStep}
         />
       )}
     </div>

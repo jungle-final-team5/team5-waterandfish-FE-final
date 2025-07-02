@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +21,10 @@ interface OnboardingTourProps {
   onNext: () => void;
   onSkip: () => void;
   onComplete: () => void;
+  onPrevious: () => void;
 }
 
-const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingTourProps) => {
+const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete, onPrevious }: OnboardingTourProps) => {
   const steps = [
     {
       title: "수어지교에 오신 것을 환영합니다! 🎉",
@@ -77,7 +79,7 @@ const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingT
   const isLastStep = currentStep === steps.length - 1;
 
   // 하이라이트 효과 적용
-  useState(() => {
+  useEffect(() => {
     if (currentStepData.highlight) {
       const element = document.querySelector(currentStepData.highlight);
       if (element) {
@@ -91,7 +93,7 @@ const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingT
         el.classList.remove('onboarding-highlight');
       });
     };
-  }, [currentStep]);
+    }, [currentStep, currentStepData.highlight]);
 
   const getCardPosition = () => {
     switch (currentStepData.position) {
@@ -148,7 +150,7 @@ const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingT
           <div className="flex justify-between items-center">
             <Button
               variant="ghost"
-              onClick={currentStep > 0 ? () => setCurrentStep(currentStep - 1) : onSkip}
+                            onClick={currentStep > 0 ? onPrevious : onSkip}
               className="text-gray-500 hover:text-gray-700"
             >
               {currentStep > 0 ? (
