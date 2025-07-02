@@ -8,6 +8,7 @@ import { Hands } from '@mediapipe/hands';
 import { Camera } from '@mediapipe/camera_utils';
 import { drawLandmarks, drawOverlayMessage } from '../components/draw/draw';
 import { detectGesture } from '../components/draw/RightDetector';
+import API from '@/components/AxiosInstance';
 
 const LetterSession = () => {
   const navigate = useNavigate();
@@ -21,7 +22,29 @@ const LetterSession = () => {
       return [];
     }
   });
-  
+  const sendQuizResult = async () => {
+    const passedLetters = JSON.parse(localStorage.getItem('passed') || '[]');
+    const failedLetters = JSON.parse(localStorage.getItem('failed') || '[]');
+
+    try {
+      await API.post(
+        'learning/result/letter',
+        {
+          passed: passedLetters,
+          failed: failedLetters,
+        },
+        {
+          withCredentials: true, // ✅ 쿠키 포함
+        }
+      );
+      console.log("결과 전송 완료");
+      // 선택: localStorage 초기화
+      localStorage.removeItem('passed');
+      localStorage.removeItem('failed');
+    } catch (error) {
+      console.error("결과 전송 실패", error);
+    }
+  };
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDone, setIsDone] = useState(false);
 
@@ -62,10 +85,14 @@ const LetterSession = () => {
             navigated.current = true;
             decref.current.textContent = '통과';
             setIsDone(true);
-            const prev = JSON.parse(localStorage.getItem('passed') || '[]');
-            if (!prev.includes(currentIndex + 1)) {
-              localStorage.setItem('passed', JSON.stringify([...prev, currentIndex + 1]));
-            }
+            const passedChar = sets[currentIndex];
+            const prevPassed = JSON.parse(localStorage.getItem('passed') || '[]');
+
+            // 중복 제거 후 배열 새로 만들기
+            const newPassed = prevPassed.filter((c: string) => c !== passedChar);
+            newPassed.push(passedChar);
+
+            localStorage.setItem('passed', JSON.stringify(newPassed));
             setTimeout(handleNext, 5000);
           }
         }
@@ -90,10 +117,13 @@ const LetterSession = () => {
       if (decref.current) decref.current.textContent = '실패';
       if (timeref.current) timeref.current.textContent = times.current.toString();
 
-      const prev = JSON.parse(localStorage.getItem('failed') || '[]');
-      if (!prev.includes(currentIndex + 1)) {
-        localStorage.setItem('failed', JSON.stringify([...prev, currentIndex + 1]));
-      }
+      const failedChar = sets[currentIndex];
+      const prevFailed = JSON.parse(localStorage.getItem('failed') || '[]');
+
+      const newFailed = prevFailed.filter((c: string) => c !== failedChar);
+      newFailed.push(failedChar);
+
+      localStorage.setItem('failed', JSON.stringify(newFailed));
 
       setIsDone(true);
       setTimeout(handleNext, 5000);
@@ -272,10 +302,17 @@ const LetterSession = () => {
                 <video ref={videoRef} style={{ display: 'none' }} autoPlay muted playsInline width="640" height="480" />
                 <canvas ref={canvasRef} width="640" height="480" className="border border-gray-300"  style={{ transform: 'scaleX(-1)' }}/>
                 <div ref={resultRef} className="text-center text-xl mt-4" />
+
                 {isDone && currentIndex === sets.length - 1 && (
-                  <Button className="mt-4" onClick={() => navigate('/result')}>
-                    결과 보기
-                  </Button>
+                  qors.current ? (
+                    <Button className="mt-4" onClick={() => sendQuizResult()}>
+                      결과 저장
+                    </Button>
+                  ) : (
+                    <Button className="mt-4" onClick={() => navigate('/learn')}>
+                      카테고리로
+                    </Button>
+                  )
                 )}
               </CardContent>
             </Card>
