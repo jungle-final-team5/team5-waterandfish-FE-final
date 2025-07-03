@@ -17,6 +17,7 @@ import {
 import WebcamView from '@/components/WebcamView';
 import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
+import API from "@/components/AxiosInstance";
 
 const Learn = () => {
   const [animData, setAnimData] = useState(null);
@@ -128,6 +129,19 @@ const Learn = () => {
   };
 
   const currentStepData = learningData.steps[currentStep];
+
+  useEffect(() => {
+    if (currentStepData.type === 'complete') {
+      API.post('/user/daily-activity/complete')
+        .then(() => {
+          console.log("오늘 활동 기록 완료!");
+        })
+        .catch((err) => {
+          console.error("오늘 활동 기록 실패:", err);
+        });
+    }
+    // eslint-disable-next-line
+  }, [currentStepData.type]);
 
   return (
     <div className="min-h-screen bg-gray-50">

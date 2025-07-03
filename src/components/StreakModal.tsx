@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -9,44 +8,38 @@ import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, Flame, Target } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { useStreakData } from "@/hooks/useStreakData";
 
 interface StreakModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
-  // 연속 학습한 날짜들 (예시 데이터)
-  const studyDates = [
-    new Date(2024, 5, 22), // 6월 22일
-    new Date(2024, 5, 23), // 6월 23일
-    new Date(2024, 5, 24), // 6월 24일
-    new Date(2024, 5, 25), // 6월 25일
-    new Date(2024, 5, 26), // 6월 26일
-    new Date(2024, 5, 27), // 6월 27일
-    new Date(2024, 5, 28), // 6월 28일 (오늘)
-  ];
+const formatDate = (date: Date) => {
+  // 항상 0시 기준으로 YYYY-MM-DD 반환
+  return date.toISOString().slice(0, 10);
+};
 
+const formatDateKST = (date: Date) => {
+  // KST(로컬) 기준으로 YYYY-MM-DD 반환
+  const tzOffset = date.getTimezoneOffset() * 60000;
+  const localDate = new Date(date.getTime() - tzOffset);
+  return localDate.toISOString().slice(0, 10);
+};
+
+const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
+  const { studyDates, currentStreak, longestStreak, loading } = useStreakData();
   const today = new Date();
   
-  // 날짜가 학습한 날짜인지 확인하는 함수
+  // 날짜가 학습한 날짜인지 확인하는 함수 (KST 기준 YYYY-MM-DD 문자열로 비교)
   const isStudyDate = (date: Date) => {
-    return studyDates.some(studyDate => 
-      studyDate.getDate() === date.getDate() &&
-      studyDate.getMonth() === date.getMonth() &&
-      studyDate.getFullYear() === date.getFullYear()
-    );
+    return studyDates.some(studyDateStr => studyDateStr === formatDateKST(date));
   };
 
-  // 오늘 날짜인지 확인하는 함수
+  // 오늘 날짜인지 확인하는 함수 (KST 기준 YYYY-MM-DD 문자열로 비교)
   const isToday = (date: Date) => {
-    return date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear();
+    return formatDateKST(date) === formatDateKST(today);
   };
-
-  const currentStreak = 7; // 현재 연속 학습 일수
-  const longestStreak = 10; // 최장 연속 학습 일수
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -81,41 +74,40 @@ const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
           <Calendar
             mode="single"
             className={cn("p-3 pointer-events-auto")}
-            classNames={{
-              day: cn(
-                "h-9 w-9 p-0 font-normal aria-selected:opacity-100 relative"
-              ),
-              day_today: "bg-blue-100 text-blue-900 font-bold ring-2 ring-blue-400",
-            }}
-            modifiers={{
-              study: studyDates,
-              today: today,
-            }}
-            modifiersClassNames={{
-              study: "bg-green-500 text-white hover:bg-green-600 font-semibold",
-              today: "bg-blue-100 text-blue-900 font-bold ring-2 ring-blue-400",
-            }}
             components={{
               Day: ({ date, ...props }) => {
+                const { displayMonth, className: _ignore, ...buttonProps } = props as any;
                 const isStudy = isStudyDate(date);
                 const isTodayDate = isToday(date);
-                
+                // 디버깅용 콘솔 로그 추가
+                console.log({
+                  date,
+                  formatDateKST: formatDateKST(date),
+                  isStudy,
+                  isToday: isTodayDate,
+                  studyDates
+                });
+                let className = "h-8 w-8 font-normal rounded-md mx-[2px] my-[2px] p-0.5 flex items-center justify-center";
+                if (isTodayDate && isStudy) {
+                  className += " bg-green-600 text-white ring-2 ring-blue-400 font-bold";
+                } else if (isStudy) {
+                  className += " bg-green-500 text-white hover:bg-green-600 font-semibold";
+                } else if (isTodayDate) {
+                  className += " bg-blue-100 text-blue-900 font-bold ring-2 ring-blue-400";
+                } else {
+                  className += " hover:bg-accent hover:text-accent-foreground";
+                }
                 return (
                   <div className="relative">
                     <button
-                      {...props}
-                      className={cn(
-                        "h-9 w-9 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md",
-                        isStudy && "bg-green-500 text-white hover:bg-green-600 font-semibold",
-                        isTodayDate && isStudy && "bg-green-500 text-white ring-2 ring-blue-400",
-                        isTodayDate && !isStudy && "bg-blue-100 text-blue-900 font-bold ring-2 ring-blue-400"
-                      )}
+                      {...buttonProps}
+                      className={className}
                     >
                       {date.getDate()}
                     </button>
                     {isStudy && (
                       <div className="absolute -top-1 -right-1">
-                        <div className="h-2 w-2 bg-orange-400 rounded-full"></div>
+                        <div className="h-2 w-2 rounded-full"></div>
                       </div>
                     )}
                   </div>
@@ -128,12 +120,16 @@ const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
         {/* 범례 */}
         <div className="flex justify-center space-x-6 mt-4">
           <div className="flex items-center">
-            <div className="w-4 h-4 bg-green-500 rounded mr-2"></div>
+            <div className="w-4 h-4 bg-green-600 rounded mr-2 border border-green-700"></div>
             <span className="text-sm text-gray-600">학습 완료</span>
           </div>
           <div className="flex items-center">
             <div className="w-4 h-4 bg-blue-100 border-2 border-blue-400 rounded mr-2"></div>
             <span className="text-sm text-gray-600">오늘</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-4 h-4 bg-green-600 border-2 border-blue-400 rounded mr-2"></div>
+            <span className="text-sm text-gray-600">오늘+학습</span>
           </div>
         </div>
 

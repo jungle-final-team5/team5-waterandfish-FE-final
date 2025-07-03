@@ -611,7 +611,36 @@ const loadData = useCallback(async (videoUrl: string) => {
     handleNextSign();
   };
 
-  // 연결 오류 시 새로고침 안내
+  // useEffect는 항상 호출, 내부에서 sessionComplete 조건 체크
+  useEffect(() => {
+    if (sessionComplete) {
+      API.post('/user/daily-activity/complete')
+        .then(() => {
+          console.log("오늘 활동 기록 완료!(퀴즈/세션)");
+        })
+        .catch((err) => {
+          console.error("오늘 활동 기록 실패(퀴즈/세션):", err);
+        });
+    }
+    // eslint-disable-next-line
+  }, [sessionComplete]);
+
+  useEffect(() => {
+    API.get(`/learning/chapters/${chapterId}`)
+      .then(res => {
+        const type = (res.data as { type: string }).type;
+        if (type == '자음') {
+          navigate("/test/letter/consonant/study");
+        } else if (type == '모음') {
+          navigate("/test/letter/vowel/study");
+        }
+      })
+      .catch(err => {
+        console.error('타입 조회 실패:', err);
+        navigate("/not-found");
+      });
+  }, [chapterId, categoryId, sessionType, navigate]);
+
   if (connectionError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

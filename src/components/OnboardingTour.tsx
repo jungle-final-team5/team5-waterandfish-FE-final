@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,12 +21,13 @@ interface OnboardingTourProps {
   onNext: () => void;
   onSkip: () => void;
   onComplete: () => void;
+  onPrevious: () => void;
 }
 
-const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingTourProps) => {
+const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete, onPrevious }: OnboardingTourProps) => {
   const steps = [
     {
-      title: "SignSense에 오신 것을 환영합니다! 🎉",
+      title: "수어지교에 오신 것을 환영합니다! 🎉",
       description: "수어 학습의 새로운 경험을 시작해보세요. 실시간 모션 인식으로 효과적인 학습이 가능합니다.",
       icon: <div className="text-4xl">🤟</div>,
       position: "center"
@@ -77,7 +79,7 @@ const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingT
   const isLastStep = currentStep === steps.length - 1;
 
   // 하이라이트 효과 적용
-  useState(() => {
+  useEffect(() => {
     if (currentStepData.highlight) {
       const element = document.querySelector(currentStepData.highlight);
       if (element) {
@@ -91,7 +93,7 @@ const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingT
         el.classList.remove('onboarding-highlight');
       });
     };
-  }, [currentStep]);
+    }, [currentStep, currentStepData.highlight]);
 
   const getCardPosition = () => {
     switch (currentStepData.position) {
@@ -148,7 +150,7 @@ const OnboardingTour = ({ currentStep, onNext, onSkip, onComplete }: OnboardingT
           <div className="flex justify-between items-center">
             <Button
               variant="ghost"
-              onClick={currentStep > 0 ? () => setCurrentStep(currentStep - 1) : onSkip}
+                            onClick={currentStep > 0 ? onPrevious : onSkip}
               className="text-gray-500 hover:text-gray-700"
             >
               {currentStep > 0 ? (

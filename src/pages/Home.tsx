@@ -26,6 +26,7 @@ import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import { useNotificationHistory } from '@/hooks/useNotificationHistory';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import API from '@/components/AxiosInstance';
+import { useStreakData } from "@/hooks/useStreakData";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -34,7 +35,8 @@ const Home = () => {
   const { showStreakAchievement } = useNotifications();
   const { learningStats } = useBadgeSystem();
   const { unreadCount } = useNotificationHistory();
-  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, completeOnboarding } = useOnboarding();
+    const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
+  const { currentStreak } = useStreakData();
   
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
@@ -172,6 +174,22 @@ const Home = () => {
     if (currentTime < 18) return '좋은 오후입니다';
     return '좋은 저녁입니다';
   };
+
+  // handedness가 없을 때만 온보딩 투어 표시
+  const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setShouldShowOnboarding(user.handedness === null || user.handedness === undefined || user.handedness === "");
+      } catch {
+        setShouldShowOnboarding(false);
+      }
+    } else {
+      setShouldShowOnboarding(false);
+    }
+  }, [isOnboardingActive]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -320,7 +338,7 @@ const Home = () => {
               <Calendar className="h-6 w-6 text-green-600 group-hover:scale-110 transition-transform" />
             </div>
             <p className="text-sm text-gray-600 mb-2">연속 학습 일수</p>
-            <p className="text-3xl font-bold text-green-600 group-hover:animate-pulse">7일 🔥</p>
+            <p className="text-3xl font-bold text-green-600 group-hover:animate-pulse">{currentStreak}일 🔥</p>
             <div className="mt-4 text-xs text-green-600 opacity-0 group-hover:opacity-100 transition-opacity">
               달력에서 학습 기록 확인하기 →
             </div>
@@ -469,12 +487,13 @@ const Home = () => {
       />
 
       {/* 온보딩 투어 */}
-      {isOnboardingActive && (
+      {isOnboardingActive && shouldShowOnboarding && (
         <OnboardingTour
           currentStep={currentStep}
           onNext={nextStep}
           onSkip={skipOnboarding}
           onComplete={completeOnboarding}
+          onPrevious={previousStep}
         />
       )}
     </div>
