@@ -165,7 +165,7 @@ const LetterSession = () => {
     if (!words) return;
     std.current = true;
     divword(words);
-    setTimeout(comges, 1000);
+    setTimeout(comges, 300);
     if(qors.current){
       setTimeout(timedown, 1000);
     }
