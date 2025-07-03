@@ -13,17 +13,25 @@ const Chapters = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
-  const startChapterProgress = async (chapterId: string, path: string) => {
-  try {
-    await API.post("learning/progress/chapter/set", {
-      chapid: chapterId,
-    });
-    navigate(path);
-  } catch (err) {
-    console.error("프로그레스 초기화 실패:", err);
-    alert("학습을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.");
-  }
-};
+  const updateRecentLearning = async (lessonIds: string[]) => {
+    try {
+      await API.post('/learning/progress/lesson/event', { lesson_ids: lessonIds });
+    } catch (err) {
+      console.error('최근학습 이벤트 기록 실패:', err);
+    }
+  };
+  const startChapterProgress = async (chapterId: string, path: string, lessonIds: string[]) => {
+    try {
+      await API.post('learning/progress/chapter/set', {
+        chapid: chapterId,
+      });
+      await updateRecentLearning(lessonIds);
+      navigate(path);
+    } catch (err) {
+      console.error('프로그레스 초기화 실패:', err);
+      alert('학습을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.');
+    }
+  };
   useEffect(() => {
     if (!categoryId) return;
 
@@ -72,9 +80,7 @@ const Chapters = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
           {sortedChapters.map((chapter, index) => {
-            // const chapterProgress = getChapterProgress(chapter);
-            // const isCompleted = isChapterCompleted(chapter.id);
-            
+            const lessonIds = (chapter.signs || []).map((lesson: any) => lesson.id);
             return (
               <Card key={chapter.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
@@ -125,32 +131,34 @@ const Chapters = () => {
                     ))}
                   </div>
                   <div className="flex space-x-3">
-                    <Button 
-
+                    <Button
                       onClick={() => startChapterProgress(
-                                      chapter.id,
-                                      `/learn/session/${categoryId}/${chapter.id}/learning`
-                                      )}
-
+                        chapter.id,
+                        `/learn/session/${categoryId}/${chapter.id}/learning`,
+                        lessonIds
+                      )}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <Play className="h-4 w-4 mr-2" />
                       학습하기
                     </Button>
-                    <Button 
-                      onClick={() => navigate(`/learn/guide/${categoryId}/${chapter.id}/learning`)}
+                    <Button
+                      onClick={async () => {
+                        await updateRecentLearning(lessonIds);
+                        navigate(`/learn/guide/${categoryId}/${chapter.id}/learning`);
+                      }}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <RotateCcw className="h-4 w-4 mr-2" />
                       복습하기
                     </Button>
-                    <Button 
+                    <Button
                       variant="outline"
-
                       onClick={() => startChapterProgress(
-                                      chapter.id,
-                                      `/learn/session/${categoryId}/${chapter.id}/quiz`
-                                      )}
+                        chapter.id,
+                        `/learn/session/${categoryId}/${chapter.id}/quiz`,
+                        lessonIds
+                      )}
                     >
                       퀴즈 풀기
                     </Button>
