@@ -32,6 +32,8 @@ const Chapters = () => {
     );
   }
 
+  const sortedChapters = (categoryData.chapters as any[]).slice().sort((a, b) => a.order_index - b.order_index);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -58,7 +60,7 @@ const Chapters = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {categoryData.chapters.map((chapter, index) => {
+          {sortedChapters.map((chapter, index) => {
             // const chapterProgress = getChapterProgress(chapter);
             // const isCompleted = isChapterCompleted(chapter.id);
             
