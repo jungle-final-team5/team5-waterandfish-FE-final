@@ -33,6 +33,19 @@ const Categories = () => {
   });
   }, []);
 
+  const startCategoryProgress = async (categoryId: string, path: string) => {
+    try {
+      await API.post("learning/progress/category/set", {
+        categoryid: categoryId,
+      });
+      navigate(path);
+    } catch (err) {
+      console.error("프로그레스 초기화 실패:", err);
+      alert("학습을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.");
+    }
+  };
+
+
   const sortedCategories = (categories as any[]).slice().sort((a, b) => a.order_index - b.order_index);
 
   return (
@@ -66,7 +79,7 @@ const Categories = () => {
               <Card 
                 key={category.id} 
                 className="hover:shadow-lg transition-shadow cursor-pointer relative"
-                onClick={() => navigate(`/learn/category/${category.id}`)}
+                onClick={() => startCategoryProgress(category.id,`/learn/category/${category.id}`)}
               >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">

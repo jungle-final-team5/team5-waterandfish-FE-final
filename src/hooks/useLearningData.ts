@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '@/components/AxiosInstance';
-import { Category, Chapter, SignWord, QuizResult } from '@/types/learning';
+import { Category, Chapter, Lesson, QuizResult } from '@/types/learning';
 
 interface LearningProgress {
   completedSigns: Set<string>;
@@ -11,7 +11,7 @@ interface LearningProgress {
 export const useLearningData = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reviewSigns, setReviewSigns] = useState<SignWord[]>([]);
+  const [reviewSigns, setReviewSigns] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<LearningProgress>(() => {
     const saved = localStorage.getItem('learningProgress');
     if (saved) {
@@ -62,7 +62,7 @@ export const useLearningData = () => {
     return category?.chapters.find(chapter => chapter.id === chapterId);
   };
 
-  const addToReview = (sign: SignWord) => {
+  const addToReview = (sign: Lesson) => {
     setReviewSigns(prev => {
       if (!prev.find(s => s.id === sign.id)) {
         return [...prev, sign];
