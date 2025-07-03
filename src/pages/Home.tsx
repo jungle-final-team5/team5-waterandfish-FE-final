@@ -191,6 +191,22 @@ const Home = () => {
     }
   }, [isOnboardingActive]);
 
+  // 뱃지 개수 상태 추가
+  const [badgeCount, setBadgeCount] = useState<number>(0);
+
+  // 뱃지 개수 불러오기
+  useEffect(() => {
+    const fetchBadgeCount = async () => {
+      try {
+        const res = await API.get('/badge/earned');
+        setBadgeCount(Array.isArray(res.data) ? res.data.length : 0);
+      } catch (e) {
+        setBadgeCount(0);
+      }
+    };
+    fetchBadgeCount();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
@@ -354,7 +370,7 @@ const Home = () => {
               <Trophy className="h-6 w-6 text-yellow-600 group-hover:scale-110 group-hover:rotate-12 transition-all" />
             </div>
             <p className="text-sm text-gray-600 mb-2">총 뱃지 개수</p>
-            <p className="text-3xl font-bold text-yellow-600 group-hover:animate-bounce">3개 🏆</p>
+            <p className="text-3xl font-bold text-yellow-600 group-hover:animate-bounce">{badgeCount}개 🏆</p>
             <div className="mt-4 text-xs text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity">
               새로운 뱃지를 획득해보세요! →
             </div>
