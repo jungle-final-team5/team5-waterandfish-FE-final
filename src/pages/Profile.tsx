@@ -227,49 +227,6 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-                <CardContent className="pt-4">
-                  <div className="flex items-center space-x-2">
-                    <Trophy className="h-5 w-5 text-yellow-500" />
-                    <span className="text-sm font-medium text-gray-700">총 학습</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{stats.totalLearned}</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-                <CardContent className="pt-4">
-                  <div className="flex items-center space-x-2">
-                    <Target className="h-5 w-5 text-green-500" />
-                    <span className="text-sm font-medium text-gray-700">연속</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{stats.streak}일</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-                <CardContent className="pt-4">
-                  <div className="flex items-center space-x-2">
-                    <Star className="h-5 w-5 text-blue-500" />
-                    <span className="text-sm font-medium text-gray-700">정확도</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{stats.accuracy}%</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-                <CardContent className="pt-4">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-5 w-5 text-purple-500" />
-                    <span className="text-sm font-medium text-gray-700">총 시간</span>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{stats.totalTime}h</p>
-                </CardContent>
-              </Card>
-            </div>
           </div>
 
           {/* Right Column - Settings */}

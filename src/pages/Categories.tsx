@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,11 +8,13 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
 import API from '@/components/AxiosInstance';
 import { Category } from '@/types/learning';
+
 const Categories = () => {
   const navigate = useNavigate();
   // const { categories, getCategoryProgress, isCategoryCompleted } = useLearningData();
   const [categories, setCategories] = useState<Category[]>([]);
   const isCompleted = useRef(false);
+
   useEffect(() => {
     API.get('/learning/categories')  // FastAPI 주소에 맞게 수정
       .then(res => {
@@ -29,8 +30,24 @@ const Categories = () => {
     } else {
       console.error('요청 설정 에러:', err.message);
     }
-  });;
+  });
   }, []);
+
+  const startCategoryProgress = async (categoryId: string, path: string) => {
+    try {
+      await API.post("learning/progress/category/set", {
+        categoryid: categoryId,
+      });
+      navigate(path);
+    } catch (err) {
+      console.error("프로그레스 초기화 실패:", err);
+      alert("학습을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.");
+    }
+  };
+
+
+  const sortedCategories = (categories as any[]).slice().sort((a, b) => a.order_index - b.order_index);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -54,7 +71,7 @@ const Categories = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) => {
+          {sortedCategories.map((category) => {
             // const categoryProgress = getCategoryProgress(category);
             // const isCompleted = isCategoryCompleted(category.id);
             
@@ -62,7 +79,7 @@ const Categories = () => {
               <Card 
                 key={category.id} 
                 className="hover:shadow-lg transition-shadow cursor-pointer relative"
-                onClick={() => navigate(`/learn/category/${category.id}`)}
+                onClick={() => startCategoryProgress(category.id,`/learn/category/${category.id}`)}
               >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">

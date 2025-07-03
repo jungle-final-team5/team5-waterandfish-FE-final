@@ -13,6 +13,17 @@ const Chapters = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
+  const startChapterProgress = async (chapterId: string, path: string) => {
+  try {
+    await API.post("learning/progress/chapter/set", {
+      chapid: chapterId,
+    });
+    navigate(path);
+  } catch (err) {
+    console.error("프로그레스 초기화 실패:", err);
+    alert("학습을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.");
+  }
+};
   useEffect(() => {
     if (!categoryId) return;
 
@@ -31,6 +42,8 @@ const Chapters = () => {
       </div>
     );
   }
+
+  const sortedChapters = (categoryData.chapters as any[]).slice().sort((a, b) => a.order_index - b.order_index);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -58,7 +71,7 @@ const Chapters = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {categoryData.chapters.map((chapter, index) => {
+          {sortedChapters.map((chapter, index) => {
             // const chapterProgress = getChapterProgress(chapter);
             // const isCompleted = isChapterCompleted(chapter.id);
             
@@ -113,7 +126,12 @@ const Chapters = () => {
                   </div>
                   <div className="flex space-x-3">
                     <Button 
-                      onClick={() => navigate(`/learn/guide/${categoryId}/${chapter.id}/learning`)}
+
+                      onClick={() => startChapterProgress(
+                                      chapter.id,
+                                      `/learn/session/${categoryId}/${chapter.id}/learning`
+                                      )}
+
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <Play className="h-4 w-4 mr-2" />
@@ -128,7 +146,11 @@ const Chapters = () => {
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={() => navigate(`/learn/guide/${categoryId}/${chapter.id}/quiz`)}
+
+                      onClick={() => startChapterProgress(
+                                      chapter.id,
+                                      `/learn/session/${categoryId}/${chapter.id}/quiz`
+                                      )}
                     >
                       퀴즈 풀기
                     </Button>

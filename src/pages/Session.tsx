@@ -37,23 +37,6 @@ const Session = () => {
 
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
-  useEffect(() => {
-
-  API.get(`/learning/chapters/${chapterId}`)
-    .then(res => {
-      const type = (res.data as { type: string }).type;
-      if (type == '자음') {
-        navigate("/test/letter/consonant/study");
-      } else if (type == '모음') {
-        navigate("/test/letter/vowel/study");
-      }
-    })
-    .catch(err => {
-      console.error('타입 조회 실패:', err);
-      navigate("/not-found");
-    })
-    ;
-  }, [chapterId, categoryId, sessionType, navigate]);
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
   
   const [data, setData] = useState(null);
@@ -84,7 +67,57 @@ const Session = () => {
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
 
   const signs = chapter?.signs;
+  useEffect(() => {
 
+  API.get(`/learning/chapters/${chapterId}`)
+    .then(res => {
+      const type = (res.data as { type: string }).type;
+      if (type == '자음') {
+        navigate("/test/letter/consonant/study");
+      } else if (type == '모음') {
+        navigate("/test/letter/vowel/study");
+      }
+      else {
+        localStorage.removeItem("studyword");
+        setCurrentSignIndex(0);
+        setQuizResults([]);
+        setFeedback(null);
+      }
+    })
+    .catch(err => {
+      console.error('타입 조회 실패:', err);
+      navigate("/not-found");
+    });
+    }, [chapterId, categoryId, sessionType, navigate]);
+  const sendQuizResult = async () =>{
+    try {
+      if (!quizResults.length) return;
+
+      const simplifiedResults = quizResults.map(({ signId, correct }) => ({
+        signId,
+        correct,
+      }));
+
+      await API.post('/learning/result/session', simplifiedResults);
+    } catch (error) {
+      console.error("퀴즈 결과 전송 실패:", error);
+    }
+  }
+  const sendStudyResult = async () =>{
+    try {
+    // ✅ 로컬스토리지에서 completedSigns 가져오기
+    const stored = localStorage.getItem("studyword");
+    if (!stored) return;
+
+    const stwords: string[] = JSON.parse(stored);
+
+    // ✅ 보낼 형식이 단순히 ID 배열이면 그대로 전송
+    await API.post('/learning/study/session', stwords);
+    localStorage.removeItem("studyword");
+  } catch (error) {
+    console.error("학습 결과 전송 실패:", error);
+  }
+  }
   // 서버 연결 시도 함수
   const attemptConnection = async (attemptNumber: number = 1): Promise<boolean> => {
     console.log(`🔌 서버 연결 시도 ${attemptNumber}...`);
@@ -407,6 +440,11 @@ useEffect(() => {
       // 학습 진도 업데이트
       if (isCorrect && currentSign) {
         markSignCompleted(currentSign.id);
+        const currentId = currentSign.id;
+        const prevCompleted = JSON.parse(localStorage.getItem('studyword') || '[]');
+        const filtered = prevCompleted.filter((id: string) => id !== currentId);
+        filtered.push(currentId);
+        localStorage.setItem('studyword', JSON.stringify(filtered));
       }
 
       if (isQuizMode && currentSign) {
@@ -573,7 +611,36 @@ const loadData = useCallback(async (videoUrl: string) => {
     handleNextSign();
   };
 
-  // 연결 오류 시 새로고침 안내
+  // useEffect는 항상 호출, 내부에서 sessionComplete 조건 체크
+  useEffect(() => {
+    if (sessionComplete) {
+      API.post('/user/daily-activity/complete')
+        .then(() => {
+          console.log("오늘 활동 기록 완료!(퀴즈/세션)");
+        })
+        .catch((err) => {
+          console.error("오늘 활동 기록 실패(퀴즈/세션):", err);
+        });
+    }
+    // eslint-disable-next-line
+  }, [sessionComplete]);
+
+  useEffect(() => {
+    API.get(`/learning/chapters/${chapterId}`)
+      .then(res => {
+        const type = (res.data as { type: string }).type;
+        if (type == '자음') {
+          navigate("/test/letter/consonant/study");
+        } else if (type == '모음') {
+          navigate("/test/letter/vowel/study");
+        }
+      })
+      .catch(err => {
+        console.error('타입 조회 실패:', err);
+        navigate("/not-found");
+      });
+  }, [chapterId, categoryId, sessionType, navigate]);
+
   if (connectionError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -645,11 +712,35 @@ const loadData = useCallback(async (videoUrl: string) => {
             <div className="flex space-x-3">
               <Button
                 variant="outline"
-                onClick={() => navigate(`/learn/category/${categoryId}`)}
+                onClick={async () => {
+                  try {
+                    if (isQuizMode) {
+                      await sendQuizResult();
+                    } else {
+                      await sendStudyResult();
+                    }
+                    navigate(`/learn/category/${categoryId}`);
+                  } catch (error) {
+                    console.error("결과 전송 실패:", error);
+                    // 필요 시 에러 처리 추가 가능
+                  }
+                }}
               >
                 챕터 목록
               </Button>
-              <Button onClick={() => navigate('/home')}>
+              <Button onClick={async () => {
+                try {
+                  if (isQuizMode) {
+                    await sendQuizResult();
+                  } else {
+                    await sendStudyResult();
+                  }
+                  navigate('/home');
+                } catch (error) {
+                  console.error("결과 전송 실패:", error);
+                  // 필요 시 에러 처리 추가 가능
+                }
+              }}>
                 홈으로
               </Button>
             </div>
