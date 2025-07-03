@@ -28,6 +28,12 @@ import { useOnboarding } from '@/hooks/useOnboarding';
 import API from '@/components/AxiosInstance';
 import { useStreakData } from "@/hooks/useStreakData";
 
+// 최근 학습 정보 타입
+interface RecentLearning {
+  category: string | null;
+  chapter: string | null;
+}
+
 const Home = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -58,23 +64,21 @@ const Home = () => {
     categoryDescription: string;
   } | null>(null);
 
-  const [recentLearning, setRecentLearning] = useState<{
-    category: string;
-    word: string;
-  } | null>(null);
+  const [recentLearning, setRecentLearning] = useState<RecentLearning | null>(null);
 
   useEffect(() => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
 
-    // 최근 학습 불러오기 부분 주석 처리 또는 조건문 추가
-    // API.get<{category: string; word: string;}>('/api/recent-learning')
-    //   .then(res => {
-    //     if (res.data && res.data.word) {
-    //       setRecentLearning(res.data);
-    //     }
-    //   })
-    //   .catch(() => setRecentLearning(null));
+    API.get<RecentLearning>('/learning/recent-learning')
+      .then(res => {
+        if (res.data && res.data.category && res.data.chapter) {
+          setRecentLearning(res.data);
+        } else {
+          setRecentLearning(null);
+        }
+      })
+      .catch(() => setRecentLearning(null));
   }, []);
 
   // 자음/모음만 있는지 판별하는 함수
@@ -156,7 +160,7 @@ const Home = () => {
     
     // localStorage 클리어
     localStorage.clear();
-    console.log('🧹 localStorage 클리어 완료');
+    console.log('�� localStorage 클리어 완료');
     
     toast({
       title: "로그아웃",
@@ -323,21 +327,19 @@ const Home = () => {
           {/* 최근 학습 */}
           <div 
             className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer group border border-blue-100"
-
-            onClick={() => recentLearning && navigate(`/learn/${encodeURIComponent(recentLearning.word)}`)}
-
+            onClick={() => recentLearning && navigate(`/learn/${encodeURIComponent(recentLearning.chapter || '')}`)}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">최근 학습</h3>
               <BookOpen className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
             </div>
-            {recentLearning ? (
+            {recentLearning && recentLearning.category && recentLearning.chapter ? (
               <>
                 <p className="text-sm text-gray-600 mb-2">{recentLearning.category}</p>
-                <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{recentLearning.word}</p>
-            <div className="mt-4 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
-              클릭해서 계속 학습하기 →
-            </div>
+                <p className="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{recentLearning.chapter}</p>
+                <div className="mt-4 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  클릭해서 계속 학습하기 →
+                </div>
               </>
             ) : (
               <p className="text-gray-400 text-center py-6">최근 학습 기록이 없습니다</p>
