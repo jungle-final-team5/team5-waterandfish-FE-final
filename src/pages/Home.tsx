@@ -26,6 +26,7 @@ import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import { useNotificationHistory } from '@/hooks/useNotificationHistory';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import API from '@/components/AxiosInstance';
+import { useStreakData } from "@/hooks/useStreakData";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ const Home = () => {
   const { learningStats } = useBadgeSystem();
   const { unreadCount } = useNotificationHistory();
     const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
+  const { currentStreak } = useStreakData();
   
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
@@ -336,7 +338,7 @@ const Home = () => {
               <Calendar className="h-6 w-6 text-green-600 group-hover:scale-110 transition-transform" />
             </div>
             <p className="text-sm text-gray-600 mb-2">연속 학습 일수</p>
-            <p className="text-3xl font-bold text-green-600 group-hover:animate-pulse">7일 🔥</p>
+            <p className="text-3xl font-bold text-green-600 group-hover:animate-pulse">{currentStreak}일 🔥</p>
             <div className="mt-4 text-xs text-green-600 opacity-0 group-hover:opacity-100 transition-opacity">
               달력에서 학습 기록 확인하기 →
             </div>
