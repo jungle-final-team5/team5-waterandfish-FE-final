@@ -55,7 +55,7 @@ const Chapters = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-xl font-bold text-gray-800 mb-2">카테고리를 찾을 수 없습니다</h2>
-          <Button onClick={() => navigate('/learn')}>돌아가기</Button>
+          <Button onClick={() => navigate('/category')}>돌아가기</Button>
         </div>
       </div>
     );
@@ -70,7 +70,7 @@ const Chapters = () => {
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
-              onClick={() => navigate('/learn')}
+              onClick={() => navigate('/category')}
               className="hover:bg-blue-50"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
