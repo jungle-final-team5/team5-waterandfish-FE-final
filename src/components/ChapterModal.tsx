@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -7,16 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SignWordSelector } from '@/components/SignWordSelector';
-import { Chapter, SignWord } from '@/types/learning';
-
+import { Chapter, Lesson } from '@/types/learning';
+import API from './AxiosInstance';
 interface ChapterModalProps {
   open: boolean;
   onClose: () => void;
   chapter?: Chapter | null;
   categoryId: string;
-  onSave: (data: { title: string; type: 'word' | 'sentence'; signs: SignWord[] }) => void;
+  onSave: (data: { title: string; type: 'word' | 'sentence'; signs: Lesson[] }) => void;
 }
-
+interface LessonResponse {
+  lessons: Lesson[];
+}
 export const ChapterModal: React.FC<ChapterModalProps> = ({ 
   open, 
   onClose, 
@@ -24,15 +26,30 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
   categoryId,
   onSave 
 }) => {
-  const [selectedSigns, setSelectedSigns] = useState<SignWord[]>(chapter?.signs || []);
-  
+  const [selectedSigns, setSelectedSigns] = useState<Lesson[]>(chapter?.signs || []);
+  const [allSigns, setAllSigns] = useState<Lesson[]>([]);
   const form = useForm({
     defaultValues: {
       title: chapter?.title || '',
       type: chapter?.type || 'word' as 'word' | 'sentence'
     }
   });
-
+  useEffect(() => {
+    if (open) {
+      API.get<{ lessons: Lesson[] }>('/learning/lesson/all')
+        .then(res => {
+          if (Array.isArray(res.data.lessons)) {
+            setAllSigns(res.data.lessons);
+          } else {
+            setAllSigns([]);
+          }
+        })
+        .catch(err => {
+          console.error('레슨 로딩 실패:', err);
+          setAllSigns([]);
+        });
+    }
+  }, [open]);
   React.useEffect(() => {
     if (chapter) {
       form.reset({
@@ -111,6 +128,7 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
                 selectedSigns={selectedSigns}
                 onSelectionChange={setSelectedSigns}
                 categoryId={categoryId}
+                lessons={allSigns || []}
               />
             </div>
             
