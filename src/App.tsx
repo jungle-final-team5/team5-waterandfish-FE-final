@@ -21,6 +21,8 @@ import TestPage from "./pages/TestPage";
 import { AuthProvider } from "@/hooks/useAuth";
 import LetterSession from "./pages/Session_letter";
 import LearningGuide from "./pages/LearningGuide";
+import Quiz from "./pages/Quiz";
+import QuizReview from "./pages/QuizReview";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -36,11 +38,13 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/home" element={<Home />} />
-            <Route path="/learn" element={<Categories />} />
-            <Route path="/learn/category/:categoryId" element={<Chapters />} />
-            <Route path="/learn/guide/:categoryId/:chapterId/:sessionType" element={<LearningGuide />} />
-            <Route path="/learn/session/:categoryId/:chapterId/:sessionType" element={<Session />} />
-            <Route path="/learn/:keyword" element={<Learn />} />
+            <Route path="/category" element={<Categories />} />
+            <Route path="/category/:categoryId/chapters" element={<Chapters />} />
+            <Route path="/learn/word/:wordId" element={<Learn />} />
+            <Route path="/learn/chapter/:chapterId" element={<Session />} />
+            <Route path="/learn/chapter/:chapterId/guide" element={<LearningGuide />} />
+            <Route path="/quiz/chapter/:chapterId" element={<Quiz />} />
+            <Route path="/quiz/chapter/:chapterId/review" element={<QuizReview />} />
             <Route path="/test/letter/:setType/:qOrs" element={<LetterSession />}/>
             <Route path="/review" element={<Review />} />
             <Route path="/search" element={<SearchPage />} />

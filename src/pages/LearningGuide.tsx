@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,11 +35,11 @@ const LearningGuide = () => {
   }
 
   const startLearning = () => {
-    navigate(`/learn/session/${categoryId}/${chapterId}/${sessionType}`);
+    navigate(`/learn/chapter/${chapterId}`);
   };
 
   const goBack = () => {
-    navigate(`/learn/category/${categoryId}`);
+    navigate(`/category/${categoryId}/chapters`);
   };
 
   const isQuiz = sessionType === 'quiz';

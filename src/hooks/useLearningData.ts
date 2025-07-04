@@ -124,7 +124,8 @@ export const useLearningData = () => {
     const newCategory: Category = {
       id: `category-${Date.now()}`,
       ...categoryData,
-      chapters: []
+      chapters: [],
+      order_index: 0
     };
     setCategories(prev => [...prev, newCategory]);
   };
