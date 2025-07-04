@@ -9,6 +9,16 @@ import { useEffect, useRef, useState } from 'react';
 import {Lesson,Chapter,Category} from '../types/learning';
 import API from '@/components/AxiosInstance';
 
+// 챕터별 상태 계산 함수
+function getChapterStatus(chapter: any) {
+  const statuses = (chapter.signs || []).map((sign: any) => sign.status);
+  if (statuses.length === 0) return 'not_started';
+  if (statuses.every(s => s === 'reviewed')) return 'reviewed';
+  if (statuses.some(s => s === 'quiz_wrong')) return 'quiz_wrong';
+  if (statuses.some(s => s === 'study')) return 'study';
+  return 'not_started';
+}
+
 const Chapters = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
@@ -81,6 +91,7 @@ const Chapters = () => {
         <div className="space-y-6">
           {sortedChapters.map((chapter, index) => {
             const lessonIds = (chapter.signs || []).map((lesson: any) => lesson.id);
+            const chapterStatus = getChapterStatus(chapter);
             return (
               <Card key={chapter.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
@@ -94,8 +105,8 @@ const Chapters = () => {
                       <div>
                         <div className="flex items-center space-x-2">
                           <span>챕터 {index + 1}: {chapter.title}</span>
-                          {isCompleted && (
-                            <Badge className="bg-green-500 text-white text-xs">
+                          {chapterStatus === 'reviewed' && (
+                            <Badge className="bg-green-500 text-white text-xs flex items-center">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               완료
                             </Badge>
@@ -130,7 +141,7 @@ const Chapters = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="flex space-x-3">
+                  <div className="flex space-x-3 items-center">
                     <Button
                       onClick={() => startChapterProgress(
                         chapter.id,
@@ -142,26 +153,36 @@ const Chapters = () => {
                       <Play className="h-4 w-4 mr-2" />
                       학습하기
                     </Button>
-                    <Button
-                      onClick={async () => {
-                        await updateRecentLearning(lessonIds);
-                        navigate(`/learn/guide/${categoryId}/${chapter.id}/learning`);
-                      }}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      복습하기
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => startChapterProgress(
-                        chapter.id,
-                        `/learn/session/${categoryId}/${chapter.id}/quiz`,
-                        lessonIds
-                      )}
-                    >
-                      퀴즈 풀기
-                    </Button>
+                    {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
+                      <Button
+                        variant="outline"
+                        onClick={() => startChapterProgress(
+                          chapter.id,
+                          `/learn/session/${categoryId}/${chapter.id}/quiz`,
+                          lessonIds
+                        )}
+                      >
+                        퀴즈 풀기
+                      </Button>
+                    )}
+                    {chapterStatus === 'quiz_wrong' && (
+                      <Button
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={async () => {
+                          await updateRecentLearning(lessonIds);
+                          navigate(`/learn/guide/${categoryId}/${chapter.id}/learning`);
+                        }}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        복습하기
+                      </Button>
+                    )}
+                    {chapterStatus === 'reviewed' && false && (
+                      <Badge className="bg-green-500 text-white text-xs flex items-center">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        완료
+                      </Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>
