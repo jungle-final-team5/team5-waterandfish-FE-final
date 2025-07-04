@@ -1,6 +1,6 @@
-
 import { useState, useCallback } from 'react';
 import { useNotifications } from './useNotifications';
+import API from '@/components/AxiosInstance';
 
 interface Badge {
   id: number;
@@ -21,11 +21,22 @@ interface LearningStats {
   fastAnswers: number;
 }
 
+export interface BadgeCheckResponse {
+  earnedBadges: {
+    id: number;
+    name: string;
+    description: string;
+    earnedDate: string;
+  }[];
+  updatedStats?: Partial<LearningStats>;
+}
+
 export const useBadgeSystem = () => {
   const { showBadgeEarned } = useNotifications();
+  const [loading, setLoading] = useState<boolean>(false);
   const [learningStats, setLearningStats] = useState<LearningStats>({
     totalLessonsCompleted: 0,
-    consecutiveDays: 7, // 예시 데이터
+    consecutiveDays: 7,
     correctAnswers: 15,
     categoriesCompleted: 1,
     chaptersCompleted: 2,
@@ -76,46 +87,48 @@ export const useBadgeSystem = () => {
     }
   ];
 
-  const checkAndAwardBadges = useCallback((newStats: Partial<LearningStats>) => {
-    const updatedStats = { ...learningStats, ...newStats };
-    setLearningStats(updatedStats);
-
-    badges.forEach(badge => {
-      if (!badge.earned && badge.condition(updatedStats)) {
-        // 뱃지 획득 알림 표시
-        showBadgeEarned(badge.name, badge.description);
-        
-        // 뱃지 상태 업데이트 (실제로는 localStorage나 서버에 저장)
-        badge.earned = true;
-        badge.earnedDate = new Date().toISOString().split('T')[0];
-      }
+  // API를 통해 뱃지 확인 및 획득
+  const checkBadgesWithAPI = useCallback(async (action: string) => {
+    setLoading(true);
+    try {
+    const response = await API.post<BadgeCheckResponse>('/badge/check-badges', {
+      input_str: action // 또는 원하는 문자열 값
     });
-  }, [learningStats, showBadgeEarned]);
+      console.log("copletete");
+      console.log(response);
+      
+      const { earnedBadges, updatedStats } = response.data;
+      
+      // 획득한 뱃지가 있으면 알림 표시
+      if (earnedBadges && earnedBadges.length > 0) {
+        earnedBadges.forEach(badge => {
+          showBadgeEarned(badge.name, badge.description);
+        });
+      }
+      
+      // 통계 업데이트가 있으면 적용
+      if (updatedStats) {
+        setLearningStats(prev => ({ ...prev, ...updatedStats }));
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Failed to check badges:', error);
+      return { earnedBadges: [] };
+    } finally {
+      setLoading(false);
+    }
+  }, [showBadgeEarned]);
 
   const updateLearningProgress = useCallback((type: 'lesson' | 'chapter' | 'review' | 'fast_answer', amount: number = 1) => {
-    const updates: Partial<LearningStats> = {};
-    
-    switch (type) {
-      case 'lesson':
-        updates.totalLessonsCompleted = learningStats.totalLessonsCompleted + amount;
-        break;
-      case 'chapter':
-        updates.chaptersCompleted = learningStats.chaptersCompleted + amount;
-        break;
-      case 'review':
-        updates.reviewsCompleted = learningStats.reviewsCompleted + amount;
-        break;
-      case 'fast_answer':
-        updates.fastAnswers = learningStats.fastAnswers + amount;
-        break;
-    }
-
-    checkAndAwardBadges(updates);
-  }, [learningStats, checkAndAwardBadges]);
+    checkBadgesWithAPI(type);
+  }, [checkBadgesWithAPI]);
 
   return {
     badges,
     learningStats,
-    updateLearningProgress
+    updateLearningProgress,
+    checkBadgesWithAPI,
+    loading
   };
 };
