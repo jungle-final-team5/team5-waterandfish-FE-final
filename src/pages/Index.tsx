@@ -1,35 +1,45 @@
-
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import debounce from 'lodash.debounce';
 import { Search, ArrowRight, BookOpen, Users, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
+import API from '@/components/AxiosInstance';
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  // 샘플 검색 데이터 (추후 API 연동 시 교체)
-  const sampleSearchData = [
-    '안녕하세요', '감사합니다', '사랑해요', '미안해요', '괜찮아요',
-    '좋아해요', '싫어해요', '네/예', '아니요', '도와주세요',
-    '물', '밥', '집', '학교', '병원', '가족', '친구', '선생님'
-  ];
+  const debouncedFetch = useRef(
+    debounce(async (query: string) => {
+      if (!query.trim()) {
+        setSearchResults([]);
+        setShowResults(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const { data } = await API.get('/search', { params: { q: query, k: 5 } });
+        if (Array.isArray(data)) {
+          setSearchResults((data as { sign_text: string }[]).map(item => item.sign_text));
+        } else {
+          setSearchResults([]);
+        }
+        setShowResults(true);
+      } catch {
+        setSearchResults([]);
+        setShowResults(false);
+      } finally {
+        setLoading(false);
+      }
+    }, 300)
+  ).current;
 
   const handleSearch = (query: string) => {
-    if (query.trim() === '') {
-      setSearchResults([]);
-      setShowResults(false);
-      return;
-    }
-
-    const filtered = sampleSearchData.filter(item => 
-      item.includes(query.toLowerCase())
-    );
-    setSearchResults(filtered.slice(0, 5)); // 최대 5개 결과만 표시
-    setShowResults(true);
+    setSearchQuery(query);
+    debouncedFetch(query);
   };
 
   const handleSearchSelect = (selectedItem: string) => {
@@ -85,10 +95,7 @@ const Index = () => {
                 type="text"
                 placeholder="배우고 싶은 수어를 검색해보세요 (예: 안녕하세요, 감사합니다)"
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  handleSearch(e.target.value);
-                }}
+                onChange={(e) => handleSearch(e.target.value)}
                 className="pl-12 pr-4 py-4 text-lg border-2 border-gray-200 focus:border-violet-500 rounded-xl"
               />
             </div>
