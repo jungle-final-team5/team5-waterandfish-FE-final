@@ -177,12 +177,14 @@ const Admin = () => {
         open={categoryModalOpen}
         onClose={handleCategoryModalClose}
         category={editingCategory}
-        onSave={(categoryData) => {
+        onSave={async (categoryData) => {
           if (editingCategory) {
             updateCategory(editingCategory.id, categoryData);
           } else {
-            addCategory(categoryData);
-            API.post("/learning/category",categoryData);
+            const res = await API.post("/learning/category", categoryData);
+            const createdCategory = res.data as { id: string }; 
+            addCategory(categoryData,createdCategory.id);
+            // API.post("/learning/category",categoryData);
           }
           handleCategoryModalClose();
         }}
@@ -193,12 +195,21 @@ const Admin = () => {
         onClose={handleChapterModalClose}
         chapter={editingChapter?.chapter}
         categoryId={editingChapter?.categoryId || selectedCategoryId}
-        onSave={(chapterData) => {
+        onSave={async (chapterData) => {
           if (editingChapter) {
             updateChapter(editingChapter.categoryId, editingChapter.chapter.id, chapterData);
+            const lessonIds = chapterData.signs.map(sign => sign.id);
+            await API.post("/learning/connect/lesson",{"chapter":editingChapter.chapter.id, "lesson": lessonIds});
           } else {
-            addChapter(selectedCategoryId, chapterData);
-            API.post("/learning/chapter",{"categoryid":selectedCategoryId,"title":chapterData["title"],"type":chapterData["type"]})
+            const chapterRes = await API.post<Chapter>("/learning/chapter", {
+                categoryid: selectedCategoryId,
+                title: chapterData["title"],
+                type: chapterData["type"]
+              });
+            const chapterId = (chapterRes.data as any).id;// ✅ ObjectId 문자열
+            addChapter(selectedCategoryId, chapterData,chapterId);
+            const lessonIds = chapterData.signs.map(sign => sign.id);
+            await API.post("/learning/connect/lesson",{"chapter":chapterId, "lesson": lessonIds});
           }
           handleChapterModalClose();
         }}
