@@ -119,6 +119,64 @@ export const useLearningData = () => {
     return progress.completedCategories.has(categoryId);
   };
 
+  // 관리자 기능들
+  const addCategory = (categoryData: { title: string; description: string; icon: string }) => {
+    const newCategory: Category = {
+      id: `category-${Date.now()}`,
+      ...categoryData,
+      chapters: []
+    };
+    setCategories(prev => [...prev, newCategory]);
+  };
+
+  const updateCategory = (categoryId: string, categoryData: { title: string; description: string; icon: string }) => {
+    setCategories(prev => prev.map(cat => 
+      cat.id === categoryId 
+        ? { ...cat, ...categoryData }
+        : cat
+    ));
+  };
+
+  const deleteCategory = (categoryId: string) => {
+    setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+  };
+
+  const addChapter = (categoryId: string, chapterData: { title: string; type: 'word' | 'sentence'; signs: Lesson[] }) => {
+    const newChapter: Chapter = {
+      id: `chapter-${Date.now()}`,
+      ...chapterData,
+      categoryId
+    };
+    setCategories(prev => prev.map(cat => 
+      cat.id === categoryId 
+        ? { ...cat, chapters: [...cat.chapters, newChapter] }
+        : cat
+    ));
+  };
+
+  const updateChapter = (categoryId: string, chapterId: string, chapterData: { title: string; type: 'word' | 'sentence'; signs: Lesson[] }) => {
+    setCategories(prev => prev.map(cat => 
+      cat.id === categoryId 
+        ? {
+            ...cat, 
+            chapters: cat.chapters.map(chapter => 
+              chapter.id === chapterId 
+                ? { ...chapter, ...chapterData }
+                : chapter
+            )
+          }
+        : cat
+    ));
+  };
+
+  const deleteChapter = (categoryId: string, chapterId: string) => {
+    setCategories(prev => prev.map(cat => 
+      cat.id === categoryId 
+        ? { ...cat, chapters: cat.chapters.filter(chapter => chapter.id !== chapterId) }
+        : cat
+    ));
+  };
+
   return {
     categories,
     loading,
@@ -134,6 +192,12 @@ export const useLearningData = () => {
     getChapterProgress,
     getCategoryProgress,
     isChapterCompleted,
-    isCategoryCompleted
+    isCategoryCompleted,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    addChapter,
+    updateChapter,
+    deleteChapter
   };
 };
