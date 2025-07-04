@@ -22,11 +22,11 @@ import { NotificationDrawer } from '@/components/NotificationDrawer';
 import { useToast } from '@/hooks/use-toast';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import { useNotificationHistory } from '@/hooks/useNotificationHistory';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import API from '@/components/AxiosInstance';
 import { useStreakData } from "@/hooks/useStreakData";
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 
 // 최근 학습 정보 타입
 interface RecentLearning {
@@ -56,8 +56,8 @@ const Home = () => {
   const { toast } = useToast();
   const { categories, loading } = useLearningData();
   const { showStreakAchievement } = useNotifications();
-  const { learningStats } = useBadgeSystem();
   const { unreadCount } = useNotificationHistory();
+  const { checkBadgesWithAPI } = useBadgeSystem();
     const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { currentStreak } = useStreakData();
   
@@ -77,6 +77,9 @@ const Home = () => {
     if (!hasSetHandPreference) {
       setIsHandPreferenceModalOpen(true);
     }
+    
+    // 로그인 즉시 badges 확인 | 가입 후 확인
+    checkBadgesWithAPI("");
   }, []);
 
   // 추천 수어 상태 추가
@@ -195,7 +198,7 @@ const Home = () => {
     
     // localStorage 클리어
     localStorage.clear();
-    console.log('�� localStorage 클리어 완료');
+    console.log('localStorage 클리어 완료');
     
     toast({
       title: "로그아웃",

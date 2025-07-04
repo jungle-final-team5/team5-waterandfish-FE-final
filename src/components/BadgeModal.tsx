@@ -118,12 +118,12 @@ const BadgeModal = ({ isOpen, onClose }: BadgeModalProps) => {
       const earnedBadgesResponse = await API.get<EarnedBadge[]>('/badge/earned');
       setEarnedData(earnedBadgesResponse.data);
       
+      
       // 3. 두 데이터 비교하여 상태 업데이트
       const processedBadges = compareBadgesWithEarned(
         allBadgesResponse.data, 
         earnedBadgesResponse.data
-      );
-      
+      );      
       setBadges(processedBadges);
     } catch (err: unknown) {
       const error = err as Error;
