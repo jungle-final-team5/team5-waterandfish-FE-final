@@ -93,10 +93,7 @@ export const useBadgeSystem = () => {
     try {
     const response = await API.post<BadgeCheckResponse>('/badge/check-badges', {
       input_str: action // 또는 원하는 문자열 값
-    });
-      console.log("copletete");
-      console.log(response);
-      
+    });      
       const { earnedBadges, updatedStats } = response.data;
       
       // 획득한 뱃지가 있으면 알림 표시

@@ -163,7 +163,7 @@ const Home = () => {
     
     // localStorage 클리어
     localStorage.clear();
-    console.log('�� localStorage 클리어 완료');
+    console.log('localStorage 클리어 완료');
     
     toast({
       title: "로그아웃",

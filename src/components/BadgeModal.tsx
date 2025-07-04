@@ -123,11 +123,7 @@ const BadgeModal = ({ isOpen, onClose }: BadgeModalProps) => {
       const processedBadges = compareBadgesWithEarned(
         allBadgesResponse.data, 
         earnedBadgesResponse.data
-      );
-
-      console.log("you earned :");
-      console.log(earnedBadgesResponse.data);
-      
+      );      
       setBadges(processedBadges);
     } catch (err: unknown) {
       const error = err as Error;
