@@ -70,7 +70,7 @@ const Home = () => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
 
-    API.get<RecentLearning>('/learning/recent-learning')
+    API.get<RecentLearning>('/api/learning/recent-learning')
       .then(res => {
         if (res.data && res.data.category && res.data.chapter) {
           setRecentLearning(res.data);
