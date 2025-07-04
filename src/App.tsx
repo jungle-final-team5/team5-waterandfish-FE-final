@@ -14,6 +14,7 @@ import Session from "./pages/Session";
 import Review from "./pages/Review";
 import SearchPage from "./pages/Search";
 import Profile from "./pages/Profile";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import TestPage from "./pages/TestPage";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/review" element={<Review />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/Admin" element={<Admin />} />
             <Route path="/test" element={<TestPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
