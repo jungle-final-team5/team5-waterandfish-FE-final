@@ -22,11 +22,11 @@ import { NotificationDrawer } from '@/components/NotificationDrawer';
 import { useToast } from '@/hooks/use-toast';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import { useNotificationHistory } from '@/hooks/useNotificationHistory';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import API from '@/components/AxiosInstance';
 import { useStreakData } from "@/hooks/useStreakData";
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 
 // 최근 학습 정보 타입
 interface RecentLearning {
@@ -56,8 +56,8 @@ const Home = () => {
   const { toast } = useToast();
   const { categories, loading } = useLearningData();
   const { showStreakAchievement } = useNotifications();
-  const { learningStats } = useBadgeSystem();
   const { unreadCount } = useNotificationHistory();
+  const { checkBadgesWithAPI } = useBadgeSystem();
     const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { currentStreak } = useStreakData();
   
@@ -77,6 +77,9 @@ const Home = () => {
     if (!hasSetHandPreference) {
       setIsHandPreferenceModalOpen(true);
     }
+    
+    // 로그인 즉시 badges 확인 | 가입 후 확인
+    checkBadgesWithAPI("");
   }, []);
 
   // 추천 수어 상태 추가
@@ -92,7 +95,7 @@ const Home = () => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
 
-    API.get<RecentLearning>('/api/learning/recent-learning')
+    API.get<RecentLearning>('/learning/recent-learning')
       .then(res => {
         if (res.data && res.data.category && res.data.chapter) {
           setRecentLearning(res.data);
@@ -108,7 +111,7 @@ const Home = () => {
     const fetchProgressOverview = async () => {
       try {
         setProgressLoading(true);
-        const response = await API.get<ProgressOverview>('/api/learning/progress/overview');
+        const response = await API.get<ProgressOverview>('/learning/progress/overview');
         setProgressOverview(response.data);
       } catch (error) {
         console.error('진도율 데이터 가져오기 실패:', error);
@@ -168,7 +171,7 @@ const Home = () => {
   const handleCardClick = (cardType: string) => {
     switch (cardType) {
       case 'recent':
-        navigate('/learn');
+        navigate('/category');
         break;
       case 'streak':
         setIsStreakModalOpen(true);
@@ -195,7 +198,7 @@ const Home = () => {
     
     // localStorage 클리어
     localStorage.clear();
-    console.log('�� localStorage 클리어 완료');
+    console.log('localStorage 클리어 완료');
     
     toast({
       title: "로그아웃",
@@ -332,7 +335,7 @@ const Home = () => {
           </Button>
 
           <Button
-            onClick={() => navigate('/learn')}
+            onClick={() => navigate('/category')}
             variant="outline"
             className="h-28 hover:bg-violet-50 border-2 border-violet-200 hover:border-violet-300 flex-col space-y-3 transform hover:scale-105 transition-all duration-300 rounded-2xl shadow-lg"
           >
@@ -362,7 +365,11 @@ const Home = () => {
           {/* 최근 학습 */}
           <div 
             className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer group border border-blue-100"
-            onClick={() => recentLearning && navigate(`/learn/${encodeURIComponent(recentLearning.chapter || '')}`)}
+            onClick={() => {
+              if (recentLearning && recentLearning.chapter) {
+                navigate(`/learn/chapter/${encodeURIComponent(recentLearning.chapter)}`);
+              }
+            }}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">최근 학습</h3>
@@ -466,7 +473,7 @@ const Home = () => {
           </div>
           <Button 
             variant="secondary"
-            onClick={() => recommendedSign && navigate(`/learn/${encodeURIComponent(recommendedSign.word)}`)}
+            onClick={() => recommendedSign && navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`)}
             className="bg-white/90 hover:bg-white/100 border-white/90 hover:scale-105 transition-all duration-200 backdrop-blur-sm"
             disabled={!recommendedSign}
           >
@@ -516,7 +523,7 @@ const Home = () => {
                       ? 'border-green-200 hover:bg-green-50 hover:border-green-400' 
                       : 'border-blue-200 hover:bg-blue-50 hover:border-blue-400'
                   }`}
-                  onClick={() => navigate(`/learn/${encodeURIComponent(category.name)}`)}
+                  onClick={() => navigate(`/learn/word/${encodeURIComponent(category.name)}`)}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="font-semibold text-gray-800 text-lg">{category.name}</h4>
