@@ -34,6 +34,23 @@ interface RecentLearning {
   chapter: string | null;
 }
 
+// 진도율 정보 타입
+interface ProgressOverview {
+  overall_progress: number;
+  total_lessons: number;
+  completed_chapters: number;
+  total_chapters: number;
+  categories: Array<{
+    id: string;
+    name: string;
+    description: string;
+    progress: number;
+    completed_lessons: number;
+    total_lessons: number;
+    status: string;
+  }>;
+}
+
 const Home = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -49,6 +66,11 @@ const Home = () => {
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isHandPreferenceModalOpen, setIsHandPreferenceModalOpen] = useState(false);
   const [nickname, setNickname] = useState<string>('학습자');
+  
+  // 진도율 상태 추가
+  const [progressOverview, setProgressOverview] = useState<ProgressOverview | null>(null);
+  const [progressLoading, setProgressLoading] = useState(true);
+
   // 첫 방문 확인 및 손 선호도 모달 표시
   useEffect(() => {
     const hasSetHandPreference = localStorage.getItem('hasSetHandPreference');
@@ -79,6 +101,24 @@ const Home = () => {
         }
       })
       .catch(() => setRecentLearning(null));
+  }, []);
+
+  // 진도율 데이터 가져오기
+  useEffect(() => {
+    const fetchProgressOverview = async () => {
+      try {
+        setProgressLoading(true);
+        const response = await API.get<ProgressOverview>('/api/learning/progress/overview');
+        setProgressOverview(response.data);
+      } catch (error) {
+        console.error('진도율 데이터 가져오기 실패:', error);
+        setProgressOverview(null);
+      } finally {
+        setProgressLoading(false);
+      }
+    };
+
+    fetchProgressOverview();
   }, []);
 
   // 자음/모음만 있는지 판별하는 함수
@@ -122,13 +162,8 @@ const Home = () => {
     }
   }, [categories, loading]);
 
-  // 실제 데이터를 기반으로 전체 진도율 계산
-  const calculateOverallProgress = () => {
-    const sampleProgress = [70, 100, 20, 45, 0]; // 각 카테고리별 진도율
-    return Math.round(sampleProgress.reduce((sum, progress) => sum + progress, 0) / sampleProgress.length);
-  };
-
-  const overallProgress = calculateOverallProgress();
+  // 전체 진도율 (API에서 가져온 데이터 사용)
+  const overallProgress = progressOverview?.overall_progress || 0;
 
   const handleCardClick = (cardType: string) => {
     switch (cardType) {
@@ -388,17 +423,26 @@ const Home = () => {
               <Target className="h-6 w-6 text-purple-600 group-hover:scale-110 transition-transform" />
             </div>
             <p className="text-sm text-gray-600 mb-2">전체 과정</p>
-            <div className="flex items-center space-x-3">
-              <p className="text-3xl font-bold text-purple-600">{overallProgress}%</p>
-              <div className="flex-1 bg-gray-200 rounded-full h-3 group-hover:bg-purple-100 transition-colors">
-                <div 
-                  className="bg-gradient-to-r from-purple-600 to-purple-500 h-3 rounded-full group-hover:animate-pulse transition-all duration-500" 
-                  style={{ width: `${overallProgress}%` }}
-                ></div>
+            {progressLoading ? (
+              <div className="flex items-center space-x-3">
+                <div className="text-3xl font-bold text-purple-600 animate-pulse">...</div>
+                <div className="flex-1 bg-gray-200 rounded-full h-3">
+                  <div className="bg-purple-600 h-3 rounded-full animate-pulse" style={{ width: '50%' }}></div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <p className="text-3xl font-bold text-purple-600">{progressOverview?.overall_progress || 0}%</p>
+                <div className="flex-1 bg-gray-200 rounded-full h-3 group-hover:bg-purple-100 transition-colors">
+                  <div 
+                    className="bg-gradient-to-r from-purple-600 to-purple-500 h-3 rounded-full group-hover:animate-pulse transition-all duration-500" 
+                    style={{ width: `${progressOverview?.overall_progress || 0}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
             <div className="mt-4 text-xs text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
-              더 많은 과정을 완료해보세요! →
+              {progressOverview ? `${progressOverview.completed_chapters}/${progressOverview.total_chapters} 챕터 완료` : '진도율을 확인해보세요! →'}
             </div>
           </div>
         </div>
@@ -437,49 +481,88 @@ const Home = () => {
             <Target className="h-6 w-6 mr-3 text-blue-600" />
             맞춤 추천 학습
           </h3>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="border-2 border-blue-200 rounded-xl p-6 hover:bg-blue-50 hover:border-blue-400 cursor-pointer transition-all duration-200 transform hover:scale-[1.02] shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-semibold text-gray-800 text-lg">일상 인사말</h4>
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-2xl">👋</span>
+          {progressLoading ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="border-2 border-gray-200 rounded-xl p-6 animate-pulse">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="h-6 bg-gray-200 rounded w-32"></div>
+                  <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                </div>
+                <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
+                <div className="flex justify-between items-center">
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="h-8 bg-gray-200 rounded w-20"></div>
                 </div>
               </div>
-              <p className="text-gray-600 mb-4">기본적인 인사 표현을 배워보세요</p>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-blue-600">진도: 70%</span>
-                  <div className="w-20 bg-blue-100 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '70%' }}></div>
-                  </div>
+              <div className="border-2 border-gray-200 rounded-xl p-6 animate-pulse">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="h-6 bg-gray-200 rounded w-24"></div>
+                  <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
                 </div>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all">
-                  계속하기
-                </Button>
+                <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
+                <div className="flex justify-between items-center">
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  <div className="h-8 bg-gray-200 rounded w-20"></div>
+                </div>
               </div>
             </div>
-            
-            <div className="border-2 border-green-200 rounded-xl p-6 hover:bg-green-50 hover:border-green-400 cursor-pointer transition-all duration-200 transform hover:scale-[1.02] shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-semibold text-gray-800 text-lg">감정 표현</h4>
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-2xl">😊</span>
-                </div>
-              </div>
-              <p className="text-gray-600 mb-4">다양한 감정을 수어로 표현해보세요</p>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-green-600">완료! ✓</span>
-                  <div className="w-20 bg-green-100 rounded-full h-2">
-                    <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }}></div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              {progressOverview?.categories.slice(0, 2).map((category, index) => (
+                <div 
+                  key={category.id}
+                  className={`border-2 rounded-xl p-6 hover:scale-[1.02] cursor-pointer transition-all duration-200 transform shadow-sm ${
+                    category.status === 'completed' 
+                      ? 'border-green-200 hover:bg-green-50 hover:border-green-400' 
+                      : 'border-blue-200 hover:bg-blue-50 hover:border-blue-400'
+                  }`}
+                  onClick={() => navigate(`/learn/${encodeURIComponent(category.name)}`)}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold text-gray-800 text-lg">{category.name}</h4>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      category.status === 'completed' ? 'bg-green-100' : 'bg-blue-100'
+                    }`}>
+                      <span className="text-2xl">
+                        {category.status === 'completed' ? '✅' : '📚'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 mb-4">{category.description}</p>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-sm font-medium ${
+                        category.status === 'completed' ? 'text-green-600' : 'text-blue-600'
+                      }`}>
+                        {category.status === 'completed' ? '완료! ✓' : `진도: ${category.progress}%`}
+                      </span>
+                      <div className={`w-20 rounded-full h-2 ${
+                        category.status === 'completed' ? 'bg-green-100' : 'bg-blue-100'
+                      }`}>
+                        <div 
+                          className={`h-2 rounded-full ${
+                            category.status === 'completed' ? 'bg-green-600' : 'bg-blue-600'
+                          }`} 
+                          style={{ width: `${category.progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      className={`${
+                        category.status === 'completed' 
+                          ? 'border-green-600 text-green-600 hover:bg-green-600 hover:text-white' 
+                          : 'bg-blue-600 hover:bg-blue-700'
+                      } hover:scale-105 transition-all`}
+                      variant={category.status === 'completed' ? 'outline' : 'default'}
+                    >
+                      {category.status === 'completed' ? '복습하기' : '계속하기'}
+                    </Button>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white hover:scale-105 transition-all">
-                  복습하기
-                </Button>
-              </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </main>
 
