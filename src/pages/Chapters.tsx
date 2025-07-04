@@ -34,6 +34,8 @@ const Chapters = () => {
     try {
       await API.post('learning/progress/chapter/set', {
         chapid: chapterId,
+      }).then((res: any) => {
+        alert(`WebSocket URLs: ${res.data.ws_urls}`);
       });
       await updateRecentLearning(lessonIds);
       navigate(path);
