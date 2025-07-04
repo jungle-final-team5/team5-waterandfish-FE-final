@@ -60,36 +60,63 @@ const Session = () => {
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
 
   const category = categoryId ? getCategoryById(categoryId) : null;
-  const chapter = categoryId && chapterId ? getChapterById(categoryId, chapterId) : null;
+  const [chapter, setChapter] = useState<any>(null);
   const currentSign = chapter?.signs[currentSignIndex];
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load chapter data
+  useEffect(() => {
+    if (chapterId) {
+      const loadChapter = async () => {
+        try {
+          const chapterData = await getChapterById(chapterId);
+          setChapter(chapterData);
+        } catch (error) {
+          console.error('챕터 데이터 로드 실패:', error);
+          setConnectionError('챕터 데이터를 불러오는데 실패했습니다.');
+        }
+      };
+      loadChapter();
+    }
+  }, [categoryId, chapterId]);
+
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const signs = chapter?.signs;
+  // 챕터 타입 확인 및 리다이렉션 - 중복 제거, 한 번만 실행
   useEffect(() => {
+    if (!chapterId || isInitialized) return;
 
-  API.get(`/learning/chapters/${chapterId}`)
-    .then(res => {
-      const type = (res.data as { type: string }).type;
-      if (type == '자음') {
-        navigate("/test/letter/consonant/study");
-      } else if (type == '모음') {
-        navigate("/test/letter/vowel/study");
+    const checkChapterType = async () => {
+      try {
+        const res = await API.get(`/learning/chapters/${chapterId}`);
+        const type = (res.data as { type: string }).type;
+        
+        if (type === '자음') {
+          navigate("/test/letter/consonant/study");
+          return;
+        } else if (type === '모음') {
+          navigate("/test/letter/vowel/study");
+          return;
+        } else {
+          // 일반 세션 초기화
+          localStorage.removeItem("studyword");
+          setCurrentSignIndex(0);
+          setQuizResults([]);
+          setFeedback(null);
+          setIsInitialized(true);
+        }
+      } catch (err) {
+        console.error('챕터 타입 조회 실패:', err);
+        setConnectionError('챕터 정보를 불러오는데 실패했습니다.');
       }
-      else {
-        localStorage.removeItem("studyword");
-        setCurrentSignIndex(0);
-        setQuizResults([]);
-        setFeedback(null);
-      }
-    })
-    .catch(err => {
-      console.error('타입 조회 실패:', err);
-      navigate("/not-found");
-    });
-    }, [chapterId, categoryId, sessionType, navigate]);
-  const sendQuizResult = async () =>{
+    };
+
+    checkChapterType();
+  }, [chapterId, navigate, isInitialized]);
+
+  const sendQuizResult = async () => {
     try {
       if (!quizResults.length) return;
 
@@ -99,39 +126,50 @@ const Session = () => {
       }));
 
       await API.post('/learning/result/session', simplifiedResults);
+      console.log('퀴즈 결과 전송 완료');
     } catch (error) {
       console.error("퀴즈 결과 전송 실패:", error);
+      // 사용자에게 에러를 알리지 않고 로그만 남김 (UX 개선)
     }
-  }
-  const sendStudyResult = async () =>{
+  };
+
+  const sendStudyResult = async () => {
     try {
-    // ✅ 로컬스토리지에서 completedSigns 가져오기
-    const stored = localStorage.getItem("studyword");
-    if (!stored) return;
+      const stored = localStorage.getItem("studyword");
+      if (!stored) return;
 
-    const stwords: string[] = JSON.parse(stored);
+      const stwords: string[] = JSON.parse(stored);
+      await API.post('/learning/study/session', stwords);
+      localStorage.removeItem("studyword");
+      console.log('학습 결과 전송 완료');
+    } catch (error) {
+      console.error("학습 결과 전송 실패:", error);
+      // 사용자에게 에러를 알리지 않고 로그만 남김 (UX 개선)
+    }
+  };
 
-    // ✅ 보낼 형식이 단순히 ID 배열이면 그대로 전송
-    await API.post('/learning/study/session', stwords);
-    localStorage.removeItem("studyword");
-  } catch (error) {
-    console.error("학습 결과 전송 실패:", error);
-  }
-  }
   // 서버 연결 시도 함수
   const attemptConnection = async (attemptNumber: number = 1): Promise<boolean> => {
     console.log(`🔌 서버 연결 시도 ${attemptNumber}...`);
     setIsConnecting(true);
-    const success = await signClassifierClient.connect();
-    setIsConnected(success);
-    setIsConnecting(false);
     
-    if (success) {
-      console.log('✅ 서버 연결 성공');
-      return true;
-    } else {
-      console.log(`❌ 서버 연결 실패 (시도 ${attemptNumber})`);
+    try {
+      const success = await signClassifierClient.connect();
+      setIsConnected(success);
+      
+      if (success) {
+        console.log('✅ 서버 연결 성공');
+        setConnectionError(null); // 연결 성공 시 에러 상태 초기화
+        return true;
+      } else {
+        console.log(`❌ 서버 연결 실패 (시도 ${attemptNumber})`);
+        return false;
+      }
+    } catch (error) {
+      console.error('서버 연결 중 오류:', error);
       return false;
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -380,34 +418,48 @@ useEffect(() => {
     
     if (!isConnected) {
       console.log('서버에 연결되지 않음');
+      setConnectionError('서버에 연결되지 않았습니다.');
       return;
     }
 
     if (!state.isStreaming || !state.stream) {
       console.log('비디오 스트림이 준비되지 않음');
+      setConnectionError('비디오 스트림이 준비되지 않았습니다.');
       return;
     }
 
     if (!videoRef.current || videoRef.current.readyState < 2) {
       console.log('비디오 엘리먼트가 준비되지 않음');
+      setConnectionError('비디오가 준비되지 않았습니다.');
       return;
     }
 
     setIsTransmitting(true);
     setTransmissionCount(0);
+    setConnectionError(null); // 전송 시작 시 에러 상태 초기화
 
     console.log('✅ 전송 시작!');
     transmissionIntervalRef.current = setInterval(async () => {
-      const frame = await captureFrameAsync();
-      if (frame) {
-        const success = signClassifierClient.sendVideoChunk(frame);
-        if (success) {
-          setTransmissionCount(prev => prev + 1);
+      try {
+        const frame = await captureFrameAsync();
+        if (frame) {
+          const success = signClassifierClient.sendVideoChunk(frame);
+          if (success) {
+            setTransmissionCount(prev => prev + 1);
+          } else {
+            console.log('⚠️ 프레임 전송 실패');
+          }
         } else {
-          console.log('⚠️ 프레임 전송 실패');
+          console.log('⚠️ 프레임 캡처 실패');
         }
-      } else {
-        console.log('⚠️ 프레임 캡처 실패');
+      } catch (error) {
+        console.error('프레임 전송 중 오류:', error);
+        // 전송 오류 시 자동으로 전송 중지
+        if (transmissionIntervalRef.current) {
+          clearInterval(transmissionIntervalRef.current);
+          transmissionIntervalRef.current = null;
+          setIsTransmitting(false);
+        }
       }
     }, 100);
   };
@@ -525,11 +577,19 @@ const loadData = useCallback(async (videoUrl: string) => {
   }
 
   try {
+    // 프론트엔드 정적 파일 경로
     const response = await fetch(`/result/${videoUrl}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const landmarkData = await response.json();
     setData(landmarkData);
   } catch (error) {
     console.error('데이터 로드 실패:', error);
+    // 데이터 로드 실패 시 빈 데이터로 설정하여 앱이 중단되지 않도록 함
+    setData(null);
   }
 }, []);
 
@@ -611,35 +671,21 @@ const loadData = useCallback(async (videoUrl: string) => {
     handleNextSign();
   };
 
-  // useEffect는 항상 호출, 내부에서 sessionComplete 조건 체크
+  // 세션 완료 시 활동 기록
   useEffect(() => {
     if (sessionComplete) {
-      API.post('/user/daily-activity/complete')
-        .then(() => {
+      const recordActivity = async () => {
+        try {
+          await API.post('/user/daily-activity/complete');
           console.log("오늘 활동 기록 완료!(퀴즈/세션)");
-        })
-        .catch((err) => {
+        } catch (err) {
           console.error("오늘 활동 기록 실패(퀴즈/세션):", err);
-        });
-    }
-    // eslint-disable-next-line
-  }, [sessionComplete]);
-
-  useEffect(() => {
-    API.get(`/learning/chapters/${chapterId}`)
-      .then(res => {
-        const type = (res.data as { type: string }).type;
-        if (type == '자음') {
-          navigate("/test/letter/consonant/study");
-        } else if (type == '모음') {
-          navigate("/test/letter/vowel/study");
+          // 활동 기록 실패해도 사용자 경험에 영향 없도록 조용히 처리
         }
-      })
-      .catch(err => {
-        console.error('타입 조회 실패:', err);
-        navigate("/not-found");
-      });
-  }, [chapterId, categoryId, sessionType, navigate]);
+      };
+      recordActivity();
+    }
+  }, [sessionComplete]);
 
   if (connectionError) {
     return (
@@ -670,11 +716,11 @@ const loadData = useCallback(async (videoUrl: string) => {
     );
   }
 
-  if (!category || !chapter || !currentSign) {
+  if ( !chapter || !currentSign) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">세션을 찾을 수 없습니다</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">챕터를 찾을 수 없습니다</h2>
           <Button onClick={() => navigate('/learn')}>돌아가기</Button>
         </div>
       </div>

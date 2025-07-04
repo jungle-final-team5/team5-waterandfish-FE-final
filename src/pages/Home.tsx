@@ -146,23 +146,7 @@ const Home = () => {
 
   // 추천 수어는 categories/로딩이 끝났을 때만 실행
   useEffect(() => {
-    if (!loading && categories.length > 0) {
-      const allSigns = categories.flatMap(cat =>
-        cat.chapters.flatMap(chap => chap.signs.map(sign => ({
-          ...sign,
-          categoryId: cat.id,
-          categoryDescription: cat.description
-        })))
-      );
-      const filteredSigns = allSigns.filter(sign => !isletterOnly(sign.word));
-      if (filteredSigns.length > 0) {
-        const seed = getTodaySeed();
-        const randomIdx = seededRandom(seed, filteredSigns.length);
-        setRecommendedSign(filteredSigns[randomIdx]);
-      } else {
-        setRecommendedSign(null);
-      }
-    }
+    console.log("categories:",categories);
   }, [categories, loading]);
 
   // 전체 진도율 (API에서 가져온 데이터 사용)

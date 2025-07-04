@@ -11,14 +11,13 @@ import { Category } from '@/types/learning';
 
 const Categories = () => {
   const navigate = useNavigate();
-  // const { categories, getCategoryProgress, isCategoryCompleted } = useLearningData();
   const [categories, setCategories] = useState<Category[]>([]);
   const isCompleted = useRef(false);
 
   useEffect(() => {
-    API.get('/learning/categories')  // FastAPI 주소에 맞게 수정
+    API.get('/learning/categories')  
       .then(res => {
-      console.log("응답 데이터:", res.data);  // 👈 여기 반드시 찍어보세요
+      console.log("응답 데이터:", res.data);
       setCategories(res.data as Category[]);
     })
       .catch(err => {
@@ -77,19 +76,18 @@ const Categories = () => {
               className="hover:shadow-lg transition-shadow cursor-pointer relative"
               onClick={() => navigate(`/category/${category.id}/chapters`)}
             >
+              {/* 기존 우측 상단 emoji span 제거 */}
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {/* <span className="text-3xl">{category.icon}</span> */}
-                    <span>{category.title}</span>
-                  </div>
+                <CardTitle className="flex items-center space-x-3">
+                  <span className="text-3xl">{category.emoji}</span>
+                  <span>{category.title}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 mb-4">{category.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">
-                    {category.chapters.length}개 챕터
+                    {/* {category.total_chapters}개 챕터 */}
                   </span>
                   <Button
                     onClick={() => navigate(`/category/${category.id}/chapters`)}

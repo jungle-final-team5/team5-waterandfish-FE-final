@@ -57,9 +57,11 @@ export const useLearningData = () => {
     return categories.find(cat => cat.id === id);
   };
 
-  const getChapterById = (categoryId: string, chapterId: string): Chapter | undefined => {
-    const category = getCategoryById(categoryId);
-    return category?.chapters.find(chapter => chapter.id === chapterId);
+  const getChapterById = async (chapterId: string): Promise<Chapter | undefined> => {
+    const response = await API.get<Chapter>(`/learning/chapters/${chapterId}`);
+    console.log("response.data:",response.data);
+    console.log("Chapter lessons:", response.data.signs);
+    return response.data;
   };
 
   const addToReview = (sign: Lesson) => {
@@ -120,12 +122,14 @@ export const useLearningData = () => {
   };
 
   // 관리자 기능들
-  const addCategory = (categoryData: { title: string; description: string; icon: string }) => {
+  const addCategory = (categoryData: { title: string; description: string; icon: string },id: string) => {
     const newCategory: Category = {
-      id: `category-${Date.now()}`,
+      id,
       ...categoryData,
       chapters: [],
-      order_index: 0
+      order_index: 0,
+      emoji: "",
+      total_chapters: 0
     };
     setCategories(prev => [...prev, newCategory]);
   };
@@ -142,9 +146,9 @@ export const useLearningData = () => {
     setCategories(prev => prev.filter(cat => cat.id !== categoryId));
   };
 
-  const addChapter = (categoryId: string, chapterData: { title: string; type: 'word' | 'sentence'; signs: Lesson[] }) => {
+  const addChapter = (categoryId: string, chapterData: { title: string; type: 'word' | 'sentence'; signs: Lesson[] },cid : string) => {
     const newChapter: Chapter = {
-      id: `chapter-${Date.now()}`,
+      id: cid,
       ...chapterData,
       categoryId
     };
