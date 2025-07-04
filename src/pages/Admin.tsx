@@ -9,6 +9,7 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { CategoryModal } from '@/components/CategoryModal';
 import { ChapterModal } from '@/components/ChapterModal';
 import { Category, Chapter } from '@/types/learning';
+import API from '@/components/AxiosInstance';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -181,6 +182,7 @@ const Admin = () => {
             updateCategory(editingCategory.id, categoryData);
           } else {
             addCategory(categoryData);
+            API.post("/learning/category",categoryData);
           }
           handleCategoryModalClose();
         }}
@@ -196,6 +198,7 @@ const Admin = () => {
             updateChapter(editingChapter.categoryId, editingChapter.chapter.id, chapterData);
           } else {
             addChapter(selectedCategoryId, chapterData);
+            API.post("/learning/chapter",{"categoryid":selectedCategoryId,"title":chapterData["title"],"type":chapterData["type"]})
           }
           handleChapterModalClose();
         }}
