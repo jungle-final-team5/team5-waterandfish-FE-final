@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from "@/hooks/useAuth";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { login } = useAuth();
 
   useEffect(() => {
     console.log('🔗 AuthCallback 컴포넌트가 마운트되었습니다.');
@@ -30,12 +32,10 @@ const AuthCallback = () => {
     });
 
     if (nickname && email) {
-      console.log('✅ 필수 사용자 정보 확인됨');
       
       try {
         // 기존 localStorage 초기화 (이전 로그인 정보 제거)
         localStorage.clear();
-        console.log('🧹 localStorage 초기화 완료');
         
         // 사용자 정보를 localStorage에 저장
         const userData = {
@@ -50,9 +50,8 @@ const AuthCallback = () => {
 
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('nickname', nickname);
-        
-        console.log('💾 사용자 정보가 localStorage에 저장되었습니다:', userData);
-        console.log('🏠 홈 화면으로 이동합니다...');
+        localStorage.setItem('isAuthenticated', 'true');
+        login();
         
         // 약간의 지연을 두고 이동 (상태 업데이트를 위해)
         setTimeout(() => {
