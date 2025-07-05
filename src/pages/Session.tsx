@@ -91,8 +91,52 @@ const Session = () => { // 세션 컴포넌트
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // 서버 연결 시도 함수. 그냥 비동기 함수.
-  // attemptConnection 자체는 비동기 함수 포인터.
+  const signs = chapter?.signs;
+  useEffect(() => {
+    API.get<{ success: boolean; data: { type: string }; message: string }>(`/learn/chapter/${chapterId}`)
+      .then(res => {
+        const type = res.data.data.type;
+        if (type == '자음') {
+          navigate("/test/letter/consonant/study");
+        } else if (type == '모음') {
+          navigate("/test/letter/vowel/study");
+        }
+        else {
+          localStorage.removeItem("studyword");
+          setCurrentSignIndex(0);
+          setQuizResults([]);
+          setFeedback(null);
+        }
+      })
+      .catch(err => {
+        console.error('타입 조회 실패:', err);
+        navigate("/not-found");
+      });
+  }, [chapterId, categoryId, sessionType, navigate]);
+  const sendQuizResult = async () =>{
+    try {
+      if (!quizResults.length) return;
+      const simplifiedResults = quizResults.map(({ signId, correct }) => ({
+        signId,
+        correct,
+      }));
+      await API.post(`/quiz/chapter/${chapterId}/submit`, simplifiedResults);
+    } catch (error) {
+      console.error("퀴즈 결과 전송 실패:", error);
+    }
+  }
+  const sendStudyResult = async () =>{
+    try {
+      const stored = localStorage.getItem("studyword");
+      if (!stored) return;
+      const stwords: string[] = JSON.parse(stored);
+      await API.post(`/learn/chapter/${chapterId}/progress`, stwords);
+      localStorage.removeItem("studyword");
+    } catch (error) {
+      console.error("학습 결과 전송 실패:", error);
+    }
+  }
+  // 서버 연결 시도 함수
   const attemptConnection = async (attemptNumber: number = 1): Promise<boolean> => {
     console.log(`🔌 서버 연결 시도 ${attemptNumber}...`);
     setIsConnecting(true);
@@ -646,14 +690,12 @@ const Session = () => { // 세션 컴포넌트
           console.log("오늘 활동 기록 완료!(퀴즈/세션)");
         } catch (err) {
           console.error("오늘 활동 기록 실패(퀴즈/세션):", err);
-          // 활동 기록 실패해도 사용자 경험에 영향 없도록 조용히 처리
-        }
-      };
-      recordActivity();
+        });
     }
+    // eslint-disable-next-line
   }, [sessionComplete]);
 
-  if (connectionErroMessage) {
+  if (connectionError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="max-w-md w-full mx-4">

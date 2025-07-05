@@ -17,7 +17,7 @@ export function useStreakData() {
     async function fetchStreak() {
       setLoading(true);
       try {
-        const res = await API.get<StreakApiResponse>("/user/daily-activity/streak");
+        const res = await API.get<StreakApiResponse>("/attendance/streak");
         setStudyDates(res.data.studyDates);
         setCurrentStreak(res.data.currentStreak);
         setLongestStreak(res.data.longestStreak);

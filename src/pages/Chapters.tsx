@@ -10,12 +10,8 @@ import {Lesson,Chapter,Category} from '../types/learning';
 import API from '@/components/AxiosInstance';
 
 // 챕터별 상태 계산 함수
-function getChapterStatus(chapter: any) {
-  const statuses = (chapter.signs || []).map((sign: any) => sign.status);
-  if (statuses.length === 0) return 'not_started';
-  if (statuses.every(s => s === 'reviewed')) return 'reviewed';
-  if (statuses.some(s => s === 'quiz_wrong')) return 'quiz_wrong';
-  if (statuses.some(s => s === 'study')) return 'study';
+function getChapterStatus(chapter: Chapter) {
+  // TODO: 실제 status 계산 로직이 필요하다면 signs의 다른 필드나 별도 상태 관리 필요
   return 'not_started';
 }
 
@@ -25,7 +21,7 @@ const Chapters = () => {
   const [categoryData, setCategoryData] = useState<Category | null>(null);
   const updateRecentLearning = async (lessonIds: string[]) => {
     try {
-      await API.post('/learning/progress/lesson/event', { lesson_ids: lessonIds });
+      await API.post('/review/mark-reviewed', { lesson_ids: lessonIds });
     } catch (err) {
       console.error('최근학습 이벤트 기록 실패:', err);
     }
@@ -46,9 +42,8 @@ const Chapters = () => {
   };
   useEffect(() => {
     if (!categoryId) return;
-
-    API.get<Category>(`/learning/chapter/${categoryId}`)
-      .then(res => setCategoryData(res.data))
+    API.get<{ success: boolean; data: Category; message: string }>(`/category/${categoryId}/chapters`)
+      .then(res => setCategoryData(res.data.data))
       .catch(err => console.error('카테고리 정보 불러오기 실패:', err));
   }, [categoryId]);
   const isCompleted = useRef(false);
@@ -63,7 +58,7 @@ const Chapters = () => {
     );
   }
 
-  const sortedChapters = (categoryData.chapters as any[]).slice().sort((a, b) => a.order_index - b.order_index);
+  const sortedChapters = (categoryData.chapters as Chapter[]).slice();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -92,7 +87,7 @@ const Chapters = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
           {sortedChapters.map((chapter, index) => {
-            const lessonIds = (chapter.signs || []).map((lesson: any) => lesson.id);
+            const lessonIds = (chapter.signs || []).map((lesson: Lesson) => lesson.id);
             const chapterStatus = getChapterStatus(chapter);
             return (
               <Card key={chapter.id} className="hover:shadow-lg transition-shadow">
@@ -160,7 +155,7 @@ const Chapters = () => {
                         variant="outline"
                         onClick={() => startChapterProgress(
                           chapter.id,
-                          `/learn/session/${categoryId}/${chapter.id}/quiz`,
+                          `/learn/chapter/${chapter.id}/guide`,
                           lessonIds
                         )}
                       >
@@ -178,12 +173,6 @@ const Chapters = () => {
                         <RotateCcw className="h-4 w-4 mr-2" />
                         복습하기
                       </Button>
-                    )}
-                    {chapterStatus === 'reviewed' && false && (
-                      <Badge className="bg-green-500 text-white text-xs flex items-center">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        완료
-                      </Badge>
                     )}
                   </div>
                 </CardContent>
