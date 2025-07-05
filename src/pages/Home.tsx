@@ -366,7 +366,7 @@ const Home = () => {
             className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 cursor-pointer group border border-blue-100"
             onClick={() => {
               if (recentLearning && recentLearning.chapter) {
-                navigate(`/learn/chapter/${encodeURIComponent(recentLearning.chapter)}`);
+                navigate(`/learn/chapter/${encodeURIComponent(recentLearning.chapter)}/guide`);
               }
             }}
           >
