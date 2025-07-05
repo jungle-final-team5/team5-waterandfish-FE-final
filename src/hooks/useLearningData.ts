@@ -120,9 +120,9 @@ export const useLearningData = () => {
   };
 
   // 관리자 기능들
-  const addCategory = (categoryData: { title: string; description: string; icon: string }) => {
+  const addCategory = (categoryData: { title: string; description: string; icon: string },id: string) => {
     const newCategory: Category = {
-      id: `category-${Date.now()}`,
+      id,
       ...categoryData,
       chapters: []
     };
@@ -141,9 +141,9 @@ export const useLearningData = () => {
     setCategories(prev => prev.filter(cat => cat.id !== categoryId));
   };
 
-  const addChapter = (categoryId: string, chapterData: { title: string; type: 'word' | 'sentence'; signs: Lesson[] }) => {
+  const addChapter = (categoryId: string, chapterData: { title: string; type: 'word' | 'sentence'; signs: Lesson[] },cid : string) => {
     const newChapter: Chapter = {
-      id: `chapter-${Date.now()}`,
+      id: cid,
       ...chapterData,
       categoryId
     };

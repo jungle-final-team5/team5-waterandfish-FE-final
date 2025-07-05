@@ -309,7 +309,7 @@ const LetterSession = () => {
                       결과 저장
                     </Button>
                   ) : (
-                    <Button className="mt-4" onClick={() => navigate('/learn')}>
+                    <Button className="mt-4" onClick={() => navigate('/category')}>
                       카테고리로
                     </Button>
                   )

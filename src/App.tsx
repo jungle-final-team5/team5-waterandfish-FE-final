@@ -21,6 +21,9 @@ import TestPage from "./pages/TestPage";
 import { AuthProvider } from "@/hooks/useAuth";
 import LetterSession from "./pages/Session_letter";
 import LearningGuide from "./pages/LearningGuide";
+import Quiz from "./pages/Quiz";
+import QuizReview from "./pages/QuizReview";
+import ProtectedRoute from "@/components/ProtectedRoute";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -35,18 +38,20 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/learn" element={<Categories />} />
-            <Route path="/learn/category/:categoryId" element={<Chapters />} />
-            <Route path="/learn/guide/:categoryId/:chapterId/:sessionType" element={<LearningGuide />} />
-            <Route path="/learn/session/:categoryId/:chapterId/:sessionType" element={<Session />} />
-            <Route path="/learn/:keyword" element={<Learn />} />
-            <Route path="/test/letter/:setType/:qOrs" element={<LetterSession />}/>
-            <Route path="/review" element={<Review />} />
+            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/category" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
+            <Route path="/category/:categoryId/chapters" element={<ProtectedRoute><Chapters /></ProtectedRoute>} />
+            <Route path="/learn/word/:wordId" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
+            <Route path="/learn/chapter/:chapterId" element={<ProtectedRoute><Session /></ProtectedRoute>} />
+            <Route path="/learn/chapter/:chapterId/guide" element={<ProtectedRoute><LearningGuide /></ProtectedRoute>} />
+            <Route path="/quiz/chapter/:chapterId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+            <Route path="/quiz/chapter/:chapterId/review" element={<ProtectedRoute><QuizReview /></ProtectedRoute>} />
+            <Route path="/test/letter/:setType/:qOrs" element={<ProtectedRoute><LetterSession /></ProtectedRoute>}/>
+            <Route path="/review" element={<ProtectedRoute><Review /></ProtectedRoute>} />
             <Route path="/search" element={<SearchPage />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/Admin" element={<Admin />} />
-            <Route path="/test" element={<TestPage />} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/Admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/test" element={<ProtectedRoute><TestPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

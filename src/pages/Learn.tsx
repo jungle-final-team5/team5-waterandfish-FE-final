@@ -294,7 +294,7 @@ const Learn = () => {
                 <Button onClick={() => navigate('/home')} variant="outline">
                   홈으로 돌아가기
                 </Button>
-                <Button onClick={() => navigate('/learn')} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => navigate(`/category/${learningData.categoryId}/chapters`)} className="bg-blue-600 hover:bg-blue-700">
                   다른 학습하기
                 </Button>
               </div>

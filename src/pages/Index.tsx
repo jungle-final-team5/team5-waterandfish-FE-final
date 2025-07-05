@@ -46,7 +46,7 @@ const Index = () => {
     setSearchQuery(selectedItem);
     setShowResults(false);
     // 해당 키워드 학습 화면으로 이동
-    navigate(`/learn/${encodeURIComponent(selectedItem)}`);
+    navigate(`/learn/word/${encodeURIComponent(selectedItem)}`);
   };
 
   const handleStartLearning = () => {

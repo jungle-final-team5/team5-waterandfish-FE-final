@@ -51,7 +51,7 @@ const SearchPage = () => {
 
   // sign 선택 → ID 기반 라우팅
   const handleSignSelect = (sign: SearchResult) => {
-    navigate(`/learn/${sign.lesson_id}`);
+    navigate(`/learn/word/${sign.lesson_id}`);
     setOpen(false);
     setSearchTerm("");
   };

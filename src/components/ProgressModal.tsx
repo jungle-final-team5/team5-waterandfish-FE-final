@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -46,7 +45,7 @@ const ProgressModal = ({ isOpen, onClose }: ProgressModalProps) => {
       const fetchProgressOverview = async () => {
         try {
           setLoading(true);
-          const response = await API.get<ProgressOverview>('/api/learning/progress/overview');
+          const response = await API.get<ProgressOverview>('/learning/progress/overview');
           setProgressOverview(response.data);
         } catch (error) {
           setProgressOverview(null);
@@ -208,7 +207,7 @@ const ProgressModal = ({ isOpen, onClose }: ProgressModalProps) => {
                       category.status === 'completed' ? 'bg-green-600 hover:bg-green-700' : 
                       'bg-purple-600 hover:bg-purple-700'} hover:scale-105 transition-all`}
                     onClick={() => {
-                      navigate(`/learn/category/${category.id}`);
+                      navigate(`/category/${category.id}/chapters`);
                       onClose();
                     }}
                   >
@@ -248,3 +247,7 @@ const ProgressModal = ({ isOpen, onClose }: ProgressModalProps) => {
 };
 
 export default ProgressModal;
+
+
+
+
