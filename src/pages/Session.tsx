@@ -15,6 +15,7 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { Lesson } from '@/types/learning';
 import { signClassifierClient, ClassificationResult } from '../services/SignClassifierClient';
 import { useVideoStream } from '../hooks/useVideoStream';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import SessionHeader from '@/components/SessionHeader';
 import QuizDisplay from '@/components/QuizDisplay';
 import LearningDisplay from '@/components/LearningDisplay';
@@ -24,6 +25,7 @@ import HandDetectionIndicator from '@/components/HandDetectionIndicator';
 import API from '@/components/AxiosInstance';
 
 const Session = () => {
+  
   const [isConnected, setIsConnected] = useState(false);
   const [isTransmitting, setIsTransmitting] = useState(false);
   const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null);
@@ -38,7 +40,7 @@ const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
-  
+  const { checkBadgesWithAPI } = useBadgeSystem();
   const [data, setData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
 
@@ -114,6 +116,7 @@ const Session = () => {
     // ✅ 보낼 형식이 단순히 ID 배열이면 그대로 전송
     await API.post('/learning/study/session', stwords);
     localStorage.removeItem("studyword");
+    checkBadgesWithAPI(""); // 레슨, 즉 단위 단위에 대한 적용
   } catch (error) {
     console.error("학습 결과 전송 실패:", error);
   }

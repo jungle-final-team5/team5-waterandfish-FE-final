@@ -7,6 +7,7 @@ import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle, RotateCcw } from
 import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
 import {Lesson,Chapter,Category} from '../types/learning';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import API from '@/components/AxiosInstance';
 
 // 챕터별 상태 계산 함수
@@ -20,6 +21,7 @@ function getChapterStatus(chapter: any) {
 }
 
 const Chapters = () => {
+  const { checkBadgesWithAPI } = useBadgeSystem();
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
@@ -35,6 +37,7 @@ const Chapters = () => {
       await API.post('learning/progress/chapter/set', {
         chapid: chapterId,
       });
+      checkBadgesWithAPI(""); // 챕터에 대한 Badge Checking 수행
       await updateRecentLearning(lessonIds);
       navigate(path);
     } catch (err) {
