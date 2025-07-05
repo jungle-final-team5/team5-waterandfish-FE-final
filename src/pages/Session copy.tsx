@@ -1,6 +1,6 @@
-// // 우리의 목표: React가 무엇인가
-// // TODO 정리하기
-// // 직접적인 리팩터링은 아님! 
+// 우리의 목표: React가 무엇인가
+// TODO 정리하기
+// 직접적인 리팩터링은 아님! 
 
 // import { useState, useEffect, useRef, useCallback } from 'react';
 // import { useNavigate, useParams } from 'react-router-dom';
@@ -71,7 +71,7 @@
 //   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
 //   const [isInitialized, setIsInitialized] = useState(false);
 
-//   //======= 챕터 데이터 로드 =======
+//   ======= 챕터 데이터 로드 =======
 //   useEffect(() => {
 //     if (chapterId) {
 //       const loadChapter = async () => {
@@ -87,7 +87,7 @@
 //     }
 //   }, [categoryId, chapterId]);
 
-//   //======= 서버 연결 및 스트림 함수 =======
+//   ======= 서버 연결 및 스트림 함수 =======
 //   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 //   const detectTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -136,7 +136,7 @@
 //       console.error("학습 결과 전송 실패:", error);
 //     }
 //   }
-//   // 서버 연결 시도 함수
+//   서버 연결 시도 함수
 //   const attemptConnection = async (attemptNumber: number = 1): Promise<boolean> => {
 //     console.log(`🔌 서버 연결 시도 ${attemptNumber}...`);
 //     setIsConnecting(true);
@@ -162,7 +162,7 @@
 //   };
 //   const initializeSession = async (): Promise<void> => {
 //     try {
-//       // 분류 결과 콜백 설정
+//       분류 결과 콜백 설정
 //       signClassifierClient.onResult((result) => {
 //         if (isMovingNextSign == false) {
 //           setCurrentResult(result);
@@ -170,7 +170,7 @@
 //         }
 //       });
 
-//       // 연결 재시도 로직
+//       연결 재시도 로직
 //       const maxAttempts = 5;
 //       let connected = false;
 
@@ -188,7 +188,7 @@
 //       }
 
 //       if (connected) {
-//         // 비디오 스트림 시작
+//         비디오 스트림 시작
 //         setTimeout(async () => {
 //           try {
 //             await startStream();
@@ -208,12 +208,12 @@
 //     }
 //   };
   
-//   // 자동 연결 및 스트림 시작
+//   자동 연결 및 스트림 시작
 //   useEffect(() => {
 
 //     initializeSession(); // 마운트 혹은 업데이트 루틴
 
-//     // 언마운트 루틴
+//     언마운트 루틴
 //     return () => {
 //       signClassifierClient.disconnect();
 //       stopStream();
@@ -228,25 +228,25 @@
 //       const stored = localStorage.getItem("studyword"); // 학습 단어 목록을 로컬 스토리지에서 가져옴
 //       if (!stored) return; // 저장된 단어가 없으면 함수 종료
 
-//       // 로컬 스토리지에서 학습 단어 목록 가져오기
+//       로컬 스토리지에서 학습 단어 목록 가져오기
 //       const study_words: string[] = JSON.parse(stored); // JSON 문자열을 배열로 변환
 //       await API.post('/study/sessions', study_words); // 학습 결과 전송
 //       localStorage.removeItem("studyword"); // 전송 후 로컬 스토리지에서 제거
 //       console.log('학습 결과 전송 완료');
 //     } catch (error) {
 //       console.error("학습 결과 전송 실패:", error);
-//       // 사용자에게 에러를 알리지 않고 로그만 남김 (UX 개선)
+//       사용자에게 에러를 알리지 않고 로그만 남김 (UX 개선)
 //     }
 //   };
 
 
 
-//   //======= 비디오 스트림 및 MediaPipe 포즈 감지 =======
+//   ======= 비디오 스트림 및 MediaPipe 포즈 감지 =======
 //   useEffect(() => {
 //     if (!state.isStreaming || !videoRef.current) return;
 
 //     console.log('🎯 MediaPipe pose detection 시작');
-//     // 이게 제일 어려움.
+//     이게 제일 어려움.
 //     const pose = createPoseHandler((rightShoulder, rightWrist, isHandDetected) => {
 //       if (detectTimer.current) {
 //         return;
@@ -259,7 +259,7 @@
 //         setIsCrossed(false);
 //         return;
 //       }
-//       // 손 감지 상태 업데이트      
+//       손 감지 상태 업데이트      
 //       if (isHandDetected && rightWrist && rightShoulder) {
 //         if (rightWrist.x < rightShoulder.x) {
 //           initialPose.current = true;
@@ -277,8 +277,8 @@
 //       }
 //     });
 
-//     // TODO: MediaPipe 설정을 외부로 분리 
-//     // 비디오가 준비되면 MediaPipe에 연결
+//     TODO: MediaPipe 설정을 외부로 분리 
+//     비디오가 준비되면 MediaPipe에 연결
 //     const video = videoRef.current;
 //     if (video.readyState >= 2) {
 //       console.log('📹 비디오 준비됨, MediaPipe 연결 시작');
@@ -294,7 +294,7 @@
 
 //       processFrame();
 //     } else {
-//       // 비디오가 준비될 때까지 대기
+//       비디오가 준비될 때까지 대기
 //       const onVideoReady = async () => {
 //         console.log('📹 비디오 준비됨, MediaPipe 연결 시작');
 
@@ -319,7 +319,7 @@
 
 
 
-//   // 비디오 스트림 준비 완료 시 전송 시작 (클로저 문제 해결)
+//   비디오 스트림 준비 완료 시 전송 시작 (클로저 문제 해결)
 //   useEffect(() => {
 //     console.log('📊 스트림 상태 변경:', {
 //       isStreaming: state.isStreaming,
@@ -328,7 +328,7 @@
 //       isTransmitting
 //     });
 
-//     // 모든 조건이 준비되었고 아직 전송 중이 아닐 때 전송 시작
+//     모든 조건이 준비되었고 아직 전송 중이 아닐 때 전송 시작
 //     if (state.isStreaming && state.stream && isConnected && !isTransmitting) {
 //       const checkVideoElement = () => {
 //         if (videoRef.current && videoRef.current.readyState >= 2) {
@@ -344,12 +344,12 @@
 //         }
 //       };
 
-//       // 약간의 지연 후 비디오 엘리먼트 체크
+//       약간의 지연 후 비디오 엘리먼트 체크
 //       setTimeout(checkVideoElement, 200);
 //     }
 //   }, [state.isStreaming, state.stream, isConnected, isTransmitting]);
 
-//   // 연결 상태 변경 시 자동 재연결
+//   연결 상태 변경 시 자동 재연결
 //   useEffect(() => {
 //     if (isConnected === false) {
 //       console.log('🔄 연결이 끊어짐, 자동 재연결 시도...');
@@ -362,7 +362,7 @@
 
 //           if (success) {
 //             console.log('✅ 자동 재연결 성공');
-//             // 재연결 성공 시 비디오 스트림도 재시작
+//             재연결 성공 시 비디오 스트림도 재시작
 //             if (!state.isStreaming) {
 //               await startStream();
 //             }
@@ -375,7 +375,7 @@
 //         }
 //       };
 
-//       // 5초 후 재연결 시도
+//       5초 후 재연결 시도
 //       const timeoutId = setTimeout(reconnect, 5000);
 //       return () => clearTimeout(timeoutId);
 //     }
@@ -392,7 +392,7 @@
 //       setProgress((currentSignIndex / chapter.signs.length) * 100);
 //     }
 //   }, [currentSignIndex, chapter]);
-//   // 연결 상태 주기적 확인
+//   연결 상태 주기적 확인
 //   useEffect(() => {
 //     const checkConnectionStatus = () => {
 //       const currentStatus = signClassifierClient.getConnectionStatus();
@@ -400,7 +400,7 @@
 //         console.log(`🔗 연결 상태 변경: ${isConnected} → ${currentStatus}`);
 //         setIsConnected(currentStatus);
 
-//         // 연결이 끊어진 경우 전송 중지
+//         연결이 끊어진 경우 전송 중지
 //         if (!currentStatus && isTransmitting) {
 //           console.log('🔴 연결 끊어짐, 전송 중지');
 //           setIsTransmitting(false);
@@ -421,7 +421,7 @@
 //     console.log('연결 상태:', isConnected);
 //     console.log('스트림 상태:', state);
 
-//     // 이미 전송 중이면 중단
+//     이미 전송 중이면 중단
 //     if (isTransmitting) {
 //       console.log('⚠️ 이미 전송 중입니다.');
 //       return;
@@ -447,7 +447,7 @@
 
 //     setIsTransmitting(true);
 //     setTransmissionCount(0);
-//     // setConnectionErrorMessage(null); // 전송 시작 시 에러 상태 초기화
+//     setConnectionErrorMessage(null); // 전송 시작 시 에러 상태 초기화
 
 //     console.log('✅ 전송 시작!');
 //     transmissionIntervalRef.current = setInterval(async () => {
@@ -465,7 +465,7 @@
 //         }
 //       } catch (error) {
 //         console.error('프레임 전송 중 오류:', error);
-//         // 전송 오류 시 자동으로 전송 중지
+//         전송 오류 시 자동으로 전송 중지
 //         if (transmissionIntervalRef.current) {
 //           clearInterval(transmissionIntervalRef.current);
 //           transmissionIntervalRef.current = null;
@@ -475,13 +475,13 @@
 //     }, 100);
 //   };
 
-//   // 분류 결과와 정답 비교 로직 (4-8, 4-9 구현)
+//   분류 결과와 정답 비교 로직 (4-8, 4-9 구현)
 //   useEffect(() => {
 //     if (!currentResult || !currentSign || isMovingNextSign) {
 //       return; // 분류 결과가 없거나 이미 피드백이 있으면 무시
 //     }
 
-//     // 분류 1위와 정답 수어 비교
+//     분류 1위와 정답 수어 비교
 //     const isCorrect = (currentResult.prediction.toLowerCase() === currentSign.word.toLowerCase()) && isCrossed;
 //     const confidence = currentResult.confidence;
 
@@ -494,13 +494,13 @@
 //     console.log('currentResult', currentResult);
 //     console.log('currentSign', currentSign);
 
-//     // 신뢰도가 일정 수준 이상일 때만 결과 처리 (오탐지 방지)
+//     신뢰도가 일정 수준 이상일 때만 결과 처리 (오탐지 방지)
 //     if (confidence >= 0.5) {
 //       setFeedback(isCorrect ? 'correct' : 'incorrect');
 //       setIsRecording(false);
 //       setTimerActive(false);
 
-//       // 학습 진도 업데이트
+//       학습 진도 업데이트
 //       if (isCorrect && currentSign) {
 //         markSignCompleted(currentSign.id);
 //         const currentId = currentSign.id;
@@ -523,14 +523,14 @@
 //         }
 //       }
 
-//       // 정답이면 피드백 표시 (자동 진행은 FeedbackDisplay의 onComplete에서 처리)
+//       정답이면 피드백 표시 (자동 진행은 FeedbackDisplay의 onComplete에서 처리)
 //       if (isCorrect) {
 //         setIsMovingNextSign(true);
-//         // 자동 진행 로직 제거 - FeedbackDisplay의 onComplete에서 처리
+//         자동 진행 로직 제거 - FeedbackDisplay의 onComplete에서 처리
 //       } else if (!isQuizMode) {
-//         // 학습 모드에서 오답일 때는 자동 진행하지 않음 (수동으로 처리)
+//         학습 모드에서 오답일 때는 자동 진행하지 않음 (수동으로 처리)
 //       } else {
-//         // 퀴즈 모드에서 오답일 때는 3초 후 자동 진행
+//         퀴즈 모드에서 오답일 때는 3초 후 자동 진행
 //         setTimeout(() => {
 //           handleNextSign();
 //         }, 3000);
@@ -538,14 +538,14 @@
 //     }
 //   }, [currentResult, currentSign, feedback, isQuizMode, timerActive]);
 
-//   // 퀴즈 모드에서 새로운 문제가 시작될 때 자동으로 타이머 시작
+//   퀴즈 모드에서 새로운 문제가 시작될 때 자동으로 타이머 시작
 //   useEffect(() => {
 //     if (isQuizMode && currentSign && !feedback) {
 //       setQuizStarted(true);
 //       setTimerActive(true);
 //       setIsRecording(true);
 
-//       // 15초 후 자동으로 시간 초과 처리
+//       15초 후 자동으로 시간 초과 처리
 //       const timer = setTimeout(() => {
 //         if (isRecording && timerActive) {
 //           handleTimeUp();
@@ -556,7 +556,7 @@
 //     }
 //   }, [currentSignIndex, isQuizMode, currentSign, feedback]);
 
-//   // 애니메이션 재생/정지 처리
+//   애니메이션 재생/정지 처리
 //   useEffect(() => {
 //     if (isPlaying && animData) {
 //       animationIntervalRef.current = setInterval(() => {
@@ -587,7 +587,7 @@
 //     }
 
 //     try {
-//       // 프론트엔드 정적 파일 경로 | 
+//       프론트엔드 정적 파일 경로 | 
 //       const response = await fetch(`/result/${videoUrl}`);
 
 //       if (!response.ok) {
@@ -598,7 +598,7 @@
 //       setAnimData(landmarkData);
 //     } catch (error) {
 //       console.error('데이터 로드 실패:', error);
-//       // 데이터 로드 실패 시 빈 데이터로 설정하여 앱이 중단되지 않도록 함
+//       데이터 로드 실패 시 빈 데이터로 설정하여 앱이 중단되지 않도록 함
 //       setAnimData(null);
 //     }
 //   }, []);
@@ -629,7 +629,7 @@
 //       addToReview(currentSign);
 //     }
 
-//     // 퀴즈 모드에서는 시간 초과 시에도 자동으로 다음 문제로 이동
+//     퀴즈 모드에서는 시간 초과 시에도 자동으로 다음 문제로 이동
 //     setTimeout(() => {
 //       handleNextSign();
 //     }, 3000); // 3초로 통일
@@ -643,14 +643,14 @@
 //       setTimerActive(false);
 //       setQuizStarted(false);
 //     } else {
-//       // 챕터 완료 처리
+//       챕터 완료 처리
 //       if (chapter) {
 //         const chapterProgress = getChapterProgress(chapter);
 //         if (chapterProgress.percentage === 100) {
 //           markChapterCompleted(chapter.id);
 //         }
 
-//         // 카테고리 완료 확인
+//         카테고리 완료 확인
 //         if (category) {
 //           const allChaptersCompleted = category.chapters.every(ch => {
 //             const progress = getChapterProgress(ch);
@@ -675,13 +675,13 @@
 //     console.log('🔄 다시 시도:', currentSign?.word);
 //   };
 
-//   // FeedbackDisplay 완료 콜백 함수
+//   FeedbackDisplay 완료 콜백 함수
 //   const handleFeedbackComplete = () => {
 //     console.log('🎉 FeedbackDisplay 완료, 다음 수어로 이동');
 //     handleNextSign();
 //   };
 
-//   // 세션 완료 시 활동 기록
+//   세션 완료 시 활동 기록
 //   useEffect(() => {
 //     if (sessionComplete) {
 //       const recordActivity = async () => {
@@ -692,7 +692,7 @@
 //           console.error("오늘 활동 기록 실패(퀴즈/세션):", err);
 //         });
 //     }
-//     // eslint-disable-next-line
+//     eslint-disable-next-line
 //   }, [sessionComplete]);
 
 //   if (connectionError) {
@@ -735,7 +735,7 @@
 //     );
 //   }
 
-//   // TODO: 컴포넌트 분리 및 리팩토링 필요
+//   TODO: 컴포넌트 분리 및 리팩토링 필요
 //   if (sessionComplete) {
 //     const correctAnswers = quizResults.filter(r => r.correct).length;
 //     const totalQuestions = quizResults.length;
@@ -777,7 +777,7 @@
 //                     navigate(`/learn/category/${categoryId}`);
 //                   } catch (error) {
 //                     console.error("결과 전송 실패:", error);
-//                     // 필요 시 에러 처리 추가 가능
+//                     필요 시 에러 처리 추가 가능
 //                   }
 //                 }}
 //               >
@@ -793,7 +793,7 @@
 //                   navigate('/home');
 //                 } catch (error) {
 //                   console.error("결과 전송 실패:", error);
-//                   // 필요 시 에러 처리 추가 가능
+//                   필요 시 에러 처리 추가 가능
 //                 }
 //               }}>
 //                 홈으로
