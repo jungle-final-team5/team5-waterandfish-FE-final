@@ -33,7 +33,15 @@ const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
   
   // 날짜가 학습한 날짜인지 확인하는 함수 (KST 기준 YYYY-MM-DD 문자열로 비교)
   const isStudyDate = (date: Date) => {
-    return studyDates.some(studyDateStr => studyDateStr === formatDateKST(date));
+    // studyDateStr을 UTC 기준 Date 객체로 변환해서, date의 UTC 연/월/일과 비교
+    return (studyDates ?? []).some(studyDateStr => {
+      const studyDate = new Date(studyDateStr + 'T00:00:00Z');
+      return (
+        date.getUTCFullYear() === studyDate.getUTCFullYear() &&
+        date.getUTCMonth() === studyDate.getUTCMonth() &&
+        date.getUTCDate() === studyDate.getUTCDate()
+      );
+    });
   };
 
   // 오늘 날짜인지 확인하는 함수 (KST 기준 YYYY-MM-DD 문자열로 비교)
@@ -75,8 +83,8 @@ const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
             mode="single"
             className={cn("p-3 pointer-events-auto")}
             components={{
-              Day: ({ date, ...props }) => {
-                const { displayMonth, className: _ignore, ...buttonProps } = props as any;
+              Day: ({ date, ...props }: { date: Date; displayMonth?: Date; className?: string } & React.ComponentProps<'button'>) => {
+                const { displayMonth, className: _ignore, ...buttonProps } = props;
                 const isStudy = isStudyDate(date);
                 const isTodayDate = isToday(date);
                 // 디버깅용 콘솔 로그 추가
