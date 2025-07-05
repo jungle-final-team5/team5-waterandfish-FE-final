@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle, RotateCcw, Wifi, WifiOff } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
-import { Lesson, Chapter, Category } from '../types/learning';
+import {Lesson,Chapter,Category} from '../types/learning';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import API from '@/components/AxiosInstance';
 import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
 
@@ -17,7 +18,8 @@ function getChapterStatus(chapter: Chapter) {
 }
 
 const Chapters = () => {
-  const navigate = useNavigate(); // 네비게이션 함수
+  const { checkBadges } = useBadgeSystem();
+  const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
   const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
@@ -32,17 +34,14 @@ const Chapters = () => {
       console.error('최근학습 이벤트 기록 실패:', err);
     }
   };
-
-  const startChapterProgress = async (chapterId: string, path: string, lessonIds: string[]) => { // 챕터 진도 시작 함수
+  const startChapterProgress = async (chapterId: string, path: string, lessonIds: string[]) => {
     try {
-      await API.post(`/progress/chapters/${chapterId}`, {
-        chapter_id: chapterId,
-      });
+      await API.post(`/progress/chapters/${chapterId}`, {});
       await updateRecentLearning(lessonIds);
       navigate(path);
     } catch (err) {
-      console.error('프로그레스 초기화 실패:', err);
-      alert('학습을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      console.error('최근학습 이벤트 기록 실패:', err);
+      navigate(path); // 실패해도 이동
     }
   };
 
