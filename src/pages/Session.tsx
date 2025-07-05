@@ -40,8 +40,8 @@ const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
-  const { checkBadgesWithAPI } = useBadgeSystem();
-  const [data, setData] = useState(null);
+  const { checkBadges } = useBadgeSystem();
+  const [animData, setAnimData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
 
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
@@ -116,7 +116,7 @@ const Session = () => {
     // ✅ 보낼 형식이 단순히 ID 배열이면 그대로 전송
     await API.post('/learning/study/session', stwords);
     localStorage.removeItem("studyword");
-    checkBadgesWithAPI(""); // 레슨, 즉 단위 단위에 대한 적용
+    checkBadges(""); // 레슨, 즉 단위 단위에 대한 적용
   } catch (error) {
     console.error("학습 결과 전송 실패:", error);
   }
@@ -499,9 +499,9 @@ useEffect(() => {
 
   // 애니메이션 재생/정지 처리
   useEffect(() => {
-    if (isPlaying && data) {
+    if (isPlaying && animData) {
       animationIntervalRef.current = setInterval(() => {
-        if (currentFrame < data.pose.length - 1) {
+        if (currentFrame < animData.pose.length - 1) {
           setCurrentFrame(prev => prev + 1);
         } else {
           setCurrentFrame(0);
@@ -519,7 +519,7 @@ useEffect(() => {
         clearInterval(animationIntervalRef.current);
       }
     };
-  }, [isPlaying, animationSpeed, data, currentFrame]);
+  }, [isPlaying, animationSpeed, animData, currentFrame]);
 
 const loadData = useCallback(async (videoUrl: string) => {
   if (!videoUrl) {
@@ -528,9 +528,12 @@ const loadData = useCallback(async (videoUrl: string) => {
   }
 
   try {
+    // TODO : result에서 백엔드로 가져오도록 수정
     const response = await fetch(`/result/${videoUrl}`);
+    
+
     const landmarkData = await response.json();
-    setData(landmarkData);
+    setAnimData(landmarkData);
   } catch (error) {
     console.error('데이터 로드 실패:', error);
   }
@@ -796,7 +799,7 @@ const loadData = useCallback(async (videoUrl: string) => {
               />
             ) : (
               <LearningDisplay 
-                data={data}
+                data={animData}
                 currentFrame={currentFrame}
                 currentSign={currentSign}
               />

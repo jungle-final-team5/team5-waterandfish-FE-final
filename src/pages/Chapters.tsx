@@ -21,7 +21,7 @@ function getChapterStatus(chapter: any) {
 }
 
 const Chapters = () => {
-  const { checkBadgesWithAPI } = useBadgeSystem();
+  const { checkBadges } = useBadgeSystem();
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
@@ -37,7 +37,7 @@ const Chapters = () => {
       await API.post('learning/progress/chapter/set', {
         chapid: chapterId,
       });
-      checkBadgesWithAPI(""); // 챕터에 대한 Badge Checking 수행
+      checkBadges(""); // 챕터에 대한 Badge Checking 수행
       await updateRecentLearning(lessonIds);
       navigate(path);
     } catch (err) {

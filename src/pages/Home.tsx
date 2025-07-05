@@ -57,7 +57,7 @@ const Home = () => {
   const { categories, loading } = useLearningData();
   const { showStreakAchievement } = useNotifications();
   const { unreadCount } = useNotificationHistory();
-  const { checkBadgesWithAPI } = useBadgeSystem();
+  const { checkBadges } = useBadgeSystem();
     const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { currentStreak } = useStreakData();
   
@@ -77,9 +77,6 @@ const Home = () => {
     if (!hasSetHandPreference) {
       setIsHandPreferenceModalOpen(true);
     }
-    
-    // 로그인 즉시 badges 확인 | 가입 후 확인
-    checkBadgesWithAPI("");
   }, []);
 
   // 추천 수어 상태 추가

@@ -21,7 +21,7 @@ function LockIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function Login() {
-  const { checkBadgesWithAPI } = useBadgeSystem();
+  const { checkBadges } = useBadgeSystem();
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [emailFocus, setEmailFocus] = useState(false);
@@ -62,7 +62,8 @@ export default function Login() {
       
       console.log('✅ 로그인 성공, 사용자 정보 저장됨:', userData);
       alert('로그인 성공!');
-      checkBadgesWithAPI("");
+      checkBadges("");
+      
       navigator('/home');
     } catch (error: any) {
       console.error('❌ 로그인 실패:', error);
