@@ -91,11 +91,10 @@ const Home = () => {
   useEffect(() => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
-
-    API.get<RecentLearning>('/learning/recent-learning')
+    API.get<{ success: boolean; data: RecentLearning; message: string }>('/review')
       .then(res => {
-        if (res.data && res.data.category && res.data.chapter) {
-          setRecentLearning(res.data);
+        if (res.data.data && res.data.data.category && res.data.data.chapter) {
+          setRecentLearning(res.data.data);
         } else {
           setRecentLearning(null);
         }
@@ -108,8 +107,8 @@ const Home = () => {
     const fetchProgressOverview = async () => {
       try {
         setProgressLoading(true);
-        const response = await API.get<ProgressOverview>('/learning/progress/overview');
-        setProgressOverview(response.data);
+        const response = await API.get<{ success: boolean; data: ProgressOverview; message: string }>('/progress/overview');
+        setProgressOverview(response.data.data);
       } catch (error) {
         console.error('진도율 데이터 가져오기 실패:', error);
         setProgressOverview(null);
@@ -117,7 +116,6 @@ const Home = () => {
         setProgressLoading(false);
       }
     };
-
     fetchProgressOverview();
   }, []);
 
@@ -512,7 +510,7 @@ const Home = () => {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
-              {progressOverview?.categories.slice(0, 2).map((category, index) => (
+              {(progressOverview?.categories ?? []).slice(0, 2).map((category, index) => (
                 <div 
                   key={category.id}
                   className={`border-2 rounded-xl p-6 hover:scale-[1.02] cursor-pointer transition-all duration-200 transform shadow-sm ${

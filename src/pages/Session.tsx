@@ -70,56 +70,49 @@ const Session = () => {
 
   const signs = chapter?.signs;
   useEffect(() => {
-
-  API.get(`/learning/chapters/${chapterId}`)
-    .then(res => {
-      const type = (res.data as { type: string }).type;
-      if (type == '자음') {
-        navigate("/test/letter/consonant/study");
-      } else if (type == '모음') {
-        navigate("/test/letter/vowel/study");
-      }
-      else {
-        localStorage.removeItem("studyword");
-        setCurrentSignIndex(0);
-        setQuizResults([]);
-        setFeedback(null);
-      }
-    })
-    .catch(err => {
-      console.error('타입 조회 실패:', err);
-      navigate("/not-found");
-    });
-    }, [chapterId, categoryId, sessionType, navigate]);
+    API.get<{ success: boolean; data: { type: string }; message: string }>(`/learn/chapter/${chapterId}`)
+      .then(res => {
+        const type = res.data.data.type;
+        if (type == '자음') {
+          navigate("/test/letter/consonant/study");
+        } else if (type == '모음') {
+          navigate("/test/letter/vowel/study");
+        }
+        else {
+          localStorage.removeItem("studyword");
+          setCurrentSignIndex(0);
+          setQuizResults([]);
+          setFeedback(null);
+        }
+      })
+      .catch(err => {
+        console.error('타입 조회 실패:', err);
+        navigate("/not-found");
+      });
+  }, [chapterId, categoryId, sessionType, navigate]);
   const sendQuizResult = async () =>{
     try {
       if (!quizResults.length) return;
-
       const simplifiedResults = quizResults.map(({ signId, correct }) => ({
         signId,
         correct,
       }));
-
-      await API.post('/learning/result/session', simplifiedResults);
+      await API.post(`/quiz/chapter/${chapterId}/submit`, simplifiedResults);
     } catch (error) {
       console.error("퀴즈 결과 전송 실패:", error);
     }
   }
   const sendStudyResult = async () =>{
     try {
-    // ✅ 로컬스토리지에서 completedSigns 가져오기
-    const stored = localStorage.getItem("studyword");
-    if (!stored) return;
-
-    const stwords: string[] = JSON.parse(stored);
-
-    // ✅ 보낼 형식이 단순히 ID 배열이면 그대로 전송
-    await API.post('/learning/study/session', stwords);
-    localStorage.removeItem("studyword");
+      const stored = localStorage.getItem("studyword");
+      if (!stored) return;
+      const stwords: string[] = JSON.parse(stored);
+      await API.post(`/learn/chapter/${chapterId}/progress`, stwords);
+      localStorage.removeItem("studyword");
     checkBadges(""); // 레슨, 즉 단위 단위에 대한 적용
-  } catch (error) {
-    console.error("학습 결과 전송 실패:", error);
-  }
+    } catch (error) {
+      console.error("학습 결과 전송 실패:", error);
+    }
   }
   // 서버 연결 시도 함수
   const attemptConnection = async (attemptNumber: number = 1): Promise<boolean> => {
@@ -630,22 +623,6 @@ const loadData = useCallback(async (videoUrl: string) => {
     }
     // eslint-disable-next-line
   }, [sessionComplete]);
-
-  useEffect(() => {
-    API.get(`/learning/chapters/${chapterId}`)
-      .then(res => {
-        const type = (res.data as { type: string }).type;
-        if (type == '자음') {
-          navigate("/test/letter/consonant/study");
-        } else if (type == '모음') {
-          navigate("/test/letter/vowel/study");
-        }
-      })
-      .catch(err => {
-        console.error('타입 조회 실패:', err);
-        navigate("/not-found");
-      });
-  }, [chapterId, categoryId, sessionType, navigate]);
 
   if (connectionError) {
     return (
