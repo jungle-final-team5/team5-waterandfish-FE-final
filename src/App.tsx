@@ -17,7 +17,6 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
-import TestPage from "./pages/TestPage";
 import { AuthProvider } from "@/hooks/useAuth";
 import LetterSession from "./pages/Session_letter";
 import LearningGuide from "./pages/LearningGuide";
@@ -59,7 +58,6 @@ const App = () => (
               <Route path="/search" element={<SearchPage />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/Admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-              <Route path="/test" element={<ProtectedRoute><TestPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

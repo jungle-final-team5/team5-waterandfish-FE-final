@@ -23,6 +23,7 @@ interface WebSocketState {
     errorCount: number;
     lastConnectedTime: Date | null;
     globalError: string | null;
+    wsUrls: string[];
 }
 
 // 전역 웹소켓 컨텍스트 타입
@@ -45,6 +46,7 @@ let globalWebSocketState: WebSocketState = {
     errorCount: 0,
     lastConnectedTime: null,
     globalError: null,
+    wsUrls: []
 };
 
 // 상태 변경 리스너들
@@ -184,7 +186,7 @@ const connectToWebSockets = (wsUrls: string[], autoReconnect: boolean = true): W
         const connection = connectToWebSocket(url, autoReconnect);
         connections.push(connection);
     }
-
+    globalWebSocketState.wsUrls = uniqueWsUrls;
     return connections;
 };
 
@@ -285,6 +287,47 @@ const getCompatibleState = () => {
     };
 };
 
+// 메시지 전송 함수
+const sendMessage = (message: string | ArrayBuffer | Blob, connectionId?: string) => {
+    if (connectionId) {
+        // 특정 연결로 메시지 전송
+        console.log('[sendMessage] connectionId', connectionId);
+        const connection = getConnection(connectionId);
+        if (connection?.ws?.readyState === WebSocket.OPEN) {
+            connection.ws.send(message);
+            return true;
+        }
+        return false;
+    } else {
+        // 모든 연결된 웹소켓으로 메시지 전송
+        console.log('[sendMessage] globalWebSocketState.wsUrls', globalWebSocketState.wsUrls);
+        const connectedSockets = globalWebSocketState.connections.filter(
+            conn => conn.ws?.readyState === WebSocket.OPEN
+        );
+        
+        if (connectedSockets.length === 0) {
+            return false;
+        }
+        
+        let successCount = 0;
+        connectedSockets.forEach(conn => {
+            try {
+                conn.ws!.send(message);
+                successCount++;
+            } catch (error) {
+                console.error(`Failed to send message to ${conn.url}:`, error);
+            }
+        });
+        
+        return successCount > 0;
+    }
+};
+
+// 모든 연결된 웹소켓으로 메시지 브로드캐스트
+const broadcastMessage = (message: string | ArrayBuffer | Blob) => {
+    return sendMessage(message);
+};
+
 // 자동 재연결 서비스 인스턴스
 const autoReconnectService = WebSocketAutoReconnectService.getInstance();
 
@@ -310,18 +353,6 @@ const useWebsocket = (wsUrls?: string[]) => {
         };
     }, []);
 
-    // wsUrls가 제공되면 자동 연결
-    useEffect(() => {
-        if (wsUrls && wsUrls.length > 0) {
-            const uniqueWsUrls = [...new Set(wsUrls)];
-            const currentUrls = globalWebSocketState.connections.map(c => c.url);
-
-            if (JSON.stringify(uniqueWsUrls.sort()) !== JSON.stringify(currentUrls.sort())) {
-                connectToWebSockets(uniqueWsUrls);
-            }
-        }
-    }, [wsUrls]);
-
     // 자동 재연결 서비스 시작 (연결이 있을 때만)
     useEffect(() => {
         if (globalWebSocketState.connections.length > 0) {
@@ -339,6 +370,8 @@ const useWebsocket = (wsUrls?: string[]) => {
         reconnectWebSocket,
         getConnection,
         getConnectionByUrl,
+        sendMessage,
+        broadcastMessage,
         // 자동 재연결 서비스 제어
         autoReconnectService: {
             start: () => autoReconnectService.start(),
@@ -370,6 +403,8 @@ export {
     reconnectWebSocket,
     getConnection,
     getConnectionByUrl,
+    sendMessage,
+    broadcastMessage,
     getGlobalWebSocketState,
     autoReconnectService,
     type WebSocketConnection,
