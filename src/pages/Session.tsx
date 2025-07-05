@@ -1,7 +1,10 @@
+// 우리의 목표: React가 무엇인가
+// TODO 정리하기
+// 직접적인 리팩터링은 아님! 
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   CheckCircle,
   XCircle,
@@ -15,6 +18,7 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { Lesson } from '@/types/learning';
 import { signClassifierClient, ClassificationResult } from '../services/SignClassifierClient';
 import { useVideoStream } from '../hooks/useVideoStream';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SessionHeader from '@/components/SessionHeader';
 import QuizDisplay from '@/components/QuizDisplay';
 import LearningDisplay from '@/components/LearningDisplay';
@@ -23,13 +27,13 @@ import { createPoseHandler } from '@/components/detect/usePoseHandler';
 import HandDetectionIndicator from '@/components/HandDetectionIndicator';
 import API from '@/components/AxiosInstance';
 
-const Session = () => {
-  const [isConnected, setIsConnected] = useState(false);
+const Session = () => { // 세션 컴포넌트
+  const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const [isTransmitting, setIsTransmitting] = useState(false);
-  const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null); // 이 경우는 포인터 변수
+  const [connectionErrorMessage, setConnectionErrorMessage] = useState<string | null>(null); 
   const [isConnecting, setIsConnecting] = useState(false);
-  const { videoRef, canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
+  const {videoRef, canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
   const [transmissionCount, setTransmissionCount] = useState(0);
   const [isCrossed, setIsCrossed] = useState(false);
   const initialPose = useRef<boolean>(false);
@@ -38,12 +42,14 @@ const Session = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
-  
-  const [data, setData] = useState(null);
+
+  const [animData, setAnimData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
 
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  
+  
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [progress, setProgress] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
@@ -56,7 +62,7 @@ const Session = () => {
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [autoStarted, setAutoStarted] = useState(false);
 
-  const isQuizMode = sessionType === 'quiz';
+  const isQuizMode = sessionType === 'quiz'; // 타입과 값을 같이 비교 가능
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
 
   const category = categoryId ? getCategoryById(categoryId) : null;
@@ -65,7 +71,7 @@ const Session = () => {
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load chapter data
+  //======= 챕터 데이터 로드 =======
   useEffect(() => {
     if (chapterId) {
       const loadChapter = async () => {
@@ -74,92 +80,30 @@ const Session = () => {
           setChapter(chapterData);
         } catch (error) {
           console.error('챕터 데이터 로드 실패:', error);
-          setConnectionError('챕터 데이터를 불러오는데 실패했습니다.');
+          setConnectionErrorMessage('챕터 데이터를 불러오는데 실패했습니다.');
         }
       };
       loadChapter();
     }
   }, [categoryId, chapterId]);
 
+  //======= 서버 연결 및 스트림 함수 =======
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // 챕터 타입 확인 및 리다이렉션 - 중복 제거, 한 번만 실행
-  useEffect(() => {
-    if (!chapterId || isInitialized) return;
-
-    const checkChapterType = async () => {
-      try {
-        const res = await API.get(`/learning/chapters/${chapterId}`);
-        const type = (res.data as { type: string }).type;
-        
-        if (type === '자음') {
-          navigate("/test/letter/consonant/study");
-          return;
-        } else if (type === '모음') {
-          navigate("/test/letter/vowel/study");
-          return;
-        } else {
-          // 일반 세션 초기화
-          localStorage.removeItem("studyword");
-          setCurrentSignIndex(0);
-          setQuizResults([]);
-          setFeedback(null);
-          setIsInitialized(true);
-        }
-      } catch (err) {
-        console.error('챕터 타입 조회 실패:', err);
-        setConnectionError('챕터 정보를 불러오는데 실패했습니다.');
-      }
-    };
-
-    checkChapterType();
-  }, [chapterId, navigate, isInitialized]);
-
-  const sendQuizResult = async () => {
-    try {
-      if (!quizResults.length) return;
-
-      const simplifiedResults = quizResults.map(({ signId, correct }) => ({
-        signId,
-        correct,
-      }));
-
-      await API.post('/learning/result/session', simplifiedResults);
-      console.log('퀴즈 결과 전송 완료');
-    } catch (error) {
-      console.error("퀴즈 결과 전송 실패:", error);
-      // 사용자에게 에러를 알리지 않고 로그만 남김 (UX 개선)
-    }
-  };
-
-  const sendStudyResult = async () => {
-    try {
-      const stored = localStorage.getItem("studyword");
-      if (!stored) return;
-
-      const stwords: string[] = JSON.parse(stored);
-      await API.post('/learning/study/session', stwords);
-      localStorage.removeItem("studyword");
-      console.log('학습 결과 전송 완료');
-    } catch (error) {
-      console.error("학습 결과 전송 실패:", error);
-      // 사용자에게 에러를 알리지 않고 로그만 남김 (UX 개선)
-    }
-  };
-
-  // 서버 연결 시도 함수
+  // 서버 연결 시도 함수. 그냥 비동기 함수.
+  // attemptConnection 자체는 비동기 함수 포인터.
   const attemptConnection = async (attemptNumber: number = 1): Promise<boolean> => {
     console.log(`🔌 서버 연결 시도 ${attemptNumber}...`);
     setIsConnecting(true);
-    
+
     try {
       const success = await signClassifierClient.connect();
       setIsConnected(success);
-      
+
       if (success) {
         console.log('✅ 서버 연결 성공');
-        setConnectionError(null); // 연결 성공 시 에러 상태 초기화
+        setConnectionErrorMessage(null); // 연결 성공 시 에러 상태 초기화
         return true;
       } else {
         console.log(`❌ 서버 연결 실패 (시도 ${attemptNumber})`);
@@ -168,23 +112,104 @@ const Session = () => {
     } catch (error) {
       console.error('서버 연결 중 오류:', error);
       return false;
-    } finally {
+    } finally { // 진짜 return 직전에 무조건 실행됨.
       setIsConnecting(false);
     }
   };
+  const initializeSession = async (): Promise<void> => {
+    try {
+      // 분류 결과 콜백 설정
+      signClassifierClient.onResult((result) => {
+        if (isMovingNextSign == false) {
+          setCurrentResult(result);
+          console.log('분류 결과:', result);
+        }
+      });
 
-  // MediaPipe pose detection 설정
+      // 연결 재시도 로직
+      const maxAttempts = 5;
+      let connected = false;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        connected = await attemptConnection(attempt);
+
+        if (connected) {
+          break;
+        }
+
+        if (attempt < maxAttempts) {
+          console.log(`🔄 ${attempt}/${maxAttempts} 재시도 중... (3초 후)`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+
+      if (connected) {
+        // 비디오 스트림 시작
+        setTimeout(async () => {
+          try {
+            await startStream();
+            console.log('🎥 비디오 스트림 시작 요청 완료');
+          } catch (error) {
+            console.error('비디오 스트림 시작 실패:', error);
+            setConnectionErrorMessage('카메라 접근에 실패했습니다. 페이지를 새로고침해주세요.');
+          }
+        }, 500);
+      } else {
+        console.error('❌ 최대 연결 시도 횟수 초과');
+        setConnectionErrorMessage('서버 연결에 실패했습니다. 페이지를 새로고침해주세요.');
+      }
+    } catch (error) {
+      console.error('세션 초기화 실패:', error);
+      setConnectionErrorMessage('연결 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+    }
+  };
+  
+  // 자동 연결 및 스트림 시작
+  useEffect(() => {
+
+    initializeSession(); // 마운트 혹은 업데이트 루틴
+
+    // 언마운트 루틴
+    return () => {
+      signClassifierClient.disconnect();
+      stopStream();
+      if (transmissionIntervalRef.current) {
+        clearInterval(transmissionIntervalRef.current);
+      }
+    };
+  }, []); // 컴포넌트 마운트 시 한 번만 실행
+
+  const sendStudyResult = async () => {
+    try {
+      const stored = localStorage.getItem("studyword"); // 학습 단어 목록을 로컬 스토리지에서 가져옴
+      if (!stored) return; // 저장된 단어가 없으면 함수 종료
+
+      // 로컬 스토리지에서 학습 단어 목록 가져오기
+      const study_words: string[] = JSON.parse(stored); // JSON 문자열을 배열로 변환
+      await API.post('/study/sessions', study_words); // 학습 결과 전송
+      localStorage.removeItem("studyword"); // 전송 후 로컬 스토리지에서 제거
+      console.log('학습 결과 전송 완료');
+    } catch (error) {
+      console.error("학습 결과 전송 실패:", error);
+      // 사용자에게 에러를 알리지 않고 로그만 남김 (UX 개선)
+    }
+  };
+
+
+
+  //======= 비디오 스트림 및 MediaPipe 포즈 감지 =======
   useEffect(() => {
     if (!state.isStreaming || !videoRef.current) return;
 
     console.log('🎯 MediaPipe pose detection 시작');
+    // 이게 제일 어려움.
     const pose = createPoseHandler((rightShoulder, rightWrist, isHandDetected) => {
-      if(detectTimer.current) {
+      if (detectTimer.current) {
         return;
       }
-      const shoulderVisibility = rightShoulder as typeof rightShoulder & { visibility: number } ;
+      const shoulderVisibility = rightShoulder as typeof rightShoulder & { visibility: number };
       const wristVisibility = rightWrist as typeof rightWrist & { visibility: number };
-      if ((shoulderVisibility.visibility ?? 0) < 0.5 || (wristVisibility.visibility ?? 0 ) < 0.5) {
+      if ((shoulderVisibility.visibility ?? 0) < 0.5 || (wristVisibility.visibility ?? 0) < 0.5) {
         setIsHandDetected(false);
         initialPose.current = false;
         setIsCrossed(false);
@@ -205,14 +230,15 @@ const Session = () => {
             }, 5000);
           }
         }
-      } 
+      }
     });
 
+    // TODO: MediaPipe 설정을 외부로 분리 
     // 비디오가 준비되면 MediaPipe에 연결
     const video = videoRef.current;
     if (video.readyState >= 2) {
       console.log('📹 비디오 준비됨, MediaPipe 연결 시작');
-      
+
       const processFrame = async () => {
         if (video.videoWidth > 0 && video.videoHeight > 0) {
           await pose.send({ image: video });
@@ -221,13 +247,13 @@ const Session = () => {
           requestAnimationFrame(processFrame);
         }
       };
-      
+
       processFrame();
     } else {
       // 비디오가 준비될 때까지 대기
       const onVideoReady = async () => {
         console.log('📹 비디오 준비됨, MediaPipe 연결 시작');
-        
+
         const processFrame = async () => {
           if (video.videoWidth > 0 && video.videoHeight > 0) {
             await pose.send({ image: video });
@@ -236,10 +262,10 @@ const Session = () => {
             requestAnimationFrame(processFrame);
           }
         };
-        
+
         processFrame();
       };
-      
+
       video.addEventListener('loadeddata', onVideoReady);
       return () => {
         video.removeEventListener('loadeddata', onVideoReady);
@@ -247,66 +273,7 @@ const Session = () => {
     }
   }, [state.isStreaming, videoRef.current]);
 
-  // 자동 연결 및 스트림 시작
-  useEffect(() => {
-    const initializeSession = async () => {
-      try {
-        // 분류 결과 콜백 설정
-        signClassifierClient.onResult((result) => {
-          if(isMovingNextSign==false) {  
-            setCurrentResult(result);
-            console.log('분류 결과:', result);
-          }
-        });
 
-        // 연결 재시도 로직
-        const maxAttempts = 5;
-        let connected = false;
-        
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-          connected = await attemptConnection(attempt);
-          
-          if (connected) {
-            break;
-          }
-          
-          if (attempt < maxAttempts) {
-            console.log(`🔄 ${attempt}/${maxAttempts} 재시도 중... (3초 후)`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
-          }
-        }
-        
-        if (connected) {
-          // 비디오 스트림 시작
-          setTimeout(async () => {
-            try {
-              await startStream();
-              console.log('🎥 비디오 스트림 시작 요청 완료');
-            } catch (error) {
-              console.error('비디오 스트림 시작 실패:', error);
-              setConnectionError('카메라 접근에 실패했습니다. 페이지를 새로고침해주세요.');
-            }
-          }, 500);
-        } else {
-          console.error('❌ 최대 연결 시도 횟수 초과');
-          setConnectionError('서버 연결에 실패했습니다. 페이지를 새로고침해주세요.');
-        }
-      } catch (error) {
-        console.error('세션 초기화 실패:', error);
-        setConnectionError('연결 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
-      }
-    };
-
-    initializeSession();
-
-    return () => {
-      signClassifierClient.disconnect();
-      stopStream();
-      if (transmissionIntervalRef.current) {
-        clearInterval(transmissionIntervalRef.current);
-      }
-    };
-  }, []);
 
   // 비디오 스트림 준비 완료 시 전송 시작 (클로저 문제 해결)
   useEffect(() => {
@@ -332,7 +299,7 @@ const Session = () => {
           setTimeout(checkVideoElement, 100);
         }
       };
-      
+
       // 약간의 지연 후 비디오 엘리먼트 체크
       setTimeout(checkVideoElement, 200);
     }
@@ -348,7 +315,7 @@ const Session = () => {
           const success = await attemptConnection(1);
           setIsConnected(success);
           setIsConnecting(false);
-          
+
           if (success) {
             console.log('✅ 자동 재연결 성공');
             // 재연결 성공 시 비디오 스트림도 재시작
@@ -363,18 +330,18 @@ const Session = () => {
           setIsConnecting(false);
         }
       };
-      
+
       // 5초 후 재연결 시도
       const timeoutId = setTimeout(reconnect, 5000);
       return () => clearTimeout(timeoutId);
     }
-  }, [isConnected, isConnecting, connectionError, state.isStreaming]);
+  }, [isConnected, isConnecting, connectionErroMessage, state.isStreaming]);
 
-useEffect(() => {
-  if (currentSign?.videoUrl) {
-    loadData(currentSign?.videoUrl);
-  }
-}, [currentSign?.videoUrl]);
+  useEffect(() => {
+    if (currentSign?.videoUrl) {
+      loadData(currentSign?.videoUrl);
+    }
+  }, [currentSign?.videoUrl]);
 
   useEffect(() => {
     if (chapter) {
@@ -388,7 +355,7 @@ useEffect(() => {
       if (currentStatus !== isConnected) {
         console.log(`🔗 연결 상태 변경: ${isConnected} → ${currentStatus}`);
         setIsConnected(currentStatus);
-        
+
         // 연결이 끊어진 경우 전송 중지
         if (!currentStatus && isTransmitting) {
           console.log('🔴 연결 끊어짐, 전송 중지');
@@ -404,39 +371,39 @@ useEffect(() => {
     const interval = setInterval(checkConnectionStatus, 2000); // 2초마다 확인
     return () => clearInterval(interval);
   }, [isConnected, isTransmitting]);
-  
+
   const handleStartTransmission = () => {
     console.log('🚀 전송 시작 시도...');
     console.log('연결 상태:', isConnected);
     console.log('스트림 상태:', state);
-    
+
     // 이미 전송 중이면 중단
     if (isTransmitting) {
       console.log('⚠️ 이미 전송 중입니다.');
       return;
     }
-    
+
     if (!isConnected) {
       console.log('서버에 연결되지 않음');
-      setConnectionError('서버에 연결되지 않았습니다.');
+      setConnectionErrorMessage('서버에 연결되지 않았습니다.');
       return;
     }
 
     if (!state.isStreaming || !state.stream) {
       console.log('비디오 스트림이 준비되지 않음');
-      setConnectionError('비디오 스트림이 준비되지 않았습니다.');
+      setConnectionErrorMessage('비디오 스트림이 준비되지 않았습니다.');
       return;
     }
 
     if (!videoRef.current || videoRef.current.readyState < 2) {
       console.log('비디오 엘리먼트가 준비되지 않음');
-      setConnectionError('비디오가 준비되지 않았습니다.');
+      setConnectionErrorMessage('비디오가 준비되지 않았습니다.');
       return;
     }
 
     setIsTransmitting(true);
     setTransmissionCount(0);
-    setConnectionError(null); // 전송 시작 시 에러 상태 초기화
+    setConnectionErrorMessage(null); // 전송 시작 시 에러 상태 초기화
 
     console.log('✅ 전송 시작!');
     transmissionIntervalRef.current = setInterval(async () => {
@@ -515,7 +482,6 @@ useEffect(() => {
       // 정답이면 피드백 표시 (자동 진행은 FeedbackDisplay의 onComplete에서 처리)
       if (isCorrect) {
         setIsMovingNextSign(true);
-        console.log('🎉 정답! FeedbackDisplay에서 진행 관리합니다.');
         // 자동 진행 로직 제거 - FeedbackDisplay의 onComplete에서 처리
       } else if (!isQuizMode) {
         // 학습 모드에서 오답일 때는 자동 진행하지 않음 (수동으로 처리)
@@ -548,9 +514,9 @@ useEffect(() => {
 
   // 애니메이션 재생/정지 처리
   useEffect(() => {
-    if (isPlaying && data) {
+    if (isPlaying && animData) {
       animationIntervalRef.current = setInterval(() => {
-        if (currentFrame < data.pose.length - 1) {
+        if (currentFrame < animData.pose.length - 1) {
           setCurrentFrame(prev => prev + 1);
         } else {
           setCurrentFrame(0);
@@ -568,30 +534,30 @@ useEffect(() => {
         clearInterval(animationIntervalRef.current);
       }
     };
-  }, [isPlaying, animationSpeed, data, currentFrame]);
+  }, [isPlaying, animationSpeed, animData, currentFrame]);
 
-const loadData = useCallback(async (videoUrl: string) => {
-  if (!videoUrl) {
-    console.warn("videoUrl 없음, loadData 실행 중단");
-    return;
-  }
-
-  try {
-    // 프론트엔드 정적 파일 경로
-    const response = await fetch(`/result/${videoUrl}`);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  const loadData = useCallback(async (videoUrl: string) => {
+    if (!videoUrl) {
+      console.warn("videoUrl 없음, loadData 실행 중단");
+      return;
     }
-    
-    const landmarkData = await response.json();
-    setData(landmarkData);
-  } catch (error) {
-    console.error('데이터 로드 실패:', error);
-    // 데이터 로드 실패 시 빈 데이터로 설정하여 앱이 중단되지 않도록 함
-    setData(null);
-  }
-}, []);
+
+    try {
+      // 프론트엔드 정적 파일 경로 | 
+      const response = await fetch(`/result/${videoUrl}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const landmarkData = await response.json();
+      setAnimData(landmarkData);
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+      // 데이터 로드 실패 시 빈 데이터로 설정하여 앱이 중단되지 않도록 함
+      setAnimData(null);
+    }
+  }, []);
 
   const handleStartRecording = () => {
     setIsRecording(true);
@@ -687,7 +653,7 @@ const loadData = useCallback(async (videoUrl: string) => {
     }
   }, [sessionComplete]);
 
-  if (connectionError) {
+  if (connectionErroMessage) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="max-w-md w-full mx-4">
@@ -696,7 +662,7 @@ const loadData = useCallback(async (videoUrl: string) => {
             <CardTitle>연결 오류</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-gray-600">{connectionError}</p>
+            <p className="text-gray-600">{connectionErroMessage}</p>
             <Button
               onClick={() => window.location.reload()}
               className="bg-blue-600 hover:bg-blue-700"
@@ -716,7 +682,7 @@ const loadData = useCallback(async (videoUrl: string) => {
     );
   }
 
-  if ( !chapter || !currentSign) {
+  if (!chapter || !currentSign) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -727,6 +693,7 @@ const loadData = useCallback(async (videoUrl: string) => {
     );
   }
 
+  // TODO: 컴포넌트 분리 및 리팩토링 필요
   if (sessionComplete) {
     const correctAnswers = quizResults.filter(r => r.correct).length;
     const totalQuestions = quizResults.length;
@@ -795,17 +762,17 @@ const loadData = useCallback(async (videoUrl: string) => {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 손 감지 상태 표시 인디케이터 */}
-      <HandDetectionIndicator 
+      <HandDetectionIndicator
         isHandDetected={isHandDetected}
         isConnected={isConnected}
         isStreaming={state.isStreaming}
       />
-      
-      <SessionHeader 
+
+      <SessionHeader
         isQuizMode={isQuizMode}
         currentSign={currentSign}
         chapter={chapter}
@@ -831,22 +798,22 @@ const loadData = useCallback(async (videoUrl: string) => {
           <div className="grid lg:grid-cols-2 gap-12">
             {/* 퀴즈 모드에서는 예시 영상 대신 텍스트만 표시 */}
             {isQuizMode ? (
-              <QuizDisplay 
+              <QuizDisplay
                 currentSign={currentSign}
                 quizStarted={quizStarted}
                 feedback={feedback}
                 handleNextSign={handleNextSign}
               />
             ) : (
-              <LearningDisplay 
-                data={data}
+              <LearningDisplay
+                data={animData}
                 currentFrame={currentFrame}
                 currentSign={currentSign}
               />
             )}
 
             {/* 웹캠 및 분류 결과 */}
-            <WebcamSection 
+            <WebcamSection
               isQuizMode={isQuizMode}
               isConnected={isConnected}
               isConnecting={isConnecting}
@@ -855,7 +822,7 @@ const loadData = useCallback(async (videoUrl: string) => {
               videoRef={videoRef}
               canvasRef={canvasRef}
               currentResult={currentResult}
-              connectionError={connectionError}
+              connectionError={connectionErroMessage}
               isRecording={isRecording}
               feedback={feedback}
               handleStartRecording={handleStartRecording}
@@ -867,8 +834,8 @@ const loadData = useCallback(async (videoUrl: string) => {
           {/* 피드백 표시 */}
           {feedback && (
             <div className="mt-8">
-              <FeedbackDisplay 
-                feedback={feedback} 
+              <FeedbackDisplay
+                feedback={feedback}
                 prediction={currentResult?.prediction}
                 onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
               />
