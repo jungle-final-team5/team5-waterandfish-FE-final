@@ -22,11 +22,11 @@ const SearchPage = () => {
 
   const fetchSearchResults = async (query: string) => {
     try {
-      const { data } = await API.get<SearchResult[]>("/search", {
+      const res = await API.get<{ success: boolean; data: SearchResult[]; message: string }>("/search", {
         params: { q: query, k: 10 },
       });
-      setSearchResults(data);
-      setOpen(data.length > 0);
+      setSearchResults(res.data.data);
+      setOpen(res.data.data.length > 0);
     } catch {
       setSearchResults([]);
       setOpen(false);
@@ -51,7 +51,11 @@ const SearchPage = () => {
 
   // sign 선택 → ID 기반 라우팅
   const handleSignSelect = (sign: SearchResult) => {
-    navigate(`/learn/word/${sign.lesson_id}`);
+    if (!sign.sign_text) {
+      alert('검색 결과에 sign_text가 없습니다. 관리자에게 문의하세요.');
+      return;
+    }
+    navigate(`/learn/word/${encodeURIComponent(sign.sign_text)}`);
     setOpen(false);
     setSearchTerm("");
   };
@@ -150,23 +154,23 @@ const SearchPage = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {/* 인기 수어 버튼에서 SearchResult 타입이 아닌 Lesson 타입이므로 클릭시 라우팅만 word 기준으로 처리 */}
-                {categories.flatMap(category => 
-                  category.chapters.flatMap(chapter => 
-                    chapter.signs
+                {(categories ?? [])
+                  .flatMap(category => (category.chapters ?? [])
+                    .flatMap(chapter => (chapter.signs ?? []))
                   )
-                ).slice(0, 12).map(sign => (
-                  <Button
-                    key={sign.id}
-                    variant="outline"
-                    onClick={() => navigate(`/learn/${encodeURIComponent(sign.word)}`)}
-                    className="h-auto p-3 hover:bg-violet-50 border-gray-200"
-                  >
-                    <div className="text-center">
-                      <div className="font-medium text-gray-800">{sign.word}</div>
-                    </div>
-                  </Button>
-                ))}
+                  .slice(0, 12)
+                  .map(sign => (
+                    <Button
+                      key={sign.id}
+                      variant="outline"
+                      onClick={() => navigate(`/learn/word/${sign.id}`)}
+                      className="h-auto p-3 hover:bg-violet-50 border-gray-200"
+                    >
+                      <div className="text-center">
+                        <div className="font-medium text-gray-800">{sign.word}</div>
+                      </div>
+                    </Button>
+                  ))}
               </div>
             </CardContent>
           </Card>
