@@ -94,7 +94,7 @@ const Home = () => {
   useEffect(() => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
-    API.get<{ success: boolean; data: RecentLearning; message: string }>('/review')
+    API.get<{ success: boolean; data: RecentLearning; message: string }>('/progress/recent-learning')
       .then(res => {
         if (res.data.data && res.data.data.category && res.data.data.chapter) {
           setRecentLearning(res.data.data);

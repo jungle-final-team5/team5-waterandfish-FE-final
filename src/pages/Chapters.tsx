@@ -26,14 +26,16 @@ const Chapters = () => {
       console.error('최근학습 이벤트 기록 실패:', err);
     }
   };
-  const startChapterProgress = async (chapterId: string, path: string, lessonIds: string[]) => {
+  // 챕터 학습/퀴즈 시작 시 최근 학습 반영 (user_id를 body에 포함)
+  const handleStartChapter = async (chapterId: string, lessonIds: string[], path: string) => {
     try {
-      await API.post(`/progress/chapters/${chapterId}`, {});
-      await updateRecentLearning(lessonIds);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = user._id;
+      await API.post('/progress/lessons/events', { user_id: userId, lesson_ids: lessonIds });
       navigate(path);
     } catch (err) {
-      console.error('프로그레스 초기화 실패:', err);
-      alert('학습을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      console.error('최근학습 이벤트 기록 실패:', err);
+      navigate(path); // 실패해도 이동
     }
   };
   useEffect(() => {
@@ -136,10 +138,10 @@ const Chapters = () => {
                   </div>
                   <div className="flex space-x-3 items-center">
                     <Button
-                      onClick={() => startChapterProgress(
+                      onClick={() => handleStartChapter(
                         chapter.id,
-                        `/learn/chapter/${chapter.id}/guide`,
-                        lessonIds
+                        lessonIds,
+                        `/learn/chapter/${chapter.id}/guide`
                       )}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
@@ -149,10 +151,10 @@ const Chapters = () => {
                     {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
                       <Button
                         variant="outline"
-                        onClick={() => startChapterProgress(
+                        onClick={() => handleStartChapter(
                           chapter.id,
-                          `/learn/chapter/${chapter.id}/guide`,
-                          lessonIds
+                          lessonIds,
+                          `/learn/chapter/${chapter.id}/guide`
                         )}
                       >
                         퀴즈 풀기
