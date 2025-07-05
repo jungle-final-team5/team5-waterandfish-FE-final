@@ -197,11 +197,6 @@ const LearningGuide = () => {
             </Card>
           </div>
 
-          {/* 웹캠 미리보기 */}
-          <div className="space-y-6">
-            <VideoInput />  
-          </div>
-
             {/* 시작 버튼 */}
             <Card>
               <CardContent className="pt-6">
