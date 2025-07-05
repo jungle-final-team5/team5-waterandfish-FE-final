@@ -45,8 +45,8 @@ const ProgressModal = ({ isOpen, onClose }: ProgressModalProps) => {
       const fetchProgressOverview = async () => {
         try {
           setLoading(true);
-          const response = await API.get<ProgressOverview>('/progress/overview');
-          setProgressOverview(response.data);
+          const response = await API.get<{ success: boolean; data: ProgressOverview; message: string }>('/progress/overview');
+          setProgressOverview(response.data.data);
         } catch (error) {
           setProgressOverview(null);
         } finally {
