@@ -27,7 +27,7 @@ import { createPoseHandler } from '@/components/detect/usePoseHandler';
 import HandDetectionIndicator from '@/components/HandDetectionIndicator';
 import API from '@/components/AxiosInstance';
 
-const Session = () => { // 세션 컴포넌트
+const WordSession = () => { // 세션 컴포넌트
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const [isTransmitting, setIsTransmitting] = useState(false);
   const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null); // 이 경우는 포인터 변수
@@ -125,17 +125,17 @@ const Session = () => { // 세션 컴포넌트
       console.error("퀴즈 결과 전송 실패:", error);
     }
   }
-  const sendStudyResult = async () =>{
-    try {
-      const stored = localStorage.getItem("studyword");
-      if (!stored) return;
-      const stwords: string[] = JSON.parse(stored);
-      await API.post(`/learn/chapter/${chapterId}/progress`, stwords);
-      localStorage.removeItem("studyword");
-    } catch (error) {
-      console.error("학습 결과 전송 실패:", error);
-    }
-  }
+//   const sendStudyResult = async () =>{
+//     try {
+//       const stored = localStorage.getItem("studyword");
+//       if (!stored) return;
+//       const stwords: string[] = JSON.parse(stored);
+//       await API.post(`/learn/chapter/${chapterId}/progress`, stwords);
+//       localStorage.removeItem("studyword");
+//     } catch (error) {
+//       console.error("학습 결과 전송 실패:", error);
+//     }
+//   }
   // 서버 연결 시도 함수
   const attemptConnection = async (attemptNumber: number = 1): Promise<boolean> => {
     console.log(`🔌 서버 연결 시도 ${attemptNumber}...`);
@@ -350,36 +350,36 @@ const Session = () => { // 세션 컴포넌트
   }, [state.isStreaming, state.stream, isConnected, isTransmitting]);
 
   // 연결 상태 변경 시 자동 재연결
-  useEffect(() => {
-    if (isConnected === false) {
-      console.log('🔄 연결이 끊어짐, 자동 재연결 시도...');
-      const reconnect = async () => {
-        try {
-          setIsConnecting(true);
-          const success = await attemptConnection(1);
-          setIsConnected(success);
-          setIsConnecting(false);
+//   useEffect(() => {
+//     if (isConnected === false) {
+//       console.log('🔄 연결이 끊어짐, 자동 재연결 시도...');
+//       const reconnect = async () => {
+//         try {
+//           setIsConnecting(true);
+//           const success = await attemptConnection(1);
+//           setIsConnected(success);
+//           setIsConnecting(false);
 
-          if (success) {
-            console.log('✅ 자동 재연결 성공');
-            // 재연결 성공 시 비디오 스트림도 재시작
-            if (!state.isStreaming) {
-              await startStream();
-            }
-          } else {
-            console.log('❌ 자동 재연결 실패');
-          }
-        } catch (error) {
-          console.error('자동 재연결 실패:', error);
-          setIsConnecting(false);
-        }
-      };
+//           if (success) {
+//             console.log('✅ 자동 재연결 성공');
+//             // 재연결 성공 시 비디오 스트림도 재시작
+//             if (!state.isStreaming) {
+//               await startStream();
+//             }
+//           } else {
+//             console.log('❌ 자동 재연결 실패');
+//           }
+//         } catch (error) {
+//           console.error('자동 재연결 실패:', error);
+//           setIsConnecting(false);
+//         }
+//       };
 
-      // 5초 후 재연결 시도
-      const timeoutId = setTimeout(reconnect, 5000);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isConnected, isConnecting, connectionErroMessage, state.isStreaming]);
+//       // 5초 후 재연결 시도
+//       const timeoutId = setTimeout(reconnect, 5000);
+//       return () => clearTimeout(timeoutId);
+//     }
+//   }, [isConnected, isConnecting, connectionErroMessage, state.isStreaming]);
 
   useEffect(() => {
     if (currentSign?.videoUrl) {
@@ -447,7 +447,7 @@ const Session = () => { // 세션 컴포넌트
 
     setIsTransmitting(true);
     setTransmissionCount(0);
-    setConnectionErrorMessage(null); // 전송 시작 시 에러 상태 초기화
+    // setConnectionErrorMessage(null); // 전송 시작 시 에러 상태 초기화
 
     console.log('✅ 전송 시작!');
     transmissionIntervalRef.current = setInterval(async () => {
@@ -682,47 +682,47 @@ const Session = () => { // 세션 컴포넌트
   };
 
   // 세션 완료 시 활동 기록
-  useEffect(() => {
-    if (sessionComplete) {
-      const recordActivity = async () => {
-        try {
-          await API.post('/user/daily-activity/complete');
-          console.log("오늘 활동 기록 완료!(퀴즈/세션)");
-        } catch (err) {
-          console.error("오늘 활동 기록 실패(퀴즈/세션):", err);
-        });
-    }
-    // eslint-disable-next-line
-  }, [sessionComplete]);
+//   useEffect(() => {
+//     if (sessionComplete) {
+//       const recordActivity = async () => {
+//         try {
+//           await API.post('/user/daily-activity/complete');
+//           console.log("오늘 활동 기록 완료!(퀴즈/세션)");
+//         } catch (err) {
+//           console.error("오늘 활동 기록 실패(퀴즈/세션):", err);
+//         });
+//     }
+// //     // eslint-disable-next-line
+//   }, [sessionComplete]);
 
-  if (connectionError) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
-          <CardHeader className="text-center">
-            <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-            <CardTitle>연결 오류</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-gray-600">{connectionErroMessage}</p>
-            <Button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              페이지 새로고침
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/home')}
-            >
-              홈으로 돌아가기
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+//   if (connectionError) {
+//     return (
+//       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+//         <Card className="max-w-md w-full mx-4">
+//           <CardHeader className="text-center">
+//             <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
+//             <CardTitle>연결 오류</CardTitle>
+//           </CardHeader>
+//           <CardContent className="text-center space-y-4">
+//             <p className="text-gray-600">{connectionErroMessage}</p>
+//             <Button
+//               onClick={() => window.location.reload()}
+//               className="bg-blue-600 hover:bg-blue-700"
+//             >
+//               <RefreshCw className="h-4 w-4 mr-2" />
+//               페이지 새로고침
+//             </Button>
+//             <Button
+//               variant="outline"
+//               onClick={() => navigate('/home')}
+//             >
+//               홈으로 돌아가기
+//             </Button>
+//           </CardContent>
+//         </Card>
+//       </div>
+//     );
+//   }
 
   if (!chapter || !currentSign) {
     return (
@@ -855,7 +855,7 @@ const Session = () => { // 세션 컴포넌트
             )}
 
             {/* 웹캠 및 분류 결과 */}
-            <WebcamSection
+            {/* <WebcamSection
               isQuizMode={isQuizMode}
               isConnected={isConnected}
               isConnecting={isConnecting}
@@ -870,7 +870,7 @@ const Session = () => { // 세션 컴포넌트
               handleStartRecording={handleStartRecording}
               handleNextSign={handleNextSign}
               handleRetry={handleRetry}
-            />
+            /> */}
           </div>
 
           {/* 피드백 표시 */}
@@ -889,4 +889,4 @@ const Session = () => { // 세션 컴포넌트
   );
 };
 
-export default Session;
+export default WordSession;
