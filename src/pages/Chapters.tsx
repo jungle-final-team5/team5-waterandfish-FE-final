@@ -7,6 +7,7 @@ import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle, RotateCcw } from
 import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
 import {Lesson,Chapter,Category} from '../types/learning';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import API from '@/components/AxiosInstance';
 
 // 챕터별 상태 계산 함수
@@ -16,6 +17,7 @@ function getChapterStatus(chapter: Chapter) {
 }
 
 const Chapters = () => {
+  const { checkBadges } = useBadgeSystem();
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
