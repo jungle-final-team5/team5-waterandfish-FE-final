@@ -51,10 +51,21 @@ interface ProgressOverview {
   }>;
 }
 
+interface RecommendedSign {
+  word: string;
+  description?: string;
+  videoUrl?: string;
+  category?: {
+    id: string;
+    name: string;
+  };
+  [key: string]: unknown;
+}
+
 const Home = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { categories, loading } = useLearningData();
+  const { categories, categoriesLoading } = useLearningData();
   const { showStreakAchievement } = useNotifications();
   const { unreadCount } = useNotificationHistory();
   const { checkBadges } = useBadgeSystem();
@@ -80,11 +91,7 @@ const Home = () => {
   }, []);
 
   // 추천 수어 상태 추가
-  const [recommendedSign, setRecommendedSign] = useState<{
-    word: string;
-    categoryId: string;
-    categoryDescription: string;
-  } | null>(null);
+  const [recommendedSign, setRecommendedSign] = useState<RecommendedSign | null>(null);
 
   const [recentLearning, setRecentLearning] = useState<RecentLearning | null>(null);
 
@@ -119,6 +126,24 @@ const Home = () => {
     fetchProgressOverview();
   }, []);
 
+  useEffect(() => {
+    const fetchDailySign = async () => {
+      try {
+        const res = await API.get<{ success: boolean; data: { lesson: RecommendedSign } }>(
+          '/recommendations/daily-sign'
+        );
+        if (res.data.success && res.data.data && res.data.data.lesson) {
+          setRecommendedSign(res.data.data.lesson);
+        } else {
+          setRecommendedSign(null);
+        }
+      } catch (e) {
+        setRecommendedSign(null);
+      }
+    };
+    fetchDailySign();
+  }, []);
+
   // 자음/모음만 있는지 판별하는 함수
   function isletterOnly(text: string) {
     return /^[\u3131-\u314E\u314F-\u3163]+$/.test(text);
@@ -138,11 +163,6 @@ const Home = () => {
     }
     return Math.abs(hash) % max;
   }
-
-  // 추천 수어는 categories/로딩이 끝났을 때만 실행
-  useEffect(() => {
-    console.log("categories:",categories);
-  }, [categories, loading]);
 
   // 전체 진도율 (API에서 가져온 데이터 사용)
   const overallProgress = progressOverview?.overall_progress || 0;
@@ -442,10 +462,12 @@ const Home = () => {
               </h3>
 
               <p className="text-3xl font-bold mb-4">
-                {recommendedSign ? `"${recommendedSign.word}"` : '...'}
+                {recommendedSign ? `"${String(recommendedSign.word)}"` : '...'}
               </p>
               <p className="text-blue-100 mb-6">
-                {recommendedSign?.categoryDescription || '랜덤 추천 수어를 배워보세요'}
+                {recommendedSign && recommendedSign.category && typeof recommendedSign.category === 'object' && recommendedSign.category !== null && 'name' in recommendedSign.category
+                  ? String((recommendedSign.category as { name?: unknown }).name ?? '랜덤 추천 수어를 배워보세요')
+                  : '랜덤 추천 수어를 배워보세요'}
               </p>
 
             </div>

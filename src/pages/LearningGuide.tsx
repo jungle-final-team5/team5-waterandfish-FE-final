@@ -12,13 +12,13 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { useLearningData } from '@/hooks/useLearningData';
+import {  useLearningData } from '@/hooks/useLearningData';
 import WebcamView from '@/components/WebcamView';
 
 const LearningGuide = () => {
-  const { categoryId: paramCategoryId, chapterId, sessionType } = useParams();
+const { categoryId: paramCategoryId, chapterId, sessionType } = useParams();
   const navigate = useNavigate();
-  const { getCategoryById, getChapterById, categories } = useLearningData();
+  const {  categories } = useLearningData();
 
   // categoryId가 없으면 categories에서 chapterId로 categoryId를 추출
   let categoryId = paramCategoryId;
@@ -31,8 +31,8 @@ const LearningGuide = () => {
     }
   }
 
-  const category = categoryId ? getCategoryById(categoryId) : undefined;
-  const chapter = (categoryId && chapterId) ? getChapterById(chapterId) : undefined;
+  const category = categoryId ? categories.find(cat => cat.id === categoryId) : undefined;
+  const chapter = (categoryId && chapterId) ? categories.find(cat => cat.id === categoryId)?.chapters.find(chap => chap.id === chapterId) : undefined;
 
   if (!category || !chapter) {
     return (

@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft, 
   Play, 
@@ -18,6 +17,7 @@ import WebcamView from '@/components/WebcamView';
 import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
+import { useLearningData } from '@/hooks/useLearningData';
 
 const Learn = () => {
   const [animData, setAnimData] = useState(null);
@@ -34,11 +34,31 @@ const Learn = () => {
   const [animationSpeed, setAnimationSpeed] = useState(30);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
+  const { categories } = useLearningData();
+
+  // 모든 수어(flatten)
+  const allSigns = categories.flatMap(cat =>
+    cat.chapters.flatMap(chap =>
+      chap.signs.map(sign => ({
+        ...sign,
+        categoryTitle: cat.title,
+        categoryId: cat.id
+      }))
+    )
+  );
+
+  // 현재 keyword에 해당하는 수어 찾기
+  const selectedSign = allSigns.find(sign => sign.word === keyword || sign.id === keyword);
+  const category = selectedSign ? selectedSign.categoryTitle : '기타';
+
+  // 추천 수어/검색결과 리스트 (실제 데이터 기반, 최대 6개)
+  const exampleSigns = allSigns.slice(0, 6);
+
+  useEffect(() => {
     loadData();
   }, []);
 
-    // 애니메이션 재생/정지 처리
+  // 애니메이션 재생/정지 처리
   useEffect(() => {
     if (isPlaying && animData) {
       animationIntervalRef.current = setInterval(() => {
@@ -62,7 +82,7 @@ const Learn = () => {
     };
   }, [isPlaying, animationSpeed, animData, currentFrame]);
 
-    const loadData = async () => {
+  const loadData = async () => {
     try {
       // 첫 번째 JSON 파일만 로드
       const response = await fetch('/result/KETI_SL_0000000414_landmarks.json');
@@ -72,19 +92,6 @@ const Learn = () => {
       console.error('데이터 로드 실패:', error);
     }
   };
-
-  // 예시: 오늘의 추천 수어/검색결과 리스트 (실제 데이터는 props/context로 받을 수 있음)
-  const exampleSigns = [
-    { word: '안녕하세요', category: '일상 인사말' },
-    { word: '감사합니다', category: '일상 인사말' },
-    { word: '사랑해요', category: '감정 표현' },
-    { word: '미안합니다', category: '일상 인사말' },
-    { word: '잘 지내세요', category: '일상 인사말' },
-  ];
-
-  // 현재 keyword에 맞는 카테고리 찾기
-  const selectedSign = exampleSigns.find(sign => sign.word === keyword);
-  const category = selectedSign ? selectedSign.category : '기타';
 
   // 샘플 학습 데이터
   const learningData = {
@@ -315,25 +322,6 @@ const Learn = () => {
           )}
         </div>
       </main>
-
-      {/* 오늘의 추천 수어/검색결과 예시 리스트 */}
-      <div className="max-w-2xl mx-auto mt-12">
-        <h3 className="text-lg font-bold mb-4">오늘의 추천 수어 / 검색 결과</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {exampleSigns.map(sign => (
-            <Button
-              key={sign.word}
-              variant="outline"
-              onClick={() => navigate(`/learn/word/${encodeURIComponent(sign.word)}`)}
-              className="h-auto p-3 hover:bg-violet-50 border-gray-200"
-            >
-              <div className="text-center">
-                <div className="font-medium text-gray-800">{sign.word}</div>
-              </div>
-            </Button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

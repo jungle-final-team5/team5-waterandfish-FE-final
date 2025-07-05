@@ -34,10 +34,12 @@ const Chapters = () => {
       console.error('최근학습 이벤트 기록 실패:', err);
     }
   };
-  const startChapterProgress = async (chapterId: string, path: string, lessonIds: string[]) => {
+  // 챕터 학습/퀴즈 시작 시 최근 학습 반영 (user_id를 body에 포함)
+  const handleStartChapter = async (chapterId: string, lessonIds: string[], path: string) => {
     try {
-      await API.post(`/progress/chapters/${chapterId}`, {});
-      await updateRecentLearning(lessonIds);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = user._id;
+      await API.post('/progress/lessons/events', { user_id: userId, lesson_ids: lessonIds });
       navigate(path);
     } catch (err) {
       console.error('최근학습 이벤트 기록 실패:', err);
@@ -188,10 +190,9 @@ const Chapters = () => {
                   <div className="flex space-x-3 items-center">
                     <Button
                       onClick={() => {
-                        startChapterProgress(chapter.id, `/learn/chapter/${chapter.id}/guide`, lessonIds);
+                        handleStartChapter( chapter.id, lessonIds, `/learn/chapter/${chapter.id}/guide`)
                         getWSURLsAndConnect(chapter.id);
-                      }
-                      }
+                      }}
                       disabled={connectingChapter === chapter.id}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
@@ -211,7 +212,7 @@ const Chapters = () => {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          startChapterProgress(chapter.id, `/learn/chapter/${chapter.id}/guide`, lessonIds);
+                          handleStartChapter( chapter.id, lessonIds, `/learn/chapter/${chapter.id}/guide` )
                           getWSURLsAndConnect(chapter.id);
                         }}
                       >

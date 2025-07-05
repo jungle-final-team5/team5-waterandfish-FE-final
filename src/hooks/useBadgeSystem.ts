@@ -74,10 +74,6 @@ export const useBadgeSystem = () => {
     }
   }, [showBadgeEarned]);
 
-  const updateLearningProgress = useCallback((type: 'lesson' | 'chapter' | 'review' | 'fast_answer', amount: number = 1) => {
-    checkBadges(type);
-  }, [checkBadges]);
-
   return {
     checkBadges
   };
