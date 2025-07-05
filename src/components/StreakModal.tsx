@@ -33,7 +33,9 @@ const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
   
   // 날짜가 학습한 날짜인지 확인하는 함수 (KST 기준 YYYY-MM-DD 문자열로 비교)
   const isStudyDate = (date: Date) => {
-    // studyDateStr을 UTC 기준 Date 객체로 변환해서, date의 UTC 연/월/일과 비교
+    const today = new Date();
+    // 오늘 이후(미래)는 무조건 false
+    if (date > today) return false;
     return (studyDates ?? []).some(studyDateStr => {
       const studyDate = new Date(studyDateStr + 'T00:00:00Z');
       return (
