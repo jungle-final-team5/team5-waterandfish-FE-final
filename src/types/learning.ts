@@ -23,6 +23,7 @@ export interface Category {
   description: string;
   chapters: Chapter[];
   icon: string;
+  emoji: string;
   order_index: number;
 }
 

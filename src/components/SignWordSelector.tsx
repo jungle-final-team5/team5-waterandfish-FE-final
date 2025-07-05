@@ -5,56 +5,61 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, Plus } from 'lucide-react';
-import { SignWord } from '@/types/learning';
+import { Lesson } from '@/types/learning';
 
 // 샘플 수어 데이터 (실제로는 API나 데이터베이스에서 가져올 것)
-const availableSigns: SignWord[] = [
-  { id: 'hello', word: '안녕하세요', category: 'greetings', difficulty: 'easy' },
-  { id: 'goodbye', word: '안녕히가세요', category: 'greetings', difficulty: 'easy' },
-  { id: 'thank-you', word: '감사합니다', category: 'greetings', difficulty: 'easy' },
-  { id: 'sorry', word: '죄송합니다', category: 'greetings', difficulty: 'medium' },
-  { id: 'nice-meet', word: '만나서 반갑습니다', category: 'greetings', difficulty: 'medium' },
-  { id: 'how-are-you', word: '어떻게 지내세요?', category: 'greetings', difficulty: 'medium' },
-  { id: 'fine-thanks', word: '잘 지내고 있어요', category: 'greetings', difficulty: 'medium' },
-  { id: 'see-you-later', word: '나중에 또 봐요', category: 'greetings', difficulty: 'hard' },
-  { id: 'have-good-day', word: '좋은 하루 되세요', category: 'greetings', difficulty: 'hard' },
-  { id: 'take-care', word: '몸조심하세요', category: 'greetings', difficulty: 'hard' },
-  { id: 'happy', word: '기쁘다', category: 'emotions', difficulty: 'easy' },
-  { id: 'sad', word: '슬프다', category: 'emotions', difficulty: 'easy' },
-  { id: 'angry', word: '화나다', category: 'emotions', difficulty: 'easy' },
-  { id: 'surprised', word: '놀라다', category: 'emotions', difficulty: 'medium' },
-  { id: 'worried', word: '걱정하다', category: 'emotions', difficulty: 'medium' },
-  { id: 'love', word: '사랑하다', category: 'emotions', difficulty: 'medium' },
-  { id: 'hate', word: '싫어하다', category: 'emotions', difficulty: 'medium' },
-  { id: 'excited', word: '신나다', category: 'emotions', difficulty: 'easy' },
-  { id: 'tired', word: '피곤하다', category: 'emotions', difficulty: 'easy' },
-  { id: 'hungry', word: '배고프다', category: 'emotions', difficulty: 'easy' }
-];
+// const availableSigns: Lesson[] = [
+//   { id: 'hello', word: '안녕하세요', category: 'greetings', difficulty: 'easy' },
+//   { id: 'goodbye', word: '안녕히가세요', category: 'greetings', difficulty: 'easy' },
+//   { id: 'thank-you', word: '감사합니다', category: 'greetings', difficulty: 'easy' },
+//   { id: 'sorry', word: '죄송합니다', category: 'greetings', difficulty: 'medium' },
+//   { id: 'nice-meet', word: '만나서 반갑습니다', category: 'greetings', difficulty: 'medium' },
+//   { id: 'how-are-you', word: '어떻게 지내세요?', category: 'greetings', difficulty: 'medium' },
+//   { id: 'fine-thanks', word: '잘 지내고 있어요', category: 'greetings', difficulty: 'medium' },
+//   { id: 'see-you-later', word: '나중에 또 봐요', category: 'greetings', difficulty: 'hard' },
+//   { id: 'have-good-day', word: '좋은 하루 되세요', category: 'greetings', difficulty: 'hard' },
+//   { id: 'take-care', word: '몸조심하세요', category: 'greetings', difficulty: 'hard' },
+//   { id: 'happy', word: '기쁘다', category: 'emotions', difficulty: 'easy' },
+//   { id: 'sad', word: '슬프다', category: 'emotions', difficulty: 'easy' },
+//   { id: 'angry', word: '화나다', category: 'emotions', difficulty: 'easy' },
+//   { id: 'surprised', word: '놀라다', category: 'emotions', difficulty: 'medium' },
+//   { id: 'worried', word: '걱정하다', category: 'emotions', difficulty: 'medium' },
+//   { id: 'love', word: '사랑하다', category: 'emotions', difficulty: 'medium' },
+//   { id: 'hate', word: '싫어하다', category: 'emotions', difficulty: 'medium' },
+//   { id: 'excited', word: '신나다', category: 'emotions', difficulty: 'easy' },
+//   { id: 'tired', word: '피곤하다', category: 'emotions', difficulty: 'easy' },
+//   { id: 'hungry', word: '배고프다', category: 'emotions', difficulty: 'easy' }
+// ];
 
 interface SignWordSelectorProps {
-  selectedSigns: SignWord[];
-  onSelectionChange: (signs: SignWord[]) => void;
+  selectedSigns: Lesson[];
+  onSelectionChange: (signs: Lesson[]) => void;
   categoryId: string;
+  lessons : Lesson[]
 }
 
 export const SignWordSelector: React.FC<SignWordSelectorProps> = ({
   selectedSigns,
   onSelectionChange,
-  categoryId
+  categoryId,
+  lessons
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [newWord, setNewWord] = useState('');
   const [newDifficulty, setNewDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
 
-  const filteredSigns = availableSigns.filter(sign =>
-    sign.word.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSigns = Array.isArray(lessons)
+    ? lessons.filter(sign =>
+        sign.word.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
-  const isSelected = (sign: SignWord) => {
+
+  const isSelected = (sign: Lesson) => {
     return selectedSigns.some(selected => selected.id === sign.id);
   };
 
-  const toggleSign = (sign: SignWord) => {
+  const toggleSign = (sign: Lesson) => {
     if (isSelected(sign)) {
       onSelectionChange(selectedSigns.filter(selected => selected.id !== sign.id));
     } else {
@@ -64,9 +69,10 @@ export const SignWordSelector: React.FC<SignWordSelectorProps> = ({
 
   const addNewSign = () => {
     if (newWord.trim()) {
-      const newSign: SignWord = {
+      const newSign: Lesson = {
         id: `custom-${Date.now()}`,
         word: newWord.trim(),
+        type:"word",
         category: categoryId,
         difficulty: newDifficulty
       };
@@ -170,9 +176,9 @@ export const SignWordSelector: React.FC<SignWordSelectorProps> = ({
               <div className="flex-1">
                 <span className="font-medium">{sign.word}</span>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(sign.difficulty)}`}>
+              {/* <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(sign.difficulty)}`}>
                 {getDifficultyText(sign.difficulty)}
-              </span>
+              </span> */}
             </div>
           ))}
           {filteredSigns.length === 0 && (

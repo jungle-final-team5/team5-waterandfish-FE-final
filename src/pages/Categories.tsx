@@ -74,12 +74,11 @@ const Categories = () => {
               className="hover:shadow-lg transition-shadow cursor-pointer relative"
               onClick={() => navigate(`/category/${category.id}/chapters`)}
             >
+              {/* 기존 우측 상단 emoji span 제거 */}
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {/* <span className="text-3xl">{category.icon}</span> */}
-                    <span>{category.title}</span>
-                  </div>
+                <CardTitle className="flex items-center space-x-3">
+                  <span className="text-3xl">{category.emoji}</span>
+                  <span>{category.title}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
