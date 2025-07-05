@@ -39,7 +39,7 @@ const Session = () => {
 
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
-  const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
+  const { categories, chapters, lessons, fetchChapters, fetchLessons } = useLearningData();
   const { checkBadges } = useBadgeSystem();
   const [animData, setAnimData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -61,8 +61,8 @@ const Session = () => {
   const isQuizMode = sessionType === 'quiz';
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
 
-  const category = categoryId ? getCategoryById(categoryId) : null;
-  const chapter = categoryId && chapterId ? getChapterById(categoryId, chapterId) : null;
+  const category = categoryId ? categories.find(cat => cat.id === categoryId) : null; // 카테고리 찾기
+  const chapter = categoryId && chapterId ? categories.find(cat => cat.id === categoryId)?.chapters.find(chap => chap.id === chapterId) : null; // 챕터 찾기
   const currentSign = chapter?.signs[currentSignIndex];
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
