@@ -32,7 +32,7 @@ const LearningGuide = () => {
   }
 
   const category = categoryId ? getCategoryById(categoryId) : undefined;
-  const chapter = (categoryId && chapterId) ? getChapterById(categoryId, chapterId) : undefined;
+  const chapter = (categoryId && chapterId) ? getChapterById(chapterId) : undefined;
 
   if (!category || !chapter) {
     return (
@@ -58,6 +58,7 @@ const LearningGuide = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
+      {/* 
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -78,7 +79,7 @@ const LearningGuide = () => {
             </Badge>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
@@ -86,6 +87,7 @@ const LearningGuide = () => {
           {/* 가이드 정보 */}
           <div className="space-y-6">
             {/* 챕터 정보 */}
+            {/* 
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -113,7 +115,7 @@ const LearningGuide = () => {
                   )}
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* 학습 전 준비사항 */}
             <Card>

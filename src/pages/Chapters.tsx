@@ -8,7 +8,7 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
 import { Lesson, Chapter, Category } from '../types/learning';
 import API from '@/components/AxiosInstance';
-import useWebsocket, { connectToWebSocket } from '@/hooks/useWebsocket';
+import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
 
 // 챕터별 상태 계산 함수
 function getChapterStatus(chapter: Chapter) {
@@ -17,12 +17,15 @@ function getChapterStatus(chapter: Chapter) {
 }
 
 const Chapters = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // 네비게이션 함수
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
   const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
+  
+  // 전역 웹소켓 상태 사용
+  const { connectionStatus, wsList, wsUrls } = useWebsocket(); // 전역 웹소켓 상태 사용
 
-  const updateRecentLearning = async (lessonIds: string[]) => {
+  const updateRecentLearning = async (lessonIds: string[]) => { // 최근 학습 이벤트 기록 업데이트 함수
     try {
       await API.post('/review/mark-reviewed', { lesson_ids: lessonIds });
     } catch (err) {
@@ -30,7 +33,7 @@ const Chapters = () => {
     }
   };
 
-  const startChapterProgress = async (chapterId: string, path: string, lessonIds: string[]) => {
+  const startChapterProgress = async (chapterId: string, path: string, lessonIds: string[]) => { // 챕터 진도 시작 함수
     try {
       await API.post(`/progress/chapters/${chapterId}`, {
         chapter_id: chapterId,
@@ -43,15 +46,15 @@ const Chapters = () => {
     }
   };
 
-
-  const getWSURLsAndConnect = async (chapterId: string) => {
+  const getWSURLsAndConnect = async (chapterId: string) => { // 웹소켓 URL 가져오고 연결 함수
     try {
       setConnectingChapter(chapterId);
       const response = await API.get<{ success: boolean; data: { ws_urls: string[] }; message: string }>(`/ml/deploy/${chapterId}`);
 
-      if (response.data.success && response.data.data.ws_urls) {
-        useWebsocket(response.data.data.ws_urls);
-        alert(`WebSocket 연결 성공!\n연결된 서버: ${response.data.data.ws_urls.length}개`);
+      if (response.data.data.ws_urls) {
+        const wsList = connectToWebSockets(response.data.data.ws_urls);
+
+        alert(`WebSocket 연결 성공!\n연결된 서버: ${wsList.length}개`);
       } else {
         alert('WebSocket URL을 가져오지 못했습니다.');
       }
@@ -63,14 +66,16 @@ const Chapters = () => {
     }
   };
 
-  useEffect(() => {
-    if (!categoryId) return;
+  useEffect(() => { // 카테고리 데이터 가져오기
+    if (!categoryId) return; // 카테고리 ID가 없으면 종료
     API.get<{ success: boolean; data: Category; message: string }>(`/category/${categoryId}/chapters`)
       .then(res => setCategoryData(res.data.data))
       .catch(err => console.error('카테고리 정보 불러오기 실패:', err));
   }, [categoryId]);
-  const isCompleted = useRef(false);
-  if (!categoryData) {
+  
+  const isCompleted = useRef(false); // 완료 여부 참조
+  
+  if (!categoryData) { // 카테고리 데이터가 없으면
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -81,10 +86,10 @@ const Chapters = () => {
     );
   }
 
-  const sortedChapters = (categoryData.chapters as Chapter[]).slice();
+  const sortedChapters = (categoryData.chapters as Chapter[]).slice(); // 정렬된 챕터 목록
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50"> 
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
@@ -103,7 +108,26 @@ const Chapters = () => {
               </h1>
               <p className="text-sm text-gray-600">{categoryData.description}</p>
             </div>
-
+            
+            {/* 웹소켓 연결 상태 표시 */}
+            <div className="flex items-center space-x-2">
+              {connectionStatus === 'connected' ? (
+                <div className="flex items-center space-x-2 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-sm">연결됨 ({wsList.length}개)</span>
+                </div>
+              ) : connectionStatus === 'connecting' ? (
+                <div className="flex items-center space-x-2 text-yellow-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                  <span className="text-sm">연결 중...</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 text-gray-400">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-sm">연결 안됨</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -165,11 +189,7 @@ const Chapters = () => {
                   <div className="flex space-x-3 items-center">
                     <Button
                       onClick={() => {
-                        startChapterProgress(
-                          chapter.id,
-                          `/progress/chapters/${chapter.id}`,
-                          lessonIds
-                        );
+                        startChapterProgress(chapter.id, `/learn/chapter/${chapter.id}/guide`, lessonIds);
                         getWSURLsAndConnect(chapter.id);
                       }
                       }
