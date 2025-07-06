@@ -11,7 +11,6 @@ import { Category } from '@/types/learning';
 
 const Categories = () => {
   const navigate = useNavigate();
-  // const { categories, getCategoryProgress, isCategoryCompleted } = useLearningData();
   const [categories, setCategories] = useState<Category[]>([]);
   const isCompleted = useRef(false);
 
@@ -87,7 +86,7 @@ const Categories = () => {
                 <div className="flex items-center justify-between">
                   {/* 챕터 개수 표시는 카테고리 API에 없으므로 제거 또는 0으로 대체 */}
                   <span className="text-sm text-gray-500">
-                    {category.chapter_count}개 챕터
+                    {/* {category.total_chapters}개 챕터 */}
                   </span>
                   <Button
                     onClick={() => navigate(`/category/${category.id}/chapters`)}

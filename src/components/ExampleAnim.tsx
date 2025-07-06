@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 // 타입 정의
@@ -92,7 +92,9 @@ const LandmarkViewerTSX = ({
 
   // 연결 구조
   const POSE_CONNECTIONS: number[][] = [
-    [0,1],[1,2],[2,3],[3,7],[0,4],[4,5],[5,6],[6,8],[9,10],[11,12],[11,13],[13,15],[15,17],[15,19],[15,21],[17,19],[12,14],[14,16],[16,18],[16,20],[16,22],[18,20],[11,23],[12,24],[23,24],[23,25],[24,26],[25,27],[26,28],[27,29],[28,30],[29,31],[30,32],[27,31],[28,32]
+    [0,1],[1,2],[2,3],[3,7],[0,4],[4,5],[5,6],[6,8],[9,10],[11,12],[11,13],[13,15],[15,17],
+    [15,19],[15,21],[17,19],[12,14],[14,16],[16,18],[16,20],[16,22],[18,20],[11,23],[12,24],
+    [23,24],[23,25],[24,26],[25,27],[26,28],[27,29],[28,30],[29,31],[30,32],[27,31],[28,32]
   ];
   const HAND_CONNECTIONS: number[][] = [
     [0,1],[1,2],[2,3],[3,4],
@@ -103,9 +105,11 @@ const LandmarkViewerTSX = ({
     [5,9],[9,13],[13,17],[5,17]
   ];
 
-  // 카메라 컨트롤 변수
+  // 카메라에 대한 초기 위치 값 지정
   const cameraInitPos: CameraPosition = { x: -0.408, y: 0.334, z: -0.855 };
   const cameraInitRot: CameraRotation = { x: 0, y: 0, z: 0 };
+
+  // 카메라에 대한 초기 회전 값 지정
   const yawRef = useRef(-10.3 * Math.PI / 180);
   const pitchRef = useRef(178.7 * Math.PI / 180);
   const rollRef = useRef(0 * Math.PI / 180);
@@ -152,7 +156,7 @@ const LandmarkViewerTSX = ({
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
 
-    // 카메라 생성
+    // 카메라 생성 및 카메라 시야각 조정 가능
     cameraRef.current = new THREE.PerspectiveCamera(65, containerWidth / containerHeight, 0.001, 1000);
     cameraRef.current.position.set(cameraInitPos.x, cameraInitPos.y, cameraInitPos.z);
     cameraRef.current.rotation.set(cameraInitRot.x, cameraInitRot.y, cameraInitRot.z);
@@ -334,7 +338,6 @@ const LandmarkViewerTSX = ({
 
   return (
     <div style={styles.leftPanel}>
-      
       <div style={styles.canvasContainer}>
         <canvas ref={canvasRef} style={styles.landmarkCanvas} id="landmark-canvas"></canvas>
       </div>

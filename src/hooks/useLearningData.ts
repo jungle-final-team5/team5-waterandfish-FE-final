@@ -89,6 +89,74 @@ export const useLearningData = () => {
     }
   };
 
+  // 안전한 챕터 검색 함수
+  const findChapterById = async (chapterId: string): Promise<Chapter | null> => {
+    // 입력값 검증
+    if (!chapterId || typeof chapterId !== 'string') {
+      console.warn('findChapterById: Invalid chapterId provided');
+      return null;
+    }
+
+    const res = await API.get<{ success: boolean; data: { chapter: Chapter }; message: string }>(`/chapters/${chapterId}`);
+    console.log('chapter', res.data.data);
+    return res.data.data.chapter || null;
+
+  };
+
+  // 카테고리 ID로 카테고리 찾기
+  const findCategoryById = (categoryId: string): Category | null => {
+    if (!categoryId || typeof categoryId !== 'string') {
+      console.warn('findCategoryById: Invalid categoryId provided');
+      return null;
+    }
+
+    if (!Array.isArray(categories) || categories.length === 0) {
+      console.warn('findCategoryById: Categories not loaded or empty');
+      return null;
+    }
+
+    try {
+      const category = categories.find(cat => cat?.id === categoryId);
+      return category || null;
+    } catch (error) {
+      console.error('findCategoryById: Error during search', error);
+      return null;
+    }
+  };
+
+  // 챕터ID로 카테고리 찾기 (챕터가 속한 카테고리)
+  const findCategoryByChapterId = (chapterId: string): Category | null => {
+    if (!chapterId || typeof chapterId !== 'string') {
+      console.warn('findCategoryByChapterId: Invalid chapterId provided');
+      return null;
+    }
+
+    if (!Array.isArray(categories) || categories.length === 0) {
+      console.warn('findCategoryByChapterId: Categories not loaded or empty');
+      return null;
+    }
+
+    try {
+      for (const category of categories) {
+        if (!Array.isArray(category?.chapters)) {
+          continue;
+        }
+
+        const hasChapter = category.chapters.some(chap => chap?.id === chapterId);
+        if (hasChapter) {
+          return category;
+        }
+      }
+
+      console.warn(`findCategoryByChapterId: Category containing chapter '${chapterId}' not found`);
+      return null;
+
+    } catch (error) {
+      console.error('findCategoryByChapterId: Error during search', error);
+      return null;
+    }
+  };
+
   return {
     categories,
     categoriesLoading,
@@ -101,5 +169,9 @@ export const useLearningData = () => {
     lessonsError,
     fetchChapters,
     fetchLessons,
+    // 새로운 안전한 검색 함수들
+    findChapterById,
+    findCategoryById,
+    findCategoryByChapterId,
   };
 };

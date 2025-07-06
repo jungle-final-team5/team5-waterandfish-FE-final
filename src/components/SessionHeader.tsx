@@ -28,7 +28,7 @@ const SessionHeader = ({
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
-              onClick={() => navigate(`/learn/category/${categoryId}`)}
+              onClick={() => navigate(`/category`)}
               className="hover:bg-blue-50"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />

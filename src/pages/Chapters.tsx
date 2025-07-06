@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle, RotateCcw, Wifi, WifiOff } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
 import {Lesson,Chapter,Category} from '../types/learning';
 import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import API from '@/components/AxiosInstance';
+import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
+import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 
 // 챕터별 상태 계산 함수
 function getChapterStatus(chapter: Chapter) {
@@ -21,33 +23,54 @@ const Chapters = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
-  const updateRecentLearning = async (lessonIds: string[]) => {
+  const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
+  
+  // 전역 WebSocket 상태 관리
+  const { showStatus } = useGlobalWebSocketStatus();
+  const { connectionStatus, wsList } = useWebsocket();
+
+  const handleStartChapter = async (chapterId: string, lessonIds: string[]) => {
+    const path = `/learn/chapter/${chapterId}/guide`;
+    
     try {
-      await API.post('/review/mark-reviewed', { lesson_ids: lessonIds });
-    } catch (err) {
-      console.error('최근학습 이벤트 기록 실패:', err);
-    }
-  };
-  // 챕터 학습/퀴즈 시작 시 최근 학습 반영 (user_id를 body에 포함)
-  const handleStartChapter = async (chapterId: string, lessonIds: string[], path: string) => {
-    try {
+      setConnectingChapter(chapterId);
+      
+      // WebSocket 연결 시도
+      try {
+        const response = await API.get<{ success: boolean; data: { ws_urls: string[] } }>(`/ml/deploy/${chapterId}`);
+        if (response.data.success && response.data.data.ws_urls) {
+          await connectToWebSockets(response.data.data.ws_urls);
+          showStatus(); // 전역 상태 표시 활성화
+        }
+      } catch (wsError) {
+        console.warn('WebSocket 연결 실패:', wsError);
+        // WebSocket 연결 실패해도 페이지 이동은 계속 진행
+      }
+      
+      // 학습 진도 이벤트 기록
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const userId = user._id;
       await API.post('/progress/lessons/events', { user_id: userId, lesson_ids: lessonIds });
+      
+      setConnectingChapter(null);
       navigate(path);
     } catch (err) {
-      console.error('최근학습 이벤트 기록 실패:', err);
+      console.error('학습 시작 실패:', err);
+      setConnectingChapter(null);
       navigate(path); // 실패해도 이동
     }
   };
-  useEffect(() => {
-    if (!categoryId) return;
+
+  useEffect(() => { // 카테고리 데이터 가져오기
+    if (!categoryId) return; // 카테고리 ID가 없으면 종료
     API.get<{ success: boolean; data: Category; message: string }>(`/category/${categoryId}/chapters`)
       .then(res => setCategoryData(res.data.data))
       .catch(err => console.error('카테고리 정보 불러오기 실패:', err));
   }, [categoryId]);
-  const isCompleted = useRef(false);
-  if (!categoryData) {
+  
+  const isCompleted = useRef(false); // 완료 여부 참조
+  
+  if (!categoryData) { // 카테고리 데이터가 없으면
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -58,10 +81,10 @@ const Chapters = () => {
     );
   }
 
-  const sortedChapters = (categoryData.chapters as Chapter[]).slice();
+  const sortedChapters = (categoryData.chapters as Chapter[]).slice(); // 정렬된 챕터 목록
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50"> 
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
@@ -73,12 +96,32 @@ const Chapters = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               카테고리로
             </Button>
-            <div>
+            <div className="flex-1">
               <h1 className="text-xl font-bold text-gray-800">
                 {/* {category.icon}  */}
                 {categoryData.title}
               </h1>
               <p className="text-sm text-gray-600">{categoryData.description}</p>
+            </div>
+            
+            {/* WebSocket 연결 상태 표시 */}
+            <div className="flex items-center space-x-2">
+              {connectionStatus === 'connected' ? (
+                <div className="flex items-center space-x-1 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-xs">연결됨 ({wsList.length})</span>
+                </div>
+              ) : connectionStatus === 'connecting' ? (
+                <div className="flex items-center space-x-1 text-yellow-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                  <span className="text-xs">연결 중...</span>
+                </div>
+              ) : wsList.length > 0 ? (
+                <div className="flex items-center space-x-1 text-red-600">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-xs">연결 안됨</span>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -130,7 +173,7 @@ const Chapters = () => {
 
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
                     {chapter.signs.map((lesson) => (
-                      <div 
+                      <div
                         key={lesson.id}
                         className="text-center p-2 bg-gray-100 rounded text-sm"
                       >
@@ -140,24 +183,32 @@ const Chapters = () => {
                   </div>
                   <div className="flex space-x-3 items-center">
                     <Button
-                      onClick={() => handleStartChapter(
-                        chapter.id,
-                        lessonIds,
-                        `/learn/chapter/${chapter.id}/guide`
-                      )}
+                      onClick={() => {
+                        handleStartChapter( chapter.id, lessonIds)
+
+                      }}
+                      disabled={connectingChapter === chapter.id}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
-                      <Play className="h-4 w-4 mr-2" />
-                      학습하기
+                      {connectingChapter === chapter.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          연결 중...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          학습하기
+                        </>
+                      )}
                     </Button>
                     {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
                       <Button
                         variant="outline"
-                        onClick={() => handleStartChapter(
-                          chapter.id,
-                          lessonIds,
-                          `/learn/chapter/${chapter.id}/guide`
-                        )}
+                        onClick={() => {
+                          handleStartChapter( chapter.id, lessonIds )
+                          
+                        }}
                       >
                         퀴즈 풀기
                       </Button>
@@ -166,7 +217,7 @@ const Chapters = () => {
                       <Button
                         className="bg-green-600 hover:bg-green-700"
                         onClick={async () => {
-                          await updateRecentLearning(lessonIds);
+                          // await updateRecentLearning(lessonIds);
                           navigate(`/learn/guide/${categoryId}/${chapter.id}/learning`);
                         }}
                       >

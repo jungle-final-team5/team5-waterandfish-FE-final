@@ -7,16 +7,24 @@ export interface VideoStreamState {
 }
 
 export const useVideoStream = () => {
+  
+  // 훅 1. state 관리
   const [state, setState] = useState<VideoStreamState>({
     isStreaming: false,
     error: null,
     stream: null
   });
   
+  // 훅 2. 비디오 참조
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // 훅 3. 캔버스 참조
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // 훅 4. 스트림 참조
   const streamRef = useRef<MediaStream | null>(null);
 
+  // 훅 5. 스트림 시작 함수
   const startStream = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, error: null }));
@@ -57,6 +65,7 @@ export const useVideoStream = () => {
     }
   }, []);
 
+  // 훅 6. 스트림 중지 함수
   const stopStream = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -76,6 +85,7 @@ export const useVideoStream = () => {
     console.log('🛑 비디오 스트림 종료됨');
   }, []);
 
+  // 훅 7. 프레임 캡처 함수
   const captureFrameAsync = useCallback(async (): Promise<Blob | null> => {
     if (!videoRef.current || !canvasRef.current || !state.isStreaming) {
       return null;
@@ -111,7 +121,7 @@ export const useVideoStream = () => {
     }
   }, [state.isStreaming]);
 
-  // state 변경 추적을 위한 useEffect
+  // 훅 8. 비디오 스트림 상태 변경 추적
   useEffect(() => {
     console.log('📊 VideoStream state 변경됨:', {
       isStreaming: state.isStreaming,
@@ -121,8 +131,9 @@ export const useVideoStream = () => {
     });
   }, [state]);
 
-  // 컴포넌트 언마운트 시 스트림 정리
+  // 훅 9. 컴포넌트 언마운트 시 스트림 중지
   useEffect(() => {
+    // 언마운트 루틴. -> useVideoStream 훅이 사용되는 컴포넌트가 언마운트될 때 실행됨
     return () => {
       stopStream();
     };

@@ -43,7 +43,8 @@ export const useBadgeSystem = () => {
     reviewsCompleted: 50,
     fastAnswers: 25
   });
-  
+
+  // API를 통해 뱃지 확인 및 획득
   const checkBadges = useCallback(async (action: string) => {
     setLoading(true);
     try {

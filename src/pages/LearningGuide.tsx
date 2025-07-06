@@ -12,29 +12,20 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { useLearningData } from '@/hooks/useLearningData';
+import {  useLearningData } from '@/hooks/useLearningData';
 import WebcamView from '@/components/WebcamView';
+import VideoInput from '@/components/VideoInput';
 
 const LearningGuide = () => {
-  const { categoryId: paramCategoryId, chapterId, sessionType } = useParams();
+  const { chapterId: paramChapterId } = useParams();
   const navigate = useNavigate();
-  const { getCategoryById, getChapterById, categories } = useLearningData();
+  const {  categories } = useLearningData();
 
-  // categoryId가 없으면 categories에서 chapterId로 categoryId를 추출
-  let categoryId = paramCategoryId;
-  if (!categoryId && chapterId && categories.length > 0) {
-    for (const cat of categories) {
-      if (cat.chapters.some(chap => chap.id === chapterId)) {
-        categoryId = cat.id;
-        break;
-      }
-    }
-  }
 
-  const category = categoryId ? getCategoryById(categoryId) : undefined;
-  const chapter = (categoryId && chapterId) ? getChapterById(categoryId, chapterId) : undefined;
+  let chapterId = paramChapterId;
 
-  if (!category || !chapter) {
+  console.log('chapterId', chapterId);
+  if (!chapterId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -50,14 +41,15 @@ const LearningGuide = () => {
   };
 
   const goBack = () => {
-    navigate(`/category/${categoryId}/chapters`);
+    navigate(`/category/${chapterId}/chapters`);
   };
 
-  const isQuiz = sessionType === 'quiz';
+  const isQuiz = true;
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
+      {/* 
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -78,7 +70,7 @@ const LearningGuide = () => {
             </Badge>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
@@ -86,7 +78,8 @@ const LearningGuide = () => {
           {/* 가이드 정보 */}
           <div className="space-y-6">
             {/* 챕터 정보 */}
-            <Card>
+            
+            {/* <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Lightbulb className="h-5 w-5 mr-2 text-yellow-600" />
@@ -113,7 +106,7 @@ const LearningGuide = () => {
                   )}
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* 학습 전 준비사항 */}
             <Card>
@@ -204,20 +197,6 @@ const LearningGuide = () => {
             </Card>
           </div>
 
-          {/* 웹캠 미리보기 */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>카메라 미리보기</CardTitle>
-                <p className="text-sm text-gray-600">
-                  현재 카메라 화면을 확인하고 위치를 조정해보세요
-                </p>
-              </CardHeader>
-              <CardContent className="p-0">
-                <WebcamView />
-              </CardContent>
-            </Card>
-
             {/* 시작 버튼 */}
             <Card>
               <CardContent className="pt-6">
@@ -239,7 +218,7 @@ const LearningGuide = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          
         </div>
       </main>
     </div>

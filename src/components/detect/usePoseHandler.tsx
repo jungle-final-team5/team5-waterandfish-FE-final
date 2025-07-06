@@ -1,16 +1,12 @@
 import { Pose, Results } from '@mediapipe/pose';
 
-export function createPoseHandler(
-  onPoseDetected: (
-    shoulder: { x: number } | null, 
-    wrist: { x: number } | null, 
-    isHandDetected: boolean
-  ) => void
-) {
+export function createPoseHandler( onPoseDetected: ( shoulder: { x: number } | null, wrist: { x: number } | null, isHandDetected: boolean) => void ) {
+  // CDN으로 Pose 객체 생성 및 설정
   const pose = new Pose({
     locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
   });
 
+  // Pose 객체 설정
   pose.setOptions({
     modelComplexity: 1,
     smoothLandmarks: true,
@@ -19,6 +15,7 @@ export function createPoseHandler(
     minTrackingConfidence: 0.5,
   });
 
+  // Pose 객체의 결과 이벤트 핸들러 설정
   pose.onResults((results: Results) => {
     if (!results.poseLandmarks) {
       onPoseDetected(null, null, false);
