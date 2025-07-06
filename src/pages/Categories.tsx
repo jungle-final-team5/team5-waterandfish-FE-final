@@ -15,7 +15,7 @@ const Categories = () => {
   const isCompleted = useRef(false);
 
   useEffect(() => {
-    API.get<{ success: boolean; data: Category[]; message: string }>('/category')
+    API.get<{ success: boolean; data: Category[]; message: string }>('/category/list')
       .then(res => {
         setCategories(res.data.data);
       })
@@ -40,7 +40,6 @@ const Categories = () => {
       alert('학습을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.');
     }
   };
-
 
   const sortedCategories: Category[] = categories.slice().sort((a, b) => a.order_index - b.order_index);
 
@@ -81,10 +80,13 @@ const Categories = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-4">{category.description}</p>
+                <div>{category.description}</div>
+                <div style={{ marginTop: 8, color: "#888" }}>
+                </div>
                 <div className="flex items-center justify-between">
+                  {/* 챕터 개수 표시는 카테고리 API에 없으므로 제거 또는 0으로 대체 */}
                   <span className="text-sm text-gray-500">
-                    {/* {category.total_chapters}개 챕터 */}
+                    {category.chapter_count}개 챕터
                   </span>
                   <Button
                     onClick={() => navigate(`/category/${category.id}/chapters`)}

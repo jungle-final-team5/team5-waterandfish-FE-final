@@ -1,4 +1,3 @@
-
 export interface Lesson {
   id: string;
   word: string;
@@ -23,9 +22,10 @@ export interface Category {
   description: string;
   chapters: Chapter[];
   icon: string;
+  
   emoji: string;
   order_index: number;
-  total_chapters: number;
+  chapter_count?: number;
 }
 
 export interface QuizResult {

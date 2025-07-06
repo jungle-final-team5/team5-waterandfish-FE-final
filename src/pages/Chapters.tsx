@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle, RotateCcw, Wifi, WifiOff } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
-import { Lesson, Chapter, Category } from '../types/learning';
+import {Lesson,Chapter,Category} from '../types/learning';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import API from '@/components/AxiosInstance';
 import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
 
@@ -17,7 +18,8 @@ function getChapterStatus(chapter: Chapter) {
 }
 
 const Chapters = () => {
-  const navigate = useNavigate(); // 네비게이션 함수
+  const { checkBadges } = useBadgeSystem();
+  const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
   const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
@@ -32,42 +34,20 @@ const Chapters = () => {
       console.error('최근학습 이벤트 기록 실패:', err);
     }
   };
-
-  const startChapterProgress = async (chapterId: string, path: string, lessonIds: string[]) => { // 챕터 진도 시작 함수
+  // 챕터 학습/퀴즈 시작 시 최근 학습 반영 (user_id를 body에 포함)
+  const handleStartChapter = async (chapterId: string, lessonIds: string[], path: string) => {
     try {
-      await API.post(`/progress/chapters/${chapterId}`, {
-        chapter_id: chapterId,
-      });
-      await updateRecentLearning(lessonIds);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = user._id;
+      await API.post('/progress/lessons/events', { user_id: userId, lesson_ids: lessonIds });
       navigate(path);
     } catch (err) {
       console.error('프로그레스 초기화 실패:', err);
       alert('학습을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.');
     }
   };
-
-  const getWSURLsAndConnect = async (chapterId: string) => { // 웹소켓 URL 가져오고 연결 함수
-    try {
-      setConnectingChapter(chapterId);
-      const response = await API.get<{ success: boolean; data: { ws_urls: string[] }; message: string }>(`/ml/deploy/${chapterId}`);
-
-      if (response.data.data.ws_urls) {
-        const wsList = connectToWebSockets(response.data.data.ws_urls);
-
-        alert(`WebSocket 연결 성공!\n연결된 서버: ${wsList.length}개`);
-      } else {
-        alert('WebSocket URL을 가져오지 못했습니다.');
-      }
-    } catch (err) {
-      console.error('WebSocket 연결 실패:', err);
-      alert('WebSocket 연결에 실패했습니다.');
-    } finally {
-      setConnectingChapter(null);
-    }
-  };
-
-  useEffect(() => { // 카테고리 데이터 가져오기
-    if (!categoryId) return; // 카테고리 ID가 없으면 종료
+  useEffect(() => {
+    if (!categoryId) return;
     API.get<{ success: boolean; data: Category; message: string }>(`/category/${categoryId}/chapters`)
       .then(res => setCategoryData(res.data.data))
       .catch(err => console.error('카테고리 정보 불러오기 실패:', err));
@@ -188,12 +168,11 @@ const Chapters = () => {
                   </div>
                   <div className="flex space-x-3 items-center">
                     <Button
-                      onClick={() => {
-                        startChapterProgress(chapter.id, `/learn/chapter/${chapter.id}/guide`, lessonIds);
-                        getWSURLsAndConnect(chapter.id);
-                      }
-                      }
-                      disabled={connectingChapter === chapter.id}
+                      onClick={() => handleStartChapter(
+                        chapter.id,
+                        lessonIds,
+                        `/learn/chapter/${chapter.id}/guide`
+                      )}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       {connectingChapter === chapter.id ? (
@@ -211,10 +190,11 @@ const Chapters = () => {
                     {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
                       <Button
                         variant="outline"
-                        onClick={() => {
-                          startChapterProgress(chapter.id, `/learn/chapter/${chapter.id}/guide`, lessonIds);
-                          getWSURLsAndConnect(chapter.id);
-                        }}
+                        onClick={() => handleStartChapter(
+                          chapter.id,
+                          lessonIds,
+                          `/learn/chapter/${chapter.id}/guide`
+                        )}
                       >
                         퀴즈 풀기
                       </Button>
