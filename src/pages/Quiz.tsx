@@ -19,7 +19,22 @@ import API from '@/components/AxiosInstance';
 // 주요 변경 점 | 7월 6일 자정 작업
 // 변수 및 의존성 재확인 : 전부 다 아님
 // anim 관련 메서드 전체 제거
-// 
+
+
+// 7월 6일 오후 2시 반영
+// function foo() {}; 는 foo를 호출 할 useEffect 위에 있던 아래 있던 상관 없이 호출 가능하다. (Function Declaration)
+// 하지만,
+// const foo = () => {}; 형식은 반드시 foo를 호출하는 useEffect 보다 우선 되어야 사용 가능하다. (Function Expression)
+// 이 부분에 대한 배치에 대한 헷갈림을 방지하기 위해 아래와 같이 전체적 형식을 구성하고자 한다
+
+// import 문
+// definition default Function Expression : 여기서는 const QuizSession = () => {
+  // [get, set 형식의 변수 선언]
+  // [이 페이지 (Quiz.tsx)에서 사용 할 Function Expression 선언]
+  // useEffect 나열
+  // 조건에 따른 return (페이지에 표시 할 것 결정)
+// const QuizSession 정의 내용 종료 }
+// export default QuizSession;
 
 const QuizSession = () => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -55,42 +70,7 @@ const QuizSession = () => {
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
-    if (chapterId) {
-      const loadChapter = async () => {
-        try {
-          const chapterData = await getChapterById(chapterId);
-          setChapter(chapterData);
-        } catch (error) {
-          console.error('챕터 데이터 로드 실패:', error);
-          setConnectionErrorMessage('챕터 데이터를 불러오는데 실패했습니다.');
-        }
-      };
-      loadChapter();
-    }
-  }, [categoryId, chapterId]);
-
-    useEffect(() => {
-    API.get<{ success: boolean; data: { type: string }; message: string }>(`/learn/chapter/${chapterId}`)
-      .then(res => {
-        const type = res.data.data.type;
-        if (type == '자음') {
-          navigate("/test/letter/consonant/study");
-        } else if (type == '모음') {
-          navigate("/test/letter/vowel/study");
-        }
-        else {
-          localStorage.removeItem("studyword");
-          setCurrentSignIndex(0);
-          setQuizResults([]);
-          setFeedback(null);
-        }
-      })
-      .catch(err => {
-        console.error('타입 조회 실패:', err);
-        navigate("/not-found");
-      });
-  }, [chapterId, categoryId, sessionType, navigate]);
+  // 이 함수로, 사용자가 퀴즈 컨텐츠 (다? 레슨 단위?) 하고 백엔드에 결과 기록 요청한다.
   const sendQuizResult = async () =>{
     try {
       if (!quizResults.length) return;
@@ -103,18 +83,8 @@ const QuizSession = () => {
       console.error("퀴즈 결과 전송 실패:", error);
     }
   }
-  const sendStudyResult = async () =>{
-    try {
-      const stored = localStorage.getItem("studyword");
-      if (!stored) return;
-      const stwords: string[] = JSON.parse(stored);
-      await API.post(`/learn/chapter/${chapterId}/progress`, stwords);
-      localStorage.removeItem("studyword");
-    } catch (error) {
-      console.error("학습 결과 전송 실패:", error);
-    }
-  }
-  // 서버 연결 시도 함수
+
+  // 이 함수로, 분류 서버에 연결을 시도 한다.
   const attemptConnection = async (attemptNumber: number = 1): Promise<boolean> => {
     console.log(`🔌 서버 연결 시도 ${attemptNumber}...`);
     setIsConnecting(true);
@@ -134,10 +104,12 @@ const QuizSession = () => {
     } catch (error) {
       console.error('서버 연결 중 오류:', error);
       return false;
-    } finally { // 진짜 return 직전에 무조건 실행됨.
+    } finally {
       setIsConnecting(false);
     }
   };
+
+  // 이 함수로, 페이지 진입 시 처음 준비 해야 할 내용들 준비 된다..
   const initializeSession = async (): Promise<void> => {
     try {
       // 분류 결과 콜백 설정
@@ -185,10 +157,177 @@ const QuizSession = () => {
       setConnectionErrorMessage('연결 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
     }
   };
+
+  // 이 함수로, 분류 서버와 교신 시작한다.
+  const handleStartTransmission = () => {
+    console.log('🚀 전송 시작 시도...');
+    console.log('연결 상태:', isConnected);
+    console.log('스트림 상태:', state);
+
+    // 이미 전송 중이면 중단
+    if (isTransmitting) {
+      console.log('⚠️ 이미 전송 중입니다.');
+      return;
+    }
+
+    if (!isConnected) {
+      console.log('서버에 연결되지 않음');
+      setConnectionErrorMessage('서버에 연결되지 않았습니다.');
+      return;
+    }
+
+    if (!state.isStreaming || !state.stream) {
+      console.log('비디오 스트림이 준비되지 않음');
+      setConnectionErrorMessage('비디오 스트림이 준비되지 않았습니다.');
+      return;
+    }
+
+    if (!videoRef.current || videoRef.current.readyState < 2) {
+      console.log('비디오 엘리먼트가 준비되지 않음');
+      setConnectionErrorMessage('비디오가 준비되지 않았습니다.');
+      return;
+    }
+
+    setIsTransmitting(true);
+    setTransmissionCount(0);
+    // setConnectionErrorMessage(null); // 전송 시작 시 에러 상태 초기화
+
+    console.log('✅ 전송 시작!');
+    transmissionIntervalRef.current = setInterval(async () => {
+      try {
+        const frame = await captureFrameAsync();
+        if (frame) {
+          const success = signClassifierClient.sendVideoChunk(frame);
+          if (success) {
+            setTransmissionCount(prev => prev + 1);
+          } else {
+            console.log('⚠️ 프레임 전송 실패');
+          }
+        } else {
+          console.log('⚠️ 프레임 캡처 실패');
+        }
+      } catch (error) {
+        console.error('프레임 전송 중 오류:', error);
+        // 전송 오류 시 자동으로 전송 중지
+        if (transmissionIntervalRef.current) {
+          clearInterval(transmissionIntervalRef.current);
+          transmissionIntervalRef.current = null;
+          setIsTransmitting(false);
+        }
+      }
+    }, 100);
+  };
+
+  // 이 함수로, 실질적인 컨텐츠 타이머 시작
+  const handleStartRecording = () => {
+  setIsRecording(true);
+  setFeedback(null);
+  setCurrentResult(null); // 이전 분류 결과 초기화
+
+  if (isQuizMode) {
+    setTimerActive(true);
+  }
+
+  console.log('🎬 수어 녹화 시작:', currentSign?.word);
+  };
+
+  // 시간 초과 시 호출
+  const handleTimeUp = () => {
+    setIsRecording(false);
+    setTimerActive(false);
+    setFeedback('incorrect');
+
+    if (currentSign) {
+      setQuizResults(prev => [...prev, {
+        signId: currentSign.id,
+        correct: false,
+        timeSpent: QUIZ_TIME_LIMIT
+      }]);
+      addToReview(currentSign);
+    }
+
+    // 퀴즈 모드에서는 시간 초과 시에도 자동으로 다음 문제로 이동
+    setTimeout(() => {
+      handleNextSign();
+    }, 3000); // 3초로 통일
+  };
+
+  // 다음 수어(레슨)으로 넘어가는 내용
+  const handleNextSign = async () => {
+    setIsMovingNextSign(false);
+    if (chapter && currentSignIndex < chapter.signs.length - 1) {
+      setCurrentSignIndex(currentSignIndex + 1);
+      setFeedback(null);
+      setTimerActive(false);
+      setQuizStarted(false);
+    } else {
+      // 챕터 완료 처리
+      if (chapter) {
+        const chapterProgress = getChapterProgress(chapter);
+        if (chapterProgress.percentage === 100) {
+          markChapterCompleted(chapter.id);
+        }
+
+        // 카테고리 완료 확인
+        if (category) {
+          const allChaptersCompleted = category.chapters.every(ch => {
+            const progress = getChapterProgress(ch);
+            return progress.percentage === 100;
+          });
+          if (allChaptersCompleted) {
+            markCategoryCompleted(category.id);
+          }
+        }
+      }
+      setSessionComplete(true);
+    }
+  };
+
+  // FeedbackDisplay 완료 콜백 함수
+  const handleFeedbackComplete = () => {
+    console.log('🎉 FeedbackDisplay 완료, 다음 수어로 이동');
+    handleNextSign();
+  };
+
+  useEffect(() => {
+    if (chapterId) {
+      const loadChapter = async () => {
+        try {
+          const chapterData = await getChapterById(chapterId);
+          setChapter(chapterData);
+        } catch (error) {
+          console.error('챕터 데이터 로드 실패:', error);
+          setConnectionErrorMessage('챕터 데이터를 불러오는데 실패했습니다.');
+        }
+      };
+      loadChapter();
+    }
+  }, [categoryId, chapterId]);
+
+    useEffect(() => {
+    API.get<{ success: boolean; data: { type: string }; message: string }>(`/learn/chapter/${chapterId}`)
+      .then(res => {
+        const type = res.data.data.type;
+        if (type == '자음') {
+          navigate("/test/letter/consonant/study");
+        } else if (type == '모음') {
+          navigate("/test/letter/vowel/study");
+        }
+        else {
+          localStorage.removeItem("studyword");
+          setCurrentSignIndex(0);
+          setQuizResults([]);
+          setFeedback(null);
+        }
+      })
+      .catch(err => {
+        console.error('타입 조회 실패:', err);
+        navigate("/not-found");
+      });
+  }, [chapterId, categoryId, sessionType, navigate]);
   
   // 자동 연결 및 스트림 시작
   useEffect(() => {
-
     initializeSession(); // 마운트 혹은 업데이트 루틴
 
     // 언마운트 루틴
@@ -200,24 +339,6 @@ const QuizSession = () => {
       }
     };
   }, []); // 컴포넌트 마운트 시 한 번만 실행
-
-  const sendStudyResult = async () => {
-    try {
-      const stored = localStorage.getItem("studyword"); // 학습 단어 목록을 로컬 스토리지에서 가져옴
-      if (!stored) return; // 저장된 단어가 없으면 함수 종료
-
-      // 로컬 스토리지에서 학습 단어 목록 가져오기
-      const study_words: string[] = JSON.parse(stored); // JSON 문자열을 배열로 변환
-      await API.post('/study/sessions', study_words); // 학습 결과 전송
-      localStorage.removeItem("studyword"); // 전송 후 로컬 스토리지에서 제거
-      console.log('학습 결과 전송 완료');
-    } catch (error) {
-      console.error("학습 결과 전송 실패:", error);
-      // 사용자에게 에러를 알리지 않고 로그만 남김 (UX 개선)
-    }
-  };
-
-
 
   //======= 비디오 스트림 및 MediaPipe 포즈 감지 =======
   useEffect(() => {
@@ -294,8 +415,6 @@ const QuizSession = () => {
       };
     }
   }, [state.isStreaming, videoRef.current]);
-
-
 
   // 비디오 스트림 준비 완료 시 전송 시작 (클로저 문제 해결)
   useEffect(() => {
@@ -388,72 +507,13 @@ const QuizSession = () => {
     return () => clearInterval(interval);
   }, [isConnected, isTransmitting]);
 
-  const handleStartTransmission = () => {
-    console.log('🚀 전송 시작 시도...');
-    console.log('연결 상태:', isConnected);
-    console.log('스트림 상태:', state);
-
-    // 이미 전송 중이면 중단
-    if (isTransmitting) {
-      console.log('⚠️ 이미 전송 중입니다.');
-      return;
-    }
-
-    if (!isConnected) {
-      console.log('서버에 연결되지 않음');
-      setConnectionErrorMessage('서버에 연결되지 않았습니다.');
-      return;
-    }
-
-    if (!state.isStreaming || !state.stream) {
-      console.log('비디오 스트림이 준비되지 않음');
-      setConnectionErrorMessage('비디오 스트림이 준비되지 않았습니다.');
-      return;
-    }
-
-    if (!videoRef.current || videoRef.current.readyState < 2) {
-      console.log('비디오 엘리먼트가 준비되지 않음');
-      setConnectionErrorMessage('비디오가 준비되지 않았습니다.');
-      return;
-    }
-
-    setIsTransmitting(true);
-    setTransmissionCount(0);
-    // setConnectionErrorMessage(null); // 전송 시작 시 에러 상태 초기화
-
-    console.log('✅ 전송 시작!');
-    transmissionIntervalRef.current = setInterval(async () => {
-      try {
-        const frame = await captureFrameAsync();
-        if (frame) {
-          const success = signClassifierClient.sendVideoChunk(frame);
-          if (success) {
-            setTransmissionCount(prev => prev + 1);
-          } else {
-            console.log('⚠️ 프레임 전송 실패');
-          }
-        } else {
-          console.log('⚠️ 프레임 캡처 실패');
-        }
-      } catch (error) {
-        console.error('프레임 전송 중 오류:', error);
-        // 전송 오류 시 자동으로 전송 중지
-        if (transmissionIntervalRef.current) {
-          clearInterval(transmissionIntervalRef.current);
-          transmissionIntervalRef.current = null;
-          setIsTransmitting(false);
-        }
-      }
-    }, 100);
-  };
-
   // 분류 결과와 정답 비교 로직 (4-8, 4-9 구현)
   useEffect(() => {
     if (!currentResult || !currentSign || isMovingNextSign) {
-      return; // 분류 결과가 없거나 이미 피드백이 있으면 무시
+      return;
     }
 
-    // 분류 1위와 정답 수어 비교
+          // 분류 1위와 정답 수어 비교
     const isCorrect = (currentResult.prediction.toLowerCase() === currentSign.word.toLowerCase()) && isCrossed;
     const confidence = currentResult.confidence;
 
@@ -466,7 +526,7 @@ const QuizSession = () => {
     console.log('currentResult', currentResult);
     console.log('currentSign', currentSign);
 
-    // 신뢰도가 일정 수준 이상일 때만 결과 처리 (오탐지 방지)
+    // 오탐지 방지를 위해 신뢰도가 일정 수준 이상일 때만 결과 처리하도록 한다.
     if (confidence >= 0.5) {
       setFeedback(isCorrect ? 'correct' : 'incorrect');
       setIsRecording(false);
@@ -528,84 +588,6 @@ const QuizSession = () => {
       return () => clearTimeout(timer);
     }
   }, [currentSignIndex, isQuizMode, currentSign, feedback]);
-
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    setFeedback(null);
-    setCurrentResult(null); // 이전 분류 결과 초기화
-
-    if (isQuizMode) {
-      setTimerActive(true);
-    }
-
-    console.log('🎬 수어 녹화 시작:', currentSign?.word);
-  };
-
-  const handleTimeUp = () => {
-    setIsRecording(false);
-    setTimerActive(false);
-    setFeedback('incorrect');
-
-    if (currentSign) {
-      setQuizResults(prev => [...prev, {
-        signId: currentSign.id,
-        correct: false,
-        timeSpent: QUIZ_TIME_LIMIT
-      }]);
-      addToReview(currentSign);
-    }
-
-    // 퀴즈 모드에서는 시간 초과 시에도 자동으로 다음 문제로 이동
-    setTimeout(() => {
-      handleNextSign();
-    }, 3000); // 3초로 통일
-  };
-
-  const handleNextSign = async () => {
-    setIsMovingNextSign(false);
-    if (chapter && currentSignIndex < chapter.signs.length - 1) {
-      setCurrentSignIndex(currentSignIndex + 1);
-      setFeedback(null);
-      setTimerActive(false);
-      setQuizStarted(false);
-    } else {
-      // 챕터 완료 처리
-      if (chapter) {
-        const chapterProgress = getChapterProgress(chapter);
-        if (chapterProgress.percentage === 100) {
-          markChapterCompleted(chapter.id);
-        }
-
-        // 카테고리 완료 확인
-        if (category) {
-          const allChaptersCompleted = category.chapters.every(ch => {
-            const progress = getChapterProgress(ch);
-            return progress.percentage === 100;
-          });
-          if (allChaptersCompleted) {
-            markCategoryCompleted(category.id);
-          }
-        }
-      }
-      setSessionComplete(true);
-    }
-  };
-
-  const handleRetry = () => {
-    setFeedback(null);
-    setIsRecording(false);
-    setTimerActive(false);
-    setQuizStarted(false);
-    setAutoStarted(false);
-    setCurrentResult(null); // 이전 분류 결과 초기화
-    console.log('🔄 다시 시도:', currentSign?.word);
-  };
-
-  // FeedbackDisplay 완료 콜백 함수
-  const handleFeedbackComplete = () => {
-    console.log('🎉 FeedbackDisplay 완료, 다음 수어로 이동');
-    handleNextSign();
-  };
 
   // 세션 완료 시 활동 기록
   useEffect(() => {
