@@ -31,6 +31,9 @@ const WordSession = () => {
   const lastFrameTimeRef = useRef<number>(0);
   const lastDataSentTime = useRef<number>(0);
   
+  // 비디오 시간 추적을 위한 참조
+  const lastVideoTimeRef = useRef<number>(0);
+  
   // Canvas 방식 참조
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -139,39 +142,119 @@ const WordSession = () => {
     canvas.width = targetWidth;
     canvas.height = targetHeight;
 
-    // 비디오 프레임을 캔버스에 그리기 (크기 조정)
-    console.log('[captureFrame] drawImage 시작 - 크기:', targetWidth, 'x', targetHeight);
+    // 비디오가 일시정지 상태라면 재생 시작
+    if (video.paused) {
+      console.log('[captureFrame] 비디오가 일시정지 상태 - 재생 시작');
+      video.play().catch(e => {
+        console.error('[captureFrame] 비디오 재생 실패:', e);
+      });
+    }
+    
+    // 비디오 시간 변화 감지
+    const currentVideoTime = video.currentTime;
+    const videoTimeChanged = Math.abs(currentVideoTime - lastVideoTimeRef.current) > 0.001;
+    console.log('[captureFrame] 비디오 시간 변화:', {
+      currentTime: currentVideoTime,
+      lastTime: lastVideoTimeRef.current,
+      changed: videoTimeChanged,
+      timeDiff: currentVideoTime - lastVideoTimeRef.current
+    });
+    lastVideoTimeRef.current = currentVideoTime;
+    
+    // Canvas를 먼저 검은색으로 초기화
+    context.fillStyle = 'black';
+    context.fillRect(0, 0, targetWidth, targetHeight);
+    
     context.drawImage(video, 0, 0, targetWidth, targetHeight);
+    
+    // Canvas 내용 확인 (픽셀 데이터 샘플링)
+    const imageData = context.getImageData(0, 0, Math.min(targetWidth, 10), Math.min(targetHeight, 10));
+    const pixelSum = imageData.data.reduce((sum, val) => sum + val, 0);
+    const rgbSample = [];
+    for (let i = 0; i < Math.min(12, imageData.data.length); i += 4) {
+      rgbSample.push([imageData.data[i], imageData.data[i+1], imageData.data[i+2]]);
+    }
+    console.log('[captureFrame] Canvas 픽셀 데이터 샘플:', {
+      totalPixels: imageData.data.length,
+      pixelSum: pixelSum,
+      averageValue: pixelSum / imageData.data.length,
+      isBlack: pixelSum === 0,
+      isWhite: pixelSum === imageData.data.length * 255,
+      rgbSample: rgbSample
+    });
 
     // 캔버스를 blob으로 변환하여 웹소켓으로 전송
     console.log('[captureFrame] toBlob 시작 - 품질:', streamingConfig.quality);
     canvas.toBlob((blob) => {
-      if (blob && connectionStatus === 'connected') {
-        console.log('[captureFrame] broadcastMessage 시작 - 크기:', blob.size, 'bytes');
-        const success = broadcastMessage(blob);
-        if (success) {
-          setFramesSent(prev => prev + 1);
-          setTotalBytesSent(prev => prev + blob.size);
-          
-          // 전송 속도 계산
-          const now = Date.now();
-          if (lastDataSentTime.current > 0) {
-            const timeDiff = (now - lastDataSentTime.current) / 1000; // 초
-            const bytesDiff = blob.size;
-            const currentBps = bytesDiff / timeDiff;
-            setBytesPerSecond(Math.round(currentBps));
+      console.log('[captureFrame] toBlob 콜백 호출됨');
+      
+      if (!blob) {
+        console.error('[captureFrame] blob 생성 실패 - null');
+        return;
+      }
+      
+      console.log('[captureFrame] blob 생성 성공:', {
+        size: blob.size,
+        type: blob.type
+      });
+      
+      if (connectionStatus !== 'connected') {
+        console.log('[captureFrame] 연결 상태 불량 - connectionStatus:', connectionStatus);
+        return;
+      }
+      
+      // Blob을 다시 이미지로 변환해서 확인 (디버깅용)
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const debugCanvas = document.createElement('canvas');
+          debugCanvas.width = 50;
+          debugCanvas.height = 50;
+          const debugCtx = debugCanvas.getContext('2d');
+          if (debugCtx) {
+            debugCtx.drawImage(img, 0, 0, 50, 50);
+            const debugImageData = debugCtx.getImageData(0, 0, 10, 10);
+            const debugPixelSum = debugImageData.data.reduce((sum, val) => sum + val, 0);
+            const debugRgbSample = [];
+            for (let i = 0; i < Math.min(12, debugImageData.data.length); i += 4) {
+              debugRgbSample.push([debugImageData.data[i], debugImageData.data[i+1], debugImageData.data[i+2]]);
+            }
+            console.log('[captureFrame] Blob 내용 검증:', {
+              debugPixelSum: debugPixelSum,
+              debugRgbSample: debugRgbSample,
+              isWhite: debugPixelSum === debugImageData.data.length * 255
+            });
           }
-          lastDataSentTime.current = now;
-          
-          console.log('[captureFrame] 전송 성공 - 크기:', Math.round(blob.size / 1024), 'KB');
-          setStreamingStatus(`프레임 전송 중... (실제 FPS: ${actualFPS}, ${Math.round(blob.size / 1024)}KB)`);
-        } else {
-          console.log('[captureFrame] 전송 실패');
-          setStreamingStatus('전송 실패 - 연결 확인 필요');
-          setFrameDropCount(prev => prev + 1);
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(blob);
+      
+      console.log('[captureFrame] broadcastMessage 시작 - 크기:', blob.size, 'bytes');
+      const success = broadcastMessage(blob);
+      console.log('[captureFrame] broadcastMessage 결과:', success);
+      
+      if (success) {
+        setFramesSent(prev => prev + 1);
+        setTotalBytesSent(prev => prev + blob.size);
+        
+        // 전송 속도 계산
+        const now = Date.now();
+        if (lastDataSentTime.current > 0) {
+          const timeDiff = (now - lastDataSentTime.current) / 1000; // 초
+          const bytesDiff = blob.size;
+          const currentBps = bytesDiff / timeDiff;
+          setBytesPerSecond(Math.round(currentBps));
         }
+        lastDataSentTime.current = now;
+        
+        console.log('[captureFrame] 전송 성공 - 크기:', Math.round(blob.size / 1024), 'KB');
+        setStreamingStatus(`프레임 전송 중... (실제 FPS: ${actualFPS}, ${Math.round(blob.size / 1024)}KB)`);
       } else {
-        console.log('[captureFrame] 전송 조건 불만족 - blob:', !!blob, 'connectionStatus:', connectionStatus);
+        console.log('[captureFrame] 전송 실패');
+        setStreamingStatus('전송 실패 - 연결 확인 필요');
+        setFrameDropCount(prev => prev + 1);
       }
     }, 'image/jpeg', streamingConfig.quality);
 
@@ -246,7 +329,20 @@ const WordSession = () => {
   // 비디오 스트림을 비디오 엘리먼트에 연결
   React.useEffect(() => {
     if (currentStream && videoRef.current) {
+      console.log('🎬 [Video Stream] 비디오 엘리먼트에 스트림 연결');
       videoRef.current.srcObject = currentStream;
+      
+      // 메타데이터 로드 후 재생 시작
+      videoRef.current.onloadedmetadata = () => {
+        console.log('🎬 [Video Stream] 메타데이터 로드 완료 - 재생 시작');
+        if (videoRef.current) {
+          videoRef.current.play().then(() => {
+            console.log('🎬 [Video Stream] 비디오 재생 시작됨');
+          }).catch((e) => {
+            console.error('🎬 [Video Stream] 비디오 재생 실패:', e);
+          });
+        }
+      };
     }
   }, [currentStream]);
 
