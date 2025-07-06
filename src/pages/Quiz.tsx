@@ -8,6 +8,7 @@ import { useVideoStream } from '../hooks/useVideoStream';
 import { Button } from '@/components/ui/button';
 
 import HandDetectionIndicator from '@/components/HandDetectionIndicator';
+import { createPoseHandler } from '@/components/detect/usePoseHandler';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import QuizTimer from '@/components/QuizTimer';
 import SessionHeader from '@/components/SessionHeader';
@@ -15,6 +16,7 @@ import QuizDisplay from '@/components/QuizDisplay';
 import WebcamSection from '@/components/WebcamSection';
 import NotFound from './NotFound';
 import API from '@/components/AxiosInstance';
+import { Chapter } from '@/types/learning';
 
 // 주요 변경 점 | 7월 6일 자정 작업
 // 변수 및 의존성 재확인 : 전부 다 아님
@@ -36,39 +38,47 @@ import API from '@/components/AxiosInstance';
 // const QuizSession 정의 내용 종료 }
 // export default QuizSession;
 
+// isQuizMode 제거
+
+// 퀴즈 정의 : QUIZ_TIME_LIMIT초 안에 주어지는 제스처대로 못하면 실패
+  // 다음 Lesson(단어)로 넘어가고 다시 QUIZ_TIME_LIMIT 시간을 센다.
+    // Lesson 리스트가 끝날 때 까지 반복
+  
+
 const QuizSession = () => {
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [isTransmitting, setIsTransmitting] = useState(false);
-  const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null); 
-  const [connectionErrorMessage, setConnectionErrorMessage] = useState<string | null>(null); 
-  const [isConnecting, setIsConnecting] = useState(false);
-  const {videoRef, canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
-  const [transmissionCount, setTransmissionCount] = useState(0);
   const [isCrossed, setIsCrossed] = useState(false);
-  const initialPose = useRef<boolean>(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isHandDetected, setIsHandDetected] = useState(false);
+  const [isTransmitting, setIsTransmitting] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [timerActive, setTimerActive] = useState(false);
+  const [sessionComplete, setSessionComplete] = useState(false);
+  const [quizStarted, setQuizStarted] = useState(false);
+  const [isMovingNextSign, setIsMovingNextSign] = useState(false);
+
+  const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null); 
+  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
 
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
+  const {videoRef, canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
 
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  
   const [progress, setProgress] = useState(0);
-  const [timerActive, setTimerActive] = useState(false);
-  const [sessionComplete, setSessionComplete] = useState(false);
-  const [quizResults, setQuizResults] = useState<{ signId: string, correct: boolean, timeSpent: number }[]>([]);
-  const [quizStarted, setQuizStarted] = useState(false);
-  const isQuizMode = sessionType === 'quiz'; // 타입과 값을 같이 비교 가능
-  const QUIZ_TIME_LIMIT = 15; // 15초 제한
 
+  const [quizResults, setQuizResults] = useState<{ signId: string, correct: boolean, timeSpent: number }[]>([]);
+  const QUIZ_TIME_LIMIT = 15; // 15초 제한
   const category = categoryId ? getCategoryById(categoryId) : null;
-  const [chapter, setChapter] = useState<any>(null);
+  const [chapter, setChapter] = useState<Chapter | undefined | null>(null);
+  //const [chapter, setChapter] = useState<any>(null);
   const currentSign = chapter?.signs[currentSignIndex];
-  const [isMovingNextSign, setIsMovingNextSign] = useState(false);
+
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
+  const initialPose = useRef<boolean>(false);
+
 
   // 이 함수로, 사용자가 퀴즈 컨텐츠 (다? 레슨 단위?) 하고 백엔드에 결과 기록 요청한다.
   const sendQuizResult = async () =>{
@@ -95,7 +105,6 @@ const QuizSession = () => {
 
       if (success) {
         console.log('✅ 서버 연결 성공');
-        setConnectionErrorMessage(null); // 연결 성공 시 에러 상태 초기화
         return true;
       } else {
         console.log(`❌ 서버 연결 실패 (시도 ${attemptNumber})`);
@@ -145,16 +154,13 @@ const QuizSession = () => {
             console.log('🎥 비디오 스트림 시작 요청 완료');
           } catch (error) {
             console.error('비디오 스트림 시작 실패:', error);
-            setConnectionErrorMessage('카메라 접근에 실패했습니다. 페이지를 새로고침해주세요.');
           }
         }, 500);
       } else {
         console.error('❌ 최대 연결 시도 횟수 초과');
-        setConnectionErrorMessage('서버 연결에 실패했습니다. 페이지를 새로고침해주세요.');
       }
     } catch (error) {
       console.error('세션 초기화 실패:', error);
-      setConnectionErrorMessage('연결 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
     }
   };
 
@@ -172,25 +178,20 @@ const QuizSession = () => {
 
     if (!isConnected) {
       console.log('서버에 연결되지 않음');
-      setConnectionErrorMessage('서버에 연결되지 않았습니다.');
       return;
     }
 
     if (!state.isStreaming || !state.stream) {
       console.log('비디오 스트림이 준비되지 않음');
-      setConnectionErrorMessage('비디오 스트림이 준비되지 않았습니다.');
       return;
     }
 
     if (!videoRef.current || videoRef.current.readyState < 2) {
       console.log('비디오 엘리먼트가 준비되지 않음');
-      setConnectionErrorMessage('비디오가 준비되지 않았습니다.');
       return;
     }
 
     setIsTransmitting(true);
-    setTransmissionCount(0);
-    // setConnectionErrorMessage(null); // 전송 시작 시 에러 상태 초기화
 
     console.log('✅ 전송 시작!');
     transmissionIntervalRef.current = setInterval(async () => {
@@ -198,9 +199,7 @@ const QuizSession = () => {
         const frame = await captureFrameAsync();
         if (frame) {
           const success = signClassifierClient.sendVideoChunk(frame);
-          if (success) {
-            setTransmissionCount(prev => prev + 1);
-          } else {
+          if (!success) {
             console.log('⚠️ 프레임 전송 실패');
           }
         } else {
@@ -223,11 +222,7 @@ const QuizSession = () => {
   setIsRecording(true);
   setFeedback(null);
   setCurrentResult(null); // 이전 분류 결과 초기화
-
-  if (isQuizMode) {
-    setTimerActive(true);
-  }
-
+  setTimerActive(true);
   console.log('🎬 수어 녹화 시작:', currentSign?.word);
   };
 
@@ -289,6 +284,18 @@ const QuizSession = () => {
     handleNextSign();
   };
 
+    const handleRetry = () => {
+      setFeedback(null);
+      setIsRecording(false);
+      setTimerActive(false);
+      setQuizStarted(false);
+      setCurrentResult(null); // 이전 분류 결과 초기화
+      console.log('🔄 다시 시도:', currentSign?.word);
+  };
+
+
+  // 챕터 아이디를 통해 챕터 첫 준비
+  // categoryID, chapterID
   useEffect(() => {
     if (chapterId) {
       const loadChapter = async () => {
@@ -297,7 +304,6 @@ const QuizSession = () => {
           setChapter(chapterData);
         } catch (error) {
           console.error('챕터 데이터 로드 실패:', error);
-          setConnectionErrorMessage('챕터 데이터를 불러오는데 실패했습니다.');
         }
       };
       loadChapter();
@@ -326,7 +332,7 @@ const QuizSession = () => {
       });
   }, [chapterId, categoryId, sessionType, navigate]);
   
-  // 자동 연결 및 스트림 시작
+  // [단 한 번만 실행] 자동 연결 및 스트림 시작
   useEffect(() => {
     initializeSession(); // 마운트 혹은 업데이트 루틴
 
@@ -476,7 +482,7 @@ const QuizSession = () => {
       const timeoutId = setTimeout(reconnect, 5000);
       return () => clearTimeout(timeoutId);
     }
-  }, [isConnected, isConnecting, connectionErroMessage, state.isStreaming]);
+  }, [isConnected, isConnecting, state.isStreaming]);
 
   useEffect(() => {
     if (chapter) {
@@ -532,7 +538,7 @@ const QuizSession = () => {
       setIsRecording(false);
       setTimerActive(false);
 
-      // 학습 진도 업데이트
+      // 학습 진도 업데이트, 퀴즈에 해당 사항 없나?
       if (isCorrect && currentSign) {
         markSignCompleted(currentSign.id);
         const currentId = currentSign.id;
@@ -542,7 +548,7 @@ const QuizSession = () => {
         localStorage.setItem('studyword', JSON.stringify(filtered));
       }
 
-      if (isQuizMode && currentSign) {
+      if (currentSign) {
         const timeSpent = QUIZ_TIME_LIMIT - (timerActive ? QUIZ_TIME_LIMIT : 0);
         setQuizResults(prev => [...prev, {
           signId: currentSign.id,
@@ -559,8 +565,6 @@ const QuizSession = () => {
       if (isCorrect) {
         setIsMovingNextSign(true);
         // 자동 진행 로직 제거 - FeedbackDisplay의 onComplete에서 처리
-      } else if (!isQuizMode) {
-        // 학습 모드에서 오답일 때는 자동 진행하지 않음 (수동으로 처리)
       } else {
         // 퀴즈 모드에서 오답일 때는 3초 후 자동 진행
         setTimeout(() => {
@@ -568,12 +572,11 @@ const QuizSession = () => {
         }, 3000);
       }
     }
-  }, [currentResult, currentSign, feedback, isQuizMode, timerActive]);
+  }, [currentResult, currentSign, feedback, timerActive]);
 
   // 퀴즈 모드에서 새로운 문제가 시작될 때 자동으로 타이머 시작
   useEffect(() => {
-    // TODO : 그럼 이건 문제가 뜨는거랑 타이머가 일치할까?
-    if (isQuizMode && currentSign && !feedback) {
+    if (currentSign && !feedback) {
       setQuizStarted(true);
       setTimerActive(true);
       setIsRecording(true);
@@ -587,22 +590,24 @@ const QuizSession = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [currentSignIndex, isQuizMode, currentSign, feedback]);
+  }, [currentSignIndex, currentSign, feedback]);
 
   // 세션 완료 시 활동 기록
   useEffect(() => {
     if (sessionComplete) {
       const recordActivity = async () => {
         try {
-          await API.post('/user/daily-activity/complete');
+          await API.post('/user/daily-activity/complete', recordActivity);
           console.log("오늘 활동 기록 완료!(퀴즈/세션)");
         } catch (err) {
           console.error("오늘 활동 기록 실패(퀴즈/세션):", err);
-        });
+        }
     }
-    // eslint-disable-next-line
-  }, [sessionComplete]);
+  }}, [sessionComplete]);
 
+
+  // 렌더링 시점에 실행
+  // 이거 원문에도 내용이 없는데 뭐야?
   if (connectionError) {
     return (
       <div>Connection Error. gogo home baby</div>
@@ -650,11 +655,11 @@ const QuizSession = () => {
           <CardHeader className="text-center">
             <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
             <CardTitle>
-              {isQuizMode ? '퀴즈 완료!' : '학습 완료!'}
+              {'퀴즈 완료!'}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            {isQuizMode && (
+            {(
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">결과</h3>
                 <p className="text-2xl font-bold text-blue-600">
@@ -666,18 +671,14 @@ const QuizSession = () => {
               </div>
             )}
             <p className="text-gray-600">
-              '{chapter.title}' {isQuizMode ? '퀴즈를' : '학습을'} 완료했습니다!
+              '{chapter.title}' 퀴즈를 완료했습니다!
             </p>
             <div className="flex space-x-3">
               <Button
                 variant="outline"
                 onClick={async () => {
                   try {
-                    if (isQuizMode) {
-                      await sendQuizResult();
-                    } else {
-                      await sendStudyResult();
-                    }
+                    await sendQuizResult();
                     navigate(`/learn/category/${categoryId}`);
                   } catch (error) {
                     console.error("결과 전송 실패:", error);
@@ -689,12 +690,9 @@ const QuizSession = () => {
               </Button>
               <Button onClick={async () => {
                 try {
-                  if (isQuizMode) {
-                    await sendQuizResult();
-                  } else {
-                    await sendStudyResult();
-                  }
+                  await sendQuizResult();
                   navigate('/home');
+
                 } catch (error) {
                   console.error("결과 전송 실패:", error);
                   // 필요 시 에러 처리 추가 가능
@@ -709,6 +707,7 @@ const QuizSession = () => {
     );
   }
 
+  // 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 손 감지 상태 표시 인디케이터 */}
@@ -719,7 +718,7 @@ const QuizSession = () => {
       />
 
       <SessionHeader
-        isQuizMode={isQuizMode}
+        isQuizMode={true}
         currentSign={currentSign}
         chapter={chapter}
         currentSignIndex={currentSignIndex}
@@ -750,7 +749,7 @@ const QuizSession = () => {
 
             {/* 웹캠 및 분류 결과 */}
             <WebcamSection
-              isQuizMode={isQuizMode}
+              isQuizMode={true}
               isConnected={isConnected}
               isConnecting={isConnecting}
               isTransmitting={isTransmitting}
@@ -758,7 +757,7 @@ const QuizSession = () => {
               videoRef={videoRef}
               canvasRef={canvasRef}
               currentResult={currentResult}
-              connectionError={connectionErroMessage}
+              connectionError={"just error"}
               isRecording={isRecording}
               feedback={feedback}
               handleStartRecording={handleStartRecording}
@@ -781,7 +780,6 @@ const QuizSession = () => {
       </main>
     </div>
   );
-  
 };
 
 export default QuizSession;
