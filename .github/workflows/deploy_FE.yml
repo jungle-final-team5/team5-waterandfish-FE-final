@@ -86,7 +86,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            # aws-cli, docker 설치 (최초 1회만 필요)
+            # Ubuntu 환경에서 awscli 설치
             if ! command -v aws &> /dev/null; then
               sudo apt-get update && sudo apt-get install -y awscli
             fi
