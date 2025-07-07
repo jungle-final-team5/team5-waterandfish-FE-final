@@ -27,6 +27,7 @@ import { useOnboarding } from '@/hooks/useOnboarding';
 import API from '@/components/AxiosInstance';
 import { useStreakData } from "@/hooks/useStreakData";
 import { useBadgeSystem } from '@/hooks/useBadgeSystem';
+import { useAuth } from '@/hooks/useAuth';
 
 // 최근 학습 정보 타입
 interface RecentLearning {
@@ -71,6 +72,7 @@ const Home = () => {
   const { checkBadges } = useBadgeSystem();
     const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { currentStreak } = useStreakData();
+  const { logout } = useAuth();
   
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
@@ -194,19 +196,16 @@ const Home = () => {
       console.error('❌ 로그아웃 API 호출 실패:', error);
       // API 실패해도 프론트엔드에서는 로그아웃 처리
     }
-    
+    // 인증 상태 초기화
+    logout();
     // localStorage 클리어
     localStorage.clear();
     console.log('localStorage 클리어 완료');
-    
     toast({
       title: "로그아웃",
       description: "성공적으로 로그아웃되었습니다.",
     });
-    
-    setTimeout(() => {
-      navigate('/');
-    }, 1000);
+    navigate('/');
   };
 
   const currentTime = new Date().getHours();

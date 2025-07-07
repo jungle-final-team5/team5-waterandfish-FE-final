@@ -24,6 +24,7 @@ const Chapters = () => {
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
   const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   
   // 전역 WebSocket 상태 관리
   const { showStatus } = useGlobalWebSocketStatus();
@@ -62,15 +63,32 @@ const Chapters = () => {
   };
 
   useEffect(() => { // 카테고리 데이터 가져오기
-    if (!categoryId) return; // 카테고리 ID가 없으면 종료
+    if (!categoryId) return;
+    setLoading(true);
     API.get<{ success: boolean; data: Category; message: string }>(`/category/${categoryId}/chapters`)
-      .then(res => setCategoryData(res.data.data))
-      .catch(err => console.error('카테고리 정보 불러오기 실패:', err));
+      .then(res => {
+        setCategoryData(res.data.data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('카테고리 정보 불러오기 실패:', err);
+        setCategoryData(null);
+        setLoading(false);
+      });
   }, [categoryId]);
   
   const isCompleted = useRef(false); // 완료 여부 참조
   
-  if (!categoryData) { // 카테고리 데이터가 없으면
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-gray-800 mb-2">챕터 정보를 불러오는 중...</h2>
+        </div>
+      </div>
+    );
+  }
+  if (!categoryData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

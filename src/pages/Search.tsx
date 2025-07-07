@@ -7,10 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Search, ArrowLeft } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import API from '@/components/AxiosInstance';
+
 interface SearchResult {
   lesson_id: string;
   sign_text: string;
   score?: number;
+}
+
+interface PopularSign {
+  id: string;
+  word: string;
+  description: string;
+  videoUrl: string;
+  views: number;
 }
 
 const SearchPage = () => {
@@ -19,6 +28,7 @@ const SearchPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [open, setOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [popularSigns, setPopularSigns] = useState<PopularSign[]>([]);
 
   const fetchSearchResults = async (query: string) => {
     try {
@@ -50,10 +60,16 @@ const SearchPage = () => {
   };
 
   // sign 선택 → ID 기반 라우팅
-  const handleSignSelect = (sign: SearchResult) => {
+  const handleSignSelect = async (sign: SearchResult) => {
     if (!sign.sign_text) {
       alert('검색 결과에 sign_text가 없습니다. 관리자에게 문의하세요.');
       return;
+    }
+    // views 증가 API 호출
+    try {
+      await API.post(`/lessons/${sign.lesson_id}/view`);
+    } catch (e) {
+      // 조회수 증가 실패해도 무시
     }
     navigate(`/learn/word/${encodeURIComponent(sign.lesson_id)}`);
     setOpen(false);
@@ -65,6 +81,21 @@ const SearchPage = () => {
     e.preventDefault();
     if (searchResults.length) handleSignSelect(searchResults[0]);
   };
+
+  useEffect(() => {
+    // 인기 수어 불러오기
+    const fetchPopularSigns = async () => {
+      try {
+        const res = await API.get<{ success: boolean; data: PopularSign[]; message: string }>(
+          "/recommendations/popular-by-search"
+        );
+        setPopularSigns(res.data.data);
+      } catch {
+        setPopularSigns([]);
+      }
+    };
+    fetchPopularSigns();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -154,23 +185,23 @@ const SearchPage = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {(categories ?? [])
-                  .flatMap(category => (category.chapters ?? [])
-                    .flatMap(chapter => (chapter.signs ?? []))
-                  )
-                  .slice(0, 12)
-                  .map(sign => (
+                {popularSigns.length === 0 ? (
+                  <div className="col-span-2 md:col-span-3 text-center text-gray-400">인기 수어가 없습니다.</div>
+                ) : (
+                  popularSigns.map(sign => (
                     <Button
                       key={sign.id}
                       variant="outline"
-                      onClick={() => navigate(`/learn/word/${sign.id}`)}
-                      className="h-auto p-3 hover:bg-violet-50 border-gray-200"
+                      onClick={() => {
+                        console.log('인기수어 클릭:', sign.id, 'isValidObjectId:', /^[a-f\d]{24}$/i.test(sign.id));
+                        navigate(`/learn/word/${sign.id}`);
+                      }}
+                      className="h-auto p-3 hover:bg-violet-50 border-gray-200 flex flex-col items-start"
                     >
-                      <div className="text-center">
-                        <div className="font-medium text-gray-800">{sign.word}</div>
-                      </div>
+                      <div className="font-medium text-gray-800">{sign.word}</div>
                     </Button>
-                  ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
