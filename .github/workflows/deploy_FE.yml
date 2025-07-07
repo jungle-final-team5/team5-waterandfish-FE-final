@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v3
 
       # ------------------------------------------------------------
-      # 2. 런타임 파일(.env, SSL) 로컬 생성  (Docker build 전에 필요)
+      # 2. 런타임 파일(.env, SSL) 로컬 생성
       # ------------------------------------------------------------
       - name: Create runtime files from secrets
         run: |
@@ -30,18 +30,15 @@ jobs:
           echo "${{ secrets.CA_BUNDLE }}" > ssl/ca_bundle.crt
 
       # ------------------------------------------------------------
-      # 3. AWS 자격 증명 설정 → ECR 푸시용
+      # 3. AWS 자격 증명 설정 & ECR 로그인 (로컬 빌드/푸시 용)
       # ------------------------------------------------------------
-      - name: Configure AWS credentials
+      - name: Configure & login to ECR
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      # ------------------------------------------------------------
-      # 4. ECR 로그인 (docker push 전에 필수)
-      # ------------------------------------------------------------
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region ap-northeast-2 | \
@@ -49,7 +46,7 @@ jobs:
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
 
       # ------------------------------------------------------------
-      # 5. 프론트엔드 Docker 이미지 빌드 & ECR 푸시
+      # 4. Docker 이미지 빌드 & 푸시
       # ------------------------------------------------------------
       - name: Build & Push Docker image
         run: |
@@ -59,7 +56,7 @@ jobs:
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
       # ------------------------------------------------------------
-      # 6. 런타임 파일을 EC2로 전송 (appleboy/scp-action)
+      # 5. 런타임 파일을 EC2로 전송
       # ------------------------------------------------------------
       - name: Copy runtime files to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -72,7 +69,8 @@ jobs:
           target: "/home/${{ secrets.EC2_USERNAME }}/fe-runtime"
 
       # ------------------------------------------------------------
-      # 7. EC2 원격 배포 (appleboy/ssh-action)
+      # 6. EC2 원격 배포
+      #    - AWS 크리덴셜을 envs로 전달해 ECR pull 인증 해결
       # ------------------------------------------------------------
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v0.1.10
@@ -81,14 +79,20 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
+          envs_format: 'export {{ .Name }}="{{ .Value }}"'
           script: |
+            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            export AWS_REGION="ap-northeast-2"
+
             set -e
             RUNTIME_DIR=/home/${{ secrets.EC2_USERNAME }}/fe-runtime
 
             # 1) AWS CLI v2 설치 (없으면)
             if ! command -v aws >/dev/null 2>&1; then
-              sudo apt-get update -qq
-              sudo apt-get install -y -qq unzip
+              sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
+              sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq unzip
               curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscli.zip
               unzip -qq /tmp/awscli.zip -d /tmp
               sudo /tmp/aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
