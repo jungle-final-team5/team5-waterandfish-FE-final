@@ -26,7 +26,7 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
   categoryId,
   onSave 
 }) => {
-  const [selectedSigns, setSelectedSigns] = useState<Lesson[]>(chapter?.signs || []);
+  const [selectedSigns, setSelectedSigns] = useState<Lesson[]>(chapter?.lessons || []);
   const [allSigns, setAllSigns] = useState<Lesson[]>([]);
   const form = useForm({
     defaultValues: {
@@ -36,10 +36,11 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
   });
   useEffect(() => {
     if (open) {
-      API.get<{ lessons: Lesson[] }>('/learning/lesson/all')
+      API.get<{ lessons: Lesson[] }>('/lessons')
         .then(res => {
-          if (Array.isArray(res.data.lessons)) {
-            setAllSigns(res.data.lessons);
+          const lessons = res.data?.data?.lessons;
+          if (Array.isArray(lessons)) {
+            setAllSigns(lessons);
           } else {
             setAllSigns([]);
           }
@@ -56,7 +57,7 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
         title: chapter.title,
         type: chapter.type
       });
-      setSelectedSigns(chapter.signs);
+      setSelectedSigns(chapter.lessons);
     } else {
       form.reset({
         title: '',
