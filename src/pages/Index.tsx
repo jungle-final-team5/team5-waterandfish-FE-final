@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import debounce from 'lodash.debounce';
 import { Search, ArrowRight, BookOpen, Users, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import API from '@/components/AxiosInstance';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,6 +13,7 @@ const Index = () => {
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const debouncedFetch = useRef(
     debounce(async (query: string) => {
       if (!query.trim()) {
@@ -50,8 +52,18 @@ const Index = () => {
   };
 
   const handleStartLearning = () => {
-    navigate('/login');
+    if (isAuthenticated) {
+      navigate('/home');
+    } else {
+      navigate('/login');
+    }
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/home', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100">
@@ -65,13 +77,15 @@ const Index = () => {
             </div>
             <span className="text-xl font-bold text-gray-800">수어지교</span>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/login')}
-            className="hover:bg-violet-50 border border-gray-300"
-          >
-            로그인
-          </Button>
+          {!isAuthenticated && (
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/login')}
+              className="hover:bg-violet-50 border border-gray-300"
+            >
+              로그인
+            </Button>
+          )}
         </nav>
       </header>
 
