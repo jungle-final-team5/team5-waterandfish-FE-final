@@ -7,7 +7,7 @@ import VideoInput from '@/components/VideoInput';
 import useWebsocket from '@/hooks/useWebsocket';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 
-const WordSession = () => {
+const LearnSession = () => {
   const { chapterId } = useParams();
   const [currentStream, setCurrentStream] = useState<MediaStream | null>(null);
   const [streamInfo, setStreamInfo] = useState<string>('');
@@ -765,4 +765,4 @@ const WordSession = () => {
   );
 };
 
-export default WordSession;
+export default LearnSession;

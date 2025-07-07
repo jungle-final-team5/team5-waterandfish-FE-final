@@ -70,6 +70,21 @@ const Learn = () => {
   // 추천 수어/검색결과 리스트 (실제 데이터 기반, 최대 6개)
   const exampleSigns = allSigns.slice(0, 6);
 
+    const loadData = async () => {
+    try {
+      // 첫 번째 JSON 파일만 로드
+          const response = await API.get<{data: any}>('/lessons/anim/', {
+      params: {
+        word: word // 현재 학습 중인 단어
+      }
+    });
+      const landmarkData = await response.data.data;
+      setAnimData(landmarkData);
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -98,16 +113,7 @@ const Learn = () => {
     };
   }, [isPlaying, animationSpeed, animData, currentFrame]);
 
-  const loadData = async () => {
-    try {
-      // 첫 번째 JSON 파일만 로드
-      const response = await fetch('/result/KETI_SL_0000000414_landmarks.json');
-      const landmarkData = await response.json();
-      setAnimData(landmarkData);
-    } catch (error) {
-      console.error('데이터 로드 실패:', error);
-    }
-  };
+
 
   // 샘플 학습 데이터
   const learningData = {

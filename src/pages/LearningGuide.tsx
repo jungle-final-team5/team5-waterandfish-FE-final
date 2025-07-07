@@ -20,9 +20,7 @@ const LearningGuide = () => {
   const { chapterId: paramChapterId } = useParams();
   const navigate = useNavigate();
   const {  categories } = useLearningData();
-
-
-  let chapterId = paramChapterId;
+  const chapterId = paramChapterId;
 
   console.log('chapterId', chapterId);
   if (!chapterId) {
@@ -35,16 +33,25 @@ const LearningGuide = () => {
       </div>
     );
   }
+  // TODO : LearningGuide 들어오기 전에 isQuiz 받아오는 내용 필요함
+  const isQuiz = true;
 
-  const startLearning = () => {
-    navigate(`/learn/chapter/${chapterId}`);
+  // (배움/퀴즈) 페이지로 이동하여 해당하는 챕터의 (배움/퀴즈) 컨텐츠 시작
+  const startContents = () => {
+    if(isQuiz)
+    {
+      navigate(`/quiz/chapter/${chapterId}`);
+    }
+    else
+    {
+      navigate(`/learn/chapter/${chapterId}`);
+    }
   };
 
   const goBack = () => {
     navigate(`/category/${chapterId}/chapters`);
   };
 
-  const isQuiz = true;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -208,7 +215,7 @@ const LearningGuide = () => {
                     }
                   </p>
                   <Button 
-                    onClick={startLearning} 
+                    onClick={startContents} 
                     size="lg" 
                     className="w-full"
                   >

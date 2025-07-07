@@ -45,7 +45,7 @@ import { Chapter } from '@/types/learning';
     // Lesson 리스트가 끝날 때 까지 반복
   
 
-const QuizSession = () => {
+const QuizSession () => {
   const [isCrossed, setIsCrossed] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -63,7 +63,7 @@ const QuizSession = () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
   const {videoRef, canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
-  const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
+  const { getCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
 
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -300,7 +300,7 @@ const QuizSession = () => {
     if (chapterId) {
       const loadChapter = async () => {
         try {
-          const chapterData = await getChapterById(chapterId);
+          const chapterData = await findChapterById(chapterId);
           setChapter(chapterData);
         } catch (error) {
           console.error('챕터 데이터 로드 실패:', error);
@@ -311,7 +311,7 @@ const QuizSession = () => {
   }, [categoryId, chapterId]);
 
     useEffect(() => {
-    API.get<{ success: boolean; data: { type: string }; message: string }>(`/learn/chapter/${chapterId}`)
+    API.get<{ success: boolean; data: { type: string }; message: string }>(`/quiz/chapter/${chapterId}`)
       .then(res => {
         const type = res.data.data.type;
         if (type == '자음') {
