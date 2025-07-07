@@ -1,6 +1,10 @@
-// 우리의 목표: React가 무엇인가
-// TODO 정리하기
-// 직접적인 리팩터링은 아님! 
+// 최대한 역할별로 나누기.
+// 영상 인식, 송출 부분
+// 웹소켓 연결 부분
+// 삭제할 부분과 삭제 사유
+
+// 1. 라벨링
+// 2. 따로 빼기
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -28,6 +32,7 @@ import HandDetectionIndicator from '@/components/HandDetectionIndicator';
 import API from '@/components/AxiosInstance';
 
 const Session = () => { // 세션 컴포넌트
+  //======== 상태 변수 선언 =======
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const [isTransmitting, setIsTransmitting] = useState(false);
   const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null); // 이 경우는 포인터 변수
@@ -39,6 +44,7 @@ const Session = () => { // 세션 컴포넌트
   const initialPose = useRef<boolean>(false);
   const [isHandDetected, setIsHandDetected] = useState(false);
 
+  //======== 컴포넌트 내부 변수 선언 =======
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
   const { getCategoryById, getChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
@@ -65,101 +71,14 @@ const Session = () => { // 세션 컴포넌트
   const isQuizMode = sessionType === 'quiz'; // 타입과 값을 같이 비교 가능
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
 
+  //======== 컴포넌트 내부 변수 선언 =======
   const category = categoryId ? getCategoryById(categoryId) : null;
   const [chapter, setChapter] = useState<any>(null);
   const currentSign = chapter?.signs[currentSignIndex];
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  //======= 챕터 데이터 로드 =======
-  useEffect(() => {
-    if (chapterId) {
-      const loadChapter = async () => {
-        try {
-          const chapterData = await getChapterById(chapterId);
-          setChapter(chapterData);
-        } catch (error) {
-          console.error('챕터 데이터 로드 실패:', error);
-          setConnectionErrorMessage('챕터 데이터를 불러오는데 실패했습니다.');
-        }
-      };
-      loadChapter();
-    }
-  }, [categoryId, chapterId]);
-
-  //======= 서버 연결 및 스트림 함수 =======
-  const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const detectTimer = useRef<NodeJS.Timeout | null>(null);
-
-  const signs = chapter?.signs;
-  useEffect(() => {
-    API.get<{ success: boolean; data: { type: string }; message: string }>(`/learn/chapter/${chapterId}`)
-      .then(res => {
-        const type = res.data.data.type;
-        if (type == '자음') {
-          navigate("/test/letter/consonant/study");
-        } else if (type == '모음') {
-          navigate("/test/letter/vowel/study");
-        }
-        else {
-          localStorage.removeItem("studyword");
-          setCurrentSignIndex(0);
-          setQuizResults([]);
-          setFeedback(null);
-        }
-      })
-      .catch(err => {
-        console.error('타입 조회 실패:', err);
-        navigate("/not-found");
-      });
-  }, [chapterId, categoryId, sessionType, navigate]);
-  const sendQuizResult = async () =>{
-    try {
-      if (!quizResults.length) return;
-      const simplifiedResults = quizResults.map(({ signId, correct }) => ({
-        signId,
-        correct,
-      }));
-      await API.post(`/quiz/chapter/${chapterId}/submit`, simplifiedResults);
-    } catch (error) {
-      console.error("퀴즈 결과 전송 실패:", error);
-    }
-  }
-  const sendStudyResult = async () =>{
-    try {
-      const stored = localStorage.getItem("studyword");
-      if (!stored) return;
-      const stwords: string[] = JSON.parse(stored);
-      await API.post(`/learn/chapter/${chapterId}/progress`, stwords);
-      localStorage.removeItem("studyword");
-    } catch (error) {
-      console.error("학습 결과 전송 실패:", error);
-    }
-  }
-  // 서버 연결 시도 함수
-  const attemptConnection = async (attemptNumber: number = 1): Promise<boolean> => {
-    console.log(`🔌 서버 연결 시도 ${attemptNumber}...`);
-    setIsConnecting(true);
-
-    try {
-      const success = await signClassifierClient.connect();
-      setIsConnected(success);
-
-      if (success) {
-        console.log('✅ 서버 연결 성공');
-        setConnectionErrorMessage(null); // 연결 성공 시 에러 상태 초기화
-        return true;
-      } else {
-        console.log(`❌ 서버 연결 실패 (시도 ${attemptNumber})`);
-        return false;
-      }
-    } catch (error) {
-      console.error('서버 연결 중 오류:', error);
-      return false;
-    } finally { // 진짜 return 직전에 무조건 실행됨.
-      setIsConnecting(false);
-    }
-  };
+  //======== 초기화 함수 =======
   const initializeSession = async (): Promise<void> => {
     try {
       // 분류 결과 콜백 설정
@@ -208,7 +127,7 @@ const Session = () => { // 세션 컴포넌트
     }
   };
   
-  // 자동 연결 및 스트림 시작
+  //======== 자동 연결 및 스트림 시작 =======
   useEffect(() => {
 
     initializeSession(); // 마운트 혹은 업데이트 루틴
@@ -223,6 +142,7 @@ const Session = () => { // 세션 컴포넌트
     };
   }, []); // 컴포넌트 마운트 시 한 번만 실행
 
+  //======== 삭제: 학습 결과 전송 함수 =======
   const sendStudyResult = async () => {
     try {
       const stored = localStorage.getItem("studyword"); // 학습 단어 목록을 로컬 스토리지에서 가져옴
@@ -241,7 +161,7 @@ const Session = () => { // 세션 컴포넌트
 
 
 
-  //======= 비디오 스트림 및 MediaPipe 포즈 감지 =======
+  //======= 삭제: 비디오 스트림 및 MediaPipe 포즈 감지 =======
   useEffect(() => {
     if (!state.isStreaming || !videoRef.current) return;
 
@@ -277,8 +197,8 @@ const Session = () => { // 세션 컴포넌트
       }
     });
 
-    // TODO: MediaPipe 설정을 외부로 분리 
-    // 비디오가 준비되면 MediaPipe에 연결
+    
+    // 삭제: 비디오가 준비되면 MediaPipe에 연결
     const video = videoRef.current;
     if (video.readyState >= 2) {
       console.log('📹 비디오 준비됨, MediaPipe 연결 시작');
@@ -349,7 +269,7 @@ const Session = () => { // 세션 컴포넌트
     }
   }, [state.isStreaming, state.stream, isConnected, isTransmitting]);
 
-  // 연결 상태 변경 시 자동 재연결
+  // 삭제: 연결 상태 변경 시 자동 재연결(웹소켓 관리로 구현됨)
   useEffect(() => {
     if (isConnected === false) {
       console.log('🔄 연결이 끊어짐, 자동 재연결 시도...');
@@ -381,18 +301,21 @@ const Session = () => { // 세션 컴포넌트
     }
   }, [isConnected, isConnecting, connectionErroMessage, state.isStreaming]);
 
+  //======== 삭제: 비디오 데이터 로드 함수 =======
   useEffect(() => {
     if (currentSign?.videoUrl) {
       loadData(currentSign?.videoUrl);
     }
   }, [currentSign?.videoUrl]);
 
+  //======== 삭제: 진도 계산 함수 =======
   useEffect(() => {
     if (chapter) {
       setProgress((currentSignIndex / chapter.signs.length) * 100);
     }
   }, [currentSignIndex, chapter]);
-  // 연결 상태 주기적 확인
+
+  //======== 삭제: 연결 상태 주기적 확인 =======
   useEffect(() => {
     const checkConnectionStatus = () => {
       const currentStatus = signClassifierClient.getConnectionStatus();
@@ -416,6 +339,7 @@ const Session = () => { // 세션 컴포넌트
     return () => clearInterval(interval);
   }, [isConnected, isTransmitting]);
 
+  //======== 전송 시작 함수 =======
   const handleStartTransmission = () => {
     console.log('🚀 전송 시작 시도...');
     console.log('연결 상태:', isConnected);
@@ -580,6 +504,7 @@ const Session = () => { // 세션 컴포넌트
     };
   }, [isPlaying, animationSpeed, animData, currentFrame]);
 
+  //======== 삭제: 데이터 로드 함수 =======
   const loadData = useCallback(async (videoUrl: string) => {
     if (!videoUrl) {
       console.warn("videoUrl 없음, loadData 실행 중단");
@@ -603,6 +528,7 @@ const Session = () => { // 세션 컴포넌트
     }
   }, []);
 
+  //======== 삭제: 수어 녹화 시작 함수 =======
   const handleStartRecording = () => {
     setIsRecording(true);
     setFeedback(null);
@@ -635,6 +561,7 @@ const Session = () => { // 세션 컴포넌트
     }, 3000); // 3초로 통일
   };
 
+  //======== 다음 수어로 이동 함수 =======
   const handleNextSign = async () => {
     setIsMovingNextSign(false);
     if (chapter && currentSignIndex < chapter.signs.length - 1) {
@@ -665,6 +592,7 @@ const Session = () => { // 세션 컴포넌트
     }
   };
 
+  //======== 삭제: 다시 시도 함수 =======
   const handleRetry = () => {
     setFeedback(null);
     setIsRecording(false);
@@ -675,13 +603,13 @@ const Session = () => { // 세션 컴포넌트
     console.log('🔄 다시 시도:', currentSign?.word);
   };
 
-  // FeedbackDisplay 완료 콜백 함수
+  //======== 삭제: FeedbackDisplay 완료 콜백 함수 =======
   const handleFeedbackComplete = () => {
     console.log('🎉 FeedbackDisplay 완료, 다음 수어로 이동');
     handleNextSign();
   };
 
-  // 세션 완료 시 활동 기록
+  //======== 삭제: 세션 완료 시 활동 기록 =======
   useEffect(() => {
     if (sessionComplete) {
       const recordActivity = async () => {
