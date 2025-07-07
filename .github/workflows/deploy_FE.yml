@@ -1,11 +1,13 @@
-name: Build and Push FE Docker image to ECR
+name: Deploy FE to EC2
 
 on:
   push:
     branches: [main] # main 브랜치에 push될 때마다 실행
+  pull_request:
+    branches: [main] # main 브랜치에 PR될 때마다 실행
 
 jobs:
-  build-and-push:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
