@@ -28,21 +28,15 @@ jobs:
       # -------------------------------------------------------------------
       # 3. 프론트엔드 Docker 이미지 빌드 & ECR 푸시
       # -------------------------------------------------------------------
-      - name: Build Docker image
+      - name: Build & Push Docker image
         run: |
           docker build -t waterandfish-frontend:latest .
-
-      - name: Tag image for ECR
-        run: |
-          docker tag waterandfish-frontend:latest \
+          docker tag  waterandfish-frontend:latest \
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
-
-      - name: Push image to ECR
-        run: |
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
       # -------------------------------------------------------------------
-      # 4. 런타임 파일(.env, SSL) 생성 — EC2로 같이 동기화됨
+      # 4. 런타임 파일(.env, SSL) 로컬 생성
       # -------------------------------------------------------------------
       - name: Create runtime files from secrets
         run: |
@@ -53,8 +47,21 @@ jobs:
           echo "${{ secrets.CA_BUNDLE }}" > ssl/ca_bundle.crt
 
       # -------------------------------------------------------------------
-      # 5. EC2 원격 배포 (appleboy/ssh-action)
-      #    - sync: true  → 현재 워킹디렉터리 전체를 EC2 /tmp/_github_work 로 rsync
+      # 5. 런타임 파일을 EC2로 전송 (appleboy/scp-action)
+      # -------------------------------------------------------------------
+      - name: Copy runtime files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          source: ".env.production,ssl"
+          target: "/home/${{ secrets.EC2_USERNAME }}/fe-runtime"
+          # rm: true  # 필요 시 대상 경로 초기화
+
+      # -------------------------------------------------------------------
+      # 6. EC2 원격 배포 (appleboy/ssh-action)
       # -------------------------------------------------------------------
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v0.1.10
@@ -63,13 +70,12 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          sync: true
           script: |
-            # 이동: rsync 로 복사된 디렉터리로
-            cd /tmp/_github_work
+            set -e
+            RUNTIME_DIR=/home/${{ secrets.EC2_USERNAME }}/fe-runtime
 
             # ------------------------------------------------------------
-            # 1) AWS CLI v2 설치 (없을 때만)
+            # 1) AWS CLI v2 설치 (없으면)
             # ------------------------------------------------------------
             if ! command -v aws >/dev/null 2>&1; then
               sudo apt-get update -qq
@@ -80,11 +86,11 @@ jobs:
             fi
 
             # ------------------------------------------------------------
-            # 2) ECR 로그인 & 이미지 풀
+            # 2) ECR 로그인 & 이미지 pull
             # ------------------------------------------------------------
-            aws ecr get-login-password --region ap-northeast-2 \
-              | docker login --username AWS --password-stdin \
-                ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
+            aws ecr get-login-password --region ap-northeast-2 | \
+              docker login --username AWS --password-stdin \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
 
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
@@ -95,6 +101,6 @@ jobs:
             docker rm   frontend || true
 
             docker run -d --name frontend -p 80:80 \
-              --env-file .env.production \
-              -v $PWD/ssl:/etc/nginx/ssl \
+              --env-file $RUNTIME_DIR/.env.production \
+              -v $RUNTIME_DIR/ssl:/etc/nginx/ssl \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
