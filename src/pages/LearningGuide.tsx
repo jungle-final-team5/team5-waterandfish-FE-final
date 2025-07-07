@@ -34,7 +34,7 @@ const LearningGuide = () => {
     );
   }
   // TODO : LearningGuide 들어오기 전에 isQuiz 받아오는 내용 필요함
-  const isQuiz = true;
+  const isQuiz = false;
 
   // (배움/퀴즈) 페이지로 이동하여 해당하는 챕터의 (배움/퀴즈) 컨텐츠 시작
   const startContents = () => {

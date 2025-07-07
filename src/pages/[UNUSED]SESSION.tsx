@@ -33,7 +33,8 @@ const Session = () => { // 세션 컴포넌트
   const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null); // 이 경우는 포인터 변수
   const [connectionErrorMessage, setConnectionErrorMessage] = useState<string | null>(null); 
   const [isConnecting, setIsConnecting] = useState(false);
-  const {videoRef, canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
+  
+  
   const [transmissionCount, setTransmissionCount] = useState(0);
   const [isCrossed, setIsCrossed] = useState(false);
   const initialPose = useRef<boolean>(false);

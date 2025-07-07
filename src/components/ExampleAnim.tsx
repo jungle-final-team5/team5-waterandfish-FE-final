@@ -106,12 +106,24 @@ const LandmarkViewerTSX = ({
   ];
 
   // 카메라에 대한 초기 위치 값 지정
-  const cameraInitPos: CameraPosition = { x: -0.408, y: 0.334, z: -0.855 };
+  // A) 좌우반전 전 지정 값
+ // const cameraInitPos: CameraPosition = { x: 0.108, y: 0.474, z: -0.855 };
+ // const cameraInitRot: CameraRotation = { x: 0, y: 0, z: 0 };
+
+   // const yawRef = useRef(-10.3 * Math.PI / 180);
+  // const pitchRef = useRef(178.7 * Math.PI / 180);
+  // const rollRef = useRef(0 * Math.PI / 180);
+
+  const cameraInitPos: CameraPosition = { x: 0.053, y: 0.739, z: 0.592 };
   const cameraInitRot: CameraRotation = { x: 0, y: 0, z: 0 };
 
   // 카메라에 대한 초기 회전 값 지정
-  const yawRef = useRef(-10.3 * Math.PI / 180);
-  const pitchRef = useRef(178.7 * Math.PI / 180);
+  // const yawRef = useRef(-10.3 * Math.PI / 180);
+  // const pitchRef = useRef(178.7 * Math.PI / 180);
+  // const rollRef = useRef(0 * Math.PI / 180);
+
+    const yawRef = useRef(-186.2 * Math.PI / 180);
+  const pitchRef = useRef(192.5 * Math.PI / 180);
   const rollRef = useRef(0 * Math.PI / 180);
 
   // 초기화
@@ -157,7 +169,7 @@ const LandmarkViewerTSX = ({
     const containerHeight = container.clientHeight;
 
     // 카메라 생성 및 카메라 시야각 조정 가능
-    cameraRef.current = new THREE.PerspectiveCamera(65, containerWidth / containerHeight, 0.001, 1000);
+    cameraRef.current = new THREE.PerspectiveCamera(70, containerWidth / containerHeight, 0.001, 1000);
     cameraRef.current.position.set(cameraInitPos.x, cameraInitPos.y, cameraInitPos.z);
     cameraRef.current.rotation.set(cameraInitRot.x, cameraInitRot.y, cameraInitRot.z);
     updateCameraDirection();
@@ -175,7 +187,7 @@ const LandmarkViewerTSX = ({
     canvas.style.width = '100%';
     canvas.style.height = '100%';
 
-    rendererRef.current.setSize(containerWidth, containerHeight);
+    rendererRef.current.setSize(containerWidth * 2, containerHeight * 2);
     rendererRef.current.setClearColor(0xf0f0f0, 1);
 
     // 조명 설정
@@ -187,6 +199,9 @@ const LandmarkViewerTSX = ({
     const directionalLight2: ThreeDirectionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
     directionalLight2.position.set(-1, 1, -1);
     sceneRef.current.add(directionalLight2);
+
+    const mirrorMatrix = new THREE.Matrix4().makeScale(-1, 1, 1);
+    sceneRef.current.applyMatrix4(mirrorMatrix);
 
     // 애니메이션 루프 시작
     animate();

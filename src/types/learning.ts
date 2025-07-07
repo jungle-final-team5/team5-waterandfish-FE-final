@@ -12,7 +12,7 @@ export interface Chapter {
   id: string;
   title: string;
   type: 'word' | 'sentence';
-  signs: Lesson[];
+  lessons: Lesson[];
   categoryId: string;
 }
 

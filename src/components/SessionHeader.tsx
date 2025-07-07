@@ -39,7 +39,7 @@ const SessionHeader = ({
                 {isQuizMode ? '퀴즈' : '학습'}: {currentSign.word}
               </h1>
               <p className="text-sm text-gray-600">
-                {chapter.title} • {currentSignIndex + 1}/{chapter.signs.length}
+                {/* {chapter.title} • {currentSignIndex + 1}/{chapter.signs.length} */}
               </p>
             </div>
           </div>
