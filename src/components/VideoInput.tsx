@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Camera, CameraOff, Settings, Monitor, AlertCircle } from 'lucide-react';
 
-interface VideoInputProps {
+interface VideoInputProps { // 비디오 입력 컴포넌트 속성 인터페이스
   onStreamReady?: (stream: MediaStream) => void;
   onStreamError?: (error: string) => void;
   width?: number;
@@ -14,7 +14,7 @@ interface VideoInputProps {
   className?: string;
 }
 
-const VideoInput: React.FC<VideoInputProps> = ({
+const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌트 함수
   onStreamReady,
   onStreamError,
   width = 640,
@@ -23,17 +23,17 @@ const VideoInput: React.FC<VideoInputProps> = ({
   showControls = true,
   className = ""
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null); // 비디오 요소 참조
+  const streamRef = useRef<MediaStream | null>(null); // 비디오 스트림 참조
   
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false); // 스트리밍 상태
+  const [error, setError] = useState<string | null>(null); // 에러 메시지
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]); // 비디오 장치 목록
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>(''); // 선택된 장치 ID
+  const [isLoading, setIsLoading] = useState(false); // 로딩 상태
 
   // 사용 가능한 카메라 장치 목록 가져오기
-  const getVideoDevices = useCallback(async () => {
+  const getVideoDevices = useCallback(async () => { // 비디오 장치 목록 가져
     try { 
       const devices = await navigator.mediaDevices.enumerateDevices(); // 모든 장치 목록 가져오기
       const videoDevices = devices.filter(device => device.kind === 'videoinput'); // 비디오 장치 목록 필터링
@@ -118,7 +118,6 @@ const VideoInput: React.FC<VideoInputProps> = ({
 
     // 컴포넌트 언마운트 시 정리
     return () => {
-      alert('unmount');
       stopVideo(); // 비디오 스트림 중지
     };
   }, []); // 빈 의존성 배열로 변경하여 무한 루프 방지
