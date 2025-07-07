@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import VideoInput from '@/components/VideoInput';
 import StreamingControls from '@/components/StreamingControls';
@@ -15,46 +15,48 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { useVideoStream } from '@/hooks/useVideoStream';
 import { Button } from '@/components/ui/button';
 import { Chapter, Lesson } from '@/types/learning';
+import FeatureGuide from '@/components/FeatureGuide';
+import SystemStatus from '@/components/SystemStatus';
 
 
 
 const LearnSession = () => {
   const { categoryId, chapterId, sessionType } = useParams();
   const navigate = useNavigate();
-  
+
   // WebSocket 훅
   const { connectionStatus, wsList, broadcastMessage } = useWebsocket();
   const { showStatus } = useGlobalWebSocketStatus();
 
-    const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
-    const [isTransmitting, setIsTransmitting] = useState(false);
-    const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null); // 이 경우는 포인터 변수
-    const [isConnecting, setIsConnecting] = useState(false);
-    const [isCrossed, setIsCrossed] = useState(false);
-    const initialPose = useRef<boolean>(false);
-    const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const [isHandDetected, setIsHandDetected] = useState(false);
-    const { state, startStream, stopStream, captureFrameAsync } = useVideoStream();
-    //const {canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
-  
-    //const {findCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
-    const {findCategoryById, findChapterById, findLessonsByChapterId} = useLearningData();
-  
-    const [animData, setAnimData] = useState(null);
-    const [currentFrame, setCurrentFrame] = useState(0);
-  
-    const [currentSignIndex, setCurrentSignIndex] = useState(0);
-    const [lessons, setLessons] = useState<Lesson[]>([]);
-    const currentSign = lessons[currentSignIndex];
-    const [isRecording, setIsRecording] = useState(false);
-    
-    const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
-    const [sessionComplete, setSessionComplete] = useState(false);
+  const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
+  const [isTransmitting, setIsTransmitting] = useState(false);
+  const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null); // 이 경우는 포인터 변수
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isCrossed, setIsCrossed] = useState(false);
+  const initialPose = useRef<boolean>(false);
+  const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isHandDetected, setIsHandDetected] = useState(false);
+  const { state, startStream, stopStream, captureFrameAsync } = useVideoStream();
+  //const {canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
 
-    const category = categoryId ? findCategoryById(categoryId) : null;
+  //const {findCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
+  const { findCategoryById, findChapterById, findLessonsByChapterId } = useLearningData();
 
-    const [isMovingNextSign, setIsMovingNextSign] = useState(false);
-  
+  const [animData, setAnimData] = useState(null);
+  const [currentFrame, setCurrentFrame] = useState(0);
+
+  const [currentSignIndex, setCurrentSignIndex] = useState(0);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const currentSign = lessons[currentSignIndex];
+  const [isRecording, setIsRecording] = useState(false);
+
+  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const [sessionComplete, setSessionComplete] = useState(false);
+
+  const category = categoryId ? findCategoryById(categoryId) : null;
+
+  const [isMovingNextSign, setIsMovingNextSign] = useState(false);
+
   // 비디오 스트리밍 훅
   const {
     isStreaming,
@@ -211,11 +213,11 @@ const LearnSession = () => {
     setFeedback(null);
     setCurrentResult(null); // 이전 분류 결과 초기화
     console.log('🎬 수어 녹화 시작:', currentSign?.word);
-    };
+  };
 
   // 다음 수어(레슨)으로 넘어가는 내용
   const handleNextSign = async () => {
-    setCurrentSignIndex(currentSignIndex + 1);  
+    setCurrentSignIndex(currentSignIndex + 1);
     // setIsMovingNextSign(false);
     // if (chapter && currentSignIndex < chapter.signs.length - 1) {
     //   setCurrentSignIndex(currentSignIndex + 1);
@@ -233,9 +235,9 @@ const LearnSession = () => {
 
   // TODO : id 교체 될 방안을 강구 할 것
   const loadAnim = async () => {
-  try {
-       const id = currentSign.id;
-       console.log(id);
+    try {
+      const id = currentSign.id;
+      console.log(id);
       const response = await API.get(`/anim/${id}`);
       setAnimData(response.data);
     } catch (error) {
@@ -284,7 +286,7 @@ const LearnSession = () => {
           setLessons(lessons);
 
           console.log(lessons);
-          
+
         } catch (error) {
           console.error('챕터 데이터 로드 실패:', error);
         }
@@ -295,7 +297,7 @@ const LearnSession = () => {
 
   useEffect(() => {
     setCurrentSignIndex(0);
-   // initializeSession(); // 마운트 혹은 업데이트 루틴
+    // initializeSession(); // 마운트 혹은 업데이트 루틴
 
     // 언마운트 루틴
     // return () => {
@@ -510,10 +512,10 @@ const LearnSession = () => {
       }
 
 
-        // if (!isCorrect) {
-        //   addToReview(currentSign);
-        // }
-      
+      // if (!isCorrect) {
+      //   addToReview(currentSign);
+      // }
+
 
       // 정답이면 피드백 표시 (자동 진행은 FeedbackDisplay의 onComplete에서 처리)
       if (isCorrect) {
@@ -544,45 +546,94 @@ const LearnSession = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
-      isQuizMode={false}
-      currentSign={"쑤퍼노바"}
-      chapter={"chaptar"}
-      currentSignIndex={1}
-      progress={1}
-      categoryId={undefined}
-      navigate={navigate}
+        isQuizMode={false}
+        currentSign={"쑤퍼노바"}
+        chapter={"chaptar"}
+        currentSignIndex={1}
+        progress={1}
+        categoryId={undefined}
+        navigate={navigate}
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
-              { <LearningDisplay
-                data={animData}
-                currentFrame={currentFrame}
-                currentSign={"학교"}
-              /> }
-            
+        {<LearningDisplay
+          data={animData}
+          currentFrame={currentFrame}
+          currentSign={"학교"}
+        />}
 
-            {/* 웹캠 및 분류 결과 */}
-             <WebcamSection
-              isQuizMode={false}
-              isConnected={true}
-              isConnecting={false}
-              isTransmitting={false}
-              state={"a"}
-              videoRef={videoRef}
-              canvasRef={canvasRef}
-              currentResult={"a"}
-              connectionError={null}
-              isRecording={true}
-              feedback={null}
-              handleStartRecording={null}
-              handleNextSign={null}
-              handleRetry={null}
+
+        {/* 웹캠 및 분류 결과 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 비디오 입력 영역 */}
+          <div className="space-y-4">
+            <VideoInput
+              width={640}
+              height={480}
+              autoStart={false}
+              showControls={true}
+              onStreamReady={handleStreamReady}
+              onStreamError={handleStreamError}
+              className="h-full"
             />
-            <Button onClick={handleNextSign}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
+
+            <StreamingControls
+              isStreaming={isStreaming}
+              streamingStatus={streamingStatus}
+              streamingConfig={streamingConfig}
+              currentStream={currentStream}
+              connectionStatus={connectionStatus}
+              onStartStreaming={startStreaming}
+              onStopStreaming={stopStreaming}
+              onConfigChange={setStreamingConfig}
+            />
+
+            {/* 숨겨진 비디오 요소들 */}
+            <div className="hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <canvas ref={canvasRef} />
+            </div>
           </div>
+
+          {/* 정보 패널 */}
+          <div className="space-y-6">
+            <SessionInfo
+              chapterId={chapterId}
+              currentStream={currentStream}
+              connectionStatus={connectionStatus}
+              wsList={wsList}
+              isStreaming={isStreaming}
+              streamInfo={streamInfo}
+              streamingStatus={streamingStatus}
+              streamingConfig={streamingConfig}
+              streamingStats={streamingStats}
+            />
+
+            <SystemStatus
+              currentStream={currentStream}
+              connectionStatus={connectionStatus}
+              wsList={wsList}
+              isStreaming={isStreaming}
+              streamingStats={streamingStats}
+            />
+
+            <FeatureGuide
+              connectionStatus={connectionStatus}
+              isStreaming={isStreaming}
+            />
+          </div>
+        </div>
+        <Button onClick={handleNextSign}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
+      </div>
     </div>
   );
-
+  
   // return (
   //   <div className="min-h-screen bg-gray-50 p-6">
   //     <div className="max-w-6xl mx-auto">
@@ -606,7 +657,7 @@ const LearnSession = () => {
   //             onStreamError={handleStreamError}
   //             className="h-full"
   //           />
-            
+
   //           <StreamingControls
   //             isStreaming={isStreaming}
   //             streamingStatus={streamingStatus}
@@ -617,7 +668,7 @@ const LearnSession = () => {
   //             onStopStreaming={stopStreaming}
   //             onConfigChange={setStreamingConfig}
   //           />
-            
+
   //           {/* 숨겨진 비디오 요소들 */}
   //           <div className="hidden">
   //             <video
@@ -630,7 +681,7 @@ const LearnSession = () => {
   //             <canvas ref={canvasRef} />
   //           </div>
   //         </div>
-        
+
   //         {/* 정보 패널 */}
   //         <div className="space-y-6">
   //           <SessionInfo
