@@ -27,28 +27,38 @@ const formatDateKST = (date: Date) => {
   return localDate.toISOString().slice(0, 10);
 };
 
+// KST 변환 함수 추가
+const toKSTDate = (date: Date) => new Date(date.getTime() + 9 * 60 * 60 * 1000);
+
 const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
   const { studyDates, currentStreak, longestStreak, loading } = useStreakData();
   const today = new Date();
   
   // 날짜가 학습한 날짜인지 확인하는 함수 (KST 기준 YYYY-MM-DD 문자열로 비교)
   const isStudyDate = (date: Date) => {
-    const today = new Date();
+    const kstDate = toKSTDate(date);
     // 오늘 이후(미래)는 무조건 false
-    if (date > today) return false;
+    if (kstDate > toKSTDate(today)) return false;
     return (studyDates ?? []).some(studyDateStr => {
-      const studyDate = new Date(studyDateStr + 'T00:00:00Z');
+      // studyDateStr은 'YYYY-MM-DD' 형식이라고 가정, KST 기준으로 Date 객체 생성
+      const studyDate = new Date(studyDateStr + 'T09:00:00+09:00');
       return (
-        date.getUTCFullYear() === studyDate.getUTCFullYear() &&
-        date.getUTCMonth() === studyDate.getUTCMonth() &&
-        date.getUTCDate() === studyDate.getUTCDate()
+        kstDate.getFullYear() === studyDate.getFullYear() &&
+        kstDate.getMonth() === studyDate.getMonth() &&
+        kstDate.getDate() === studyDate.getDate()
       );
     });
   };
 
   // 오늘 날짜인지 확인하는 함수 (KST 기준 YYYY-MM-DD 문자열로 비교)
   const isToday = (date: Date) => {
-    return formatDateKST(date) === formatDateKST(today);
+    const kstDate = toKSTDate(date);
+    const kstToday = toKSTDate(today);
+    return (
+      kstDate.getFullYear() === kstToday.getFullYear() &&
+      kstDate.getMonth() === kstToday.getMonth() &&
+      kstDate.getDate() === kstToday.getDate()
+    );
   };
 
   return (
