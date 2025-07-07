@@ -30,7 +30,11 @@ const ReviewSession = () => {
     // 그 외에는 기존의 Session.tsx와 동일하게 구성.
     // 대신에 한 레슨에 대해 L Q를 해야함
     // Learning 때는 보여주고, 연이어서 Quiz를 수행
-    
+      @router.get("chapters/{chapter_id}/lessons")
+      뚜구당땅 해서 목록 가져오고
+
+      
+      // 
 
     
 
@@ -50,7 +54,7 @@ const ReviewSession = () => {
 
     // 전 단어의 기록을 reviewed로 변경하기
     // 다음 단어 준비하기
-    
+
   };
 
   useEffect(() => {
