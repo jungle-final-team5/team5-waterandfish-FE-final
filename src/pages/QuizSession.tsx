@@ -70,7 +70,7 @@ const QuizSession = () => {
 
   const [quizResults, setQuizResults] = useState<{ signId: string, correct: boolean, timeSpent: number }[]>([]);
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
-  const category = categoryId ? findCategoryById(categoryId) : null;
+  const category = categoryId ? findChapterById(categoryId) : null;
   const [chapter, setChapter] = useState<Chapter | undefined | null>(null);
   //const [chapter, setChapter] = useState<any>(null);
   const currentSign = chapter?.signs[currentSignIndex];
