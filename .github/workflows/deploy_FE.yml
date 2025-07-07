@@ -2,21 +2,24 @@ name: Deploy FE to EC2
 
 on:
   push:
-    branches: [main]
+    branches: [main] # main 브랜치에 push될 때마다 실행
   pull_request:
-    branches: [main]
+    branches: [main] # main 브랜치에 PR될 때마다 실행
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. 소스코드 체크아웃
       - name: Checkout source
         uses: actions/checkout@v3
-      
+
+      # 2. .env.production 파일을 GitHub Secrets에서 생성
       - name: Copy .env.production from secrets
         run: echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
 
+      # 3. SSL 인증서 파일을 GitHub Secrets에서 생성 (필요한 경우)
       - name: Create SSL cert files from secrets
         run: |
           mkdir -p ssl
@@ -24,36 +27,35 @@ jobs:
           echo "${{ secrets.KEY }}" > ssl/private.key
           echo "${{ secrets.CA_BUNDLE }}" > ssl/ca_bundle.crt
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      # 4. AWS 인증 정보 설정 (ECR 접근을 위해 필요)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          node-version: '20'
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
 
-      - name: Install dependencies and build
+      # 5. ECR에 Docker 로그인
+      - name: Login to Amazon ECR
         run: |
-          npm ci
-          npm run build
+          aws ecr get-login-password --region ap-northeast-2 | \
+          docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
 
-      - name: Upload to EC2
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "."
-          target: "/home/ubuntu/team5-waterandfish-FE"
+      # 6. Docker 이미지 빌드
+      - name: Build Docker image
+        run: |
+          docker build -t waterandfish-frontend:latest .
 
-      - name: SSH and restart frontend container
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/ubuntu/team5-waterandfish-FE
-            docker stop waterandfish-frontend || true
-            docker rm waterandfish-frontend || true
-            docker ps -aq --filter "publish=80" | xargs -r docker stop
-            docker ps -aq --filter "publish=80" | xargs -r docker rm
-            docker build -t waterandfish-fe .
-            docker run -d -p 80:80 -p 443:443 --name waterandfish-frontend waterandfish-fe
+      # 7. ECR에 push할 태그 추가
+      - name: Tag Docker image for ECR
+        run: |
+          docker tag waterandfish-frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
+
+      # 8. Docker 이미지를 ECR에 push
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
+
+# 이 워크플로우는 main 브랜치에 push될 때마다 실행되며,
+# 프론트엔드 Docker 이미지를 빌드해서 ECR에 업로드합니다.
+# EC2 등에서 이미지를 pull해서 배포하는 방식으로 연동하면 됩니다.
