@@ -55,7 +55,7 @@ const SearchPage = () => {
       alert('검색 결과에 sign_text가 없습니다. 관리자에게 문의하세요.');
       return;
     }
-    navigate(`/learn/word/${encodeURIComponent(sign.sign_text)}`);
+    navigate(`/learn/word/${encodeURIComponent(sign.lesson_id)}`);
     setOpen(false);
     setSearchTerm("");
   };

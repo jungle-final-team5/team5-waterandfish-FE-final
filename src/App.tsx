@@ -10,7 +10,7 @@ import Home from "./pages/Home";
 import Learn from "./pages/Learn";
 import Categories from "./pages/Categories";
 import Chapters from "./pages/Chapters";
-import WordSession from "./pages/LearnSession";
+import LearnSession from "./pages/LearnSession";
 import Review from "./pages/Review";
 import SearchPage from "./pages/Search";
 import Profile from "./pages/Profile";
@@ -20,11 +20,11 @@ import AuthCallback from "./pages/AuthCallback";
 import { AuthProvider } from "@/hooks/useAuth";
 import LetterSession from "./pages/Session_letter";
 import LearningGuide from "./pages/LearningGuide";
-import Quiz from "./pages/Quiz";
-import QuizReview from "./pages/QuizReview";
+import QuizSession from "./pages/QuizSession";
+import QuizReview from "./pages/ReviewSession";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Session from "./pages/Session";
 import { GlobalWebSocketProvider } from "@/contexts/GlobalWebSocketContext";
+import ReviewSession from "./pages/ReviewSession";
 
 const queryClient = new QueryClient();
 
@@ -50,9 +50,10 @@ const App = () => (
               <Route path="/category/:categoryId/chapters" element={<ProtectedRoute><Chapters /></ProtectedRoute>} />
               <Route path="/learn/word/:wordId" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
               <Route path="/learn/chapter/:chapterId/guide" element={<ProtectedRoute><LearningGuide /></ProtectedRoute>} />
-              <Route path="/learn/chapter/:chapterId" element={<ProtectedRoute><WordSession /></ProtectedRoute>} />
-              <Route path="/quiz/chapter/:chapterId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
-              <Route path="/quiz/chapter/:chapterId/review" element={<ProtectedRoute><QuizReview /></ProtectedRoute>} />
+              <Route path="/learn/chapter/:chapterId" element={<ProtectedRoute><LearnSession /></ProtectedRoute>} />
+              <Route path="/quiz/chapter/:chapterId" element={<ProtectedRoute><QuizSession /></ProtectedRoute>} />
+              <Route path="/review/chapter/:chapterId" element={<ProtectedRoute><ReviewSession /></ProtectedRoute>} />
+              <Route path="/quiz/chapter/:chapterId/review" element={<ProtectedRoute><QuizReview /></ProtectedRoute>} /> 
               <Route path="/test/letter/:setType/:qOrs" element={<ProtectedRoute><LetterSession /></ProtectedRoute>}/>
               <Route path="/review" element={<ProtectedRoute><Review /></ProtectedRoute>} />
               <Route path="/search" element={<SearchPage />} />
