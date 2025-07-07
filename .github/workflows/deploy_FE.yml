@@ -56,7 +56,28 @@ jobs:
         run: |
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
-      # 9. EC2에 SSH로 접속하여 배포
+      # 9. .env.production, ssl 디렉토리 복사
+      - name: Copy .env.production to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          source: ".env.production"
+          target: "~"
+
+      - name: Copy ssl directory to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          source: "ssl"
+          target: "~"
+
+      # 10. EC2에서 배포
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -65,13 +86,22 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
+            # aws-cli, docker 설치 (최초 1회만 필요)
+            if ! command -v aws &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y awscli
+            fi
+            if ! command -v docker &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y docker.io
+              sudo usermod -aG docker $USER
+            fi
+            # 배포
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
             docker stop frontend || true
             docker rm frontend || true
             docker run -d --name frontend -p 80:80 \
-              --env-file .env.production \
-              -v $PWD/ssl:/etc/nginx/ssl \
+              --env-file ~/env.production \
+              -v ~/ssl:/etc/nginx/ssl \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
 # 이 워크플로우는 main 브랜치에 push될 때마다 실행되며,
