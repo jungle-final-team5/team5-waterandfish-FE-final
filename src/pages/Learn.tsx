@@ -33,6 +33,8 @@ const Learn = () => {
   const [currentFrame, setCurrentFrame] = useState(0);
 
   const navigate = useNavigate();
+  const { wordId }= useParams();
+
   const { word } = useParams();
   const [currentStep, setCurrentStep] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -70,23 +72,20 @@ const Learn = () => {
   // 추천 수어/검색결과 리스트 (실제 데이터 기반, 최대 6개)
   const exampleSigns = allSigns.slice(0, 6);
 
-    const loadData = async () => {
+    const loadAnim = async () => {
     try {
-      // 첫 번째 JSON 파일만 로드
-          const response = await API.get<{data: any}>('/lessons/anim/', {
-      params: {
-        word: word // 현재 학습 중인 단어
-      }
-    });
-      const landmarkData = await response.data.data;
-      setAnimData(landmarkData);
+       const id = wordId;
+       console.log(wordId);
+    const response = await API.get(`/anim/${id}`);
+        console.log(response);
+      setAnimData(response.data);
     } catch (error) {
       console.error('데이터 로드 실패:', error);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadAnim();
   }, []);
 
   // 애니메이션 재생/정지 처리

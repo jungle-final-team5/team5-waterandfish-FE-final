@@ -45,7 +45,7 @@ import { Chapter } from '@/types/learning';
     // Lesson 리스트가 끝날 때 까지 반복
   
 
-const QuizSession () => {
+const QuizSession = () => {
   const [isCrossed, setIsCrossed] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -63,14 +63,14 @@ const QuizSession () => {
   const navigate = useNavigate();
   const { categoryId, chapterId, sessionType } = useParams();
   const {videoRef, canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
-  const { getCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
+  const { findCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
 
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [progress, setProgress] = useState(0);
 
   const [quizResults, setQuizResults] = useState<{ signId: string, correct: boolean, timeSpent: number }[]>([]);
   const QUIZ_TIME_LIMIT = 15; // 15초 제한
-  const category = categoryId ? getCategoryById(categoryId) : null;
+  const category = categoryId ? findCategoryById(categoryId) : null;
   const [chapter, setChapter] = useState<Chapter | undefined | null>(null);
   //const [chapter, setChapter] = useState<any>(null);
   const currentSign = chapter?.signs[currentSignIndex];
@@ -606,108 +606,108 @@ const QuizSession () => {
   }}, [sessionComplete]);
 
 
-  // 렌더링 시점에 실행
-  // 이거 원문에도 내용이 없는데 뭐야?
-  if (connectionError) {
-    return (
-      <div>Connection Error. gogo home baby</div>
-      // <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      //   <Card className="max-w-md w-full mx-4">
-      //     <CardHeader className="text-center">
-      //       <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-      //       <CardTitle>연결 오류</CardTitle>
-      //     </CardHeader>
-      //     <CardContent className="text-center space-y-4">
-      //       <p className="text-gray-600">{connectionErroMessage}</p>
-      //       <Button
-      //         onClick={() => window.location.reload()}
-      //         className="bg-blue-600 hover:bg-blue-700"
-      //       >
-      //         <RefreshCw className="h-4 w-4 mr-2" />
-      //         페이지 새로고침
-      //       </Button>
-      //       <Button
-      //         variant="outline"
-      //         onClick={() => navigate('/home')}
-      //       >
-      //         홈으로 돌아가기
-      //       </Button>
-      //     </CardContent>
-      //   </Card>
-      // </div>
-    );
-  }
+  // // 렌더링 시점에 실행
+  // // 이거 원문에도 내용이 없는데 뭐야?
+  // if (connectionError) {
+  //   return (
+  //     <div>Connection Error. gogo home baby</div>
+  //     // <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+  //     //   <Card className="max-w-md w-full mx-4">
+  //     //     <CardHeader className="text-center">
+  //     //       <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
+  //     //       <CardTitle>연결 오류</CardTitle>
+  //     //     </CardHeader>
+  //     //     <CardContent className="text-center space-y-4">
+  //     //       <p className="text-gray-600">{connectionErroMessage}</p>
+  //     //       <Button
+  //     //         onClick={() => window.location.reload()}
+  //     //         className="bg-blue-600 hover:bg-blue-700"
+  //     //       >
+  //     //         <RefreshCw className="h-4 w-4 mr-2" />
+  //     //         페이지 새로고침
+  //     //       </Button>
+  //     //       <Button
+  //     //         variant="outline"
+  //     //         onClick={() => navigate('/home')}
+  //     //       >
+  //     //         홈으로 돌아가기
+  //     //       </Button>
+  //     //     </CardContent>
+  //     //   </Card>
+  //     // </div>
+  //   );
+  // }
 
 
-  if (!chapter || !currentSign) {
-    return (
-     <NotFound/>);
-  }
+  // if (!chapter || !currentSign) {
+  //   return (
+  //    <NotFound/>);
+  // }
 
-  // 여기는 완료 했을 때 표시된다 
-  if (sessionComplete) {
-    const correctAnswers = quizResults.filter(r => r.correct).length;
-    const totalQuestions = quizResults.length;
+  // // 여기는 완료 했을 때 표시된다 
+  // if (sessionComplete) {
+  //   const correctAnswers = quizResults.filter(r => r.correct).length;
+  //   const totalQuestions = quizResults.length;
 
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
-          <CardHeader className="text-center">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <CardTitle>
-              {'퀴즈 완료!'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            {(
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">결과</h3>
-                <p className="text-2xl font-bold text-blue-600">
-                  {correctAnswers}/{totalQuestions}
-                </p>
-                <p className="text-sm text-gray-600">
-                  정답률: {Math.round((correctAnswers / totalQuestions) * 100)}%
-                </p>
-              </div>
-            )}
-            <p className="text-gray-600">
-              '{chapter.title}' 퀴즈를 완료했습니다!
-            </p>
-            <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    await sendQuizResult();
-                    navigate(`/learn/category/${categoryId}`);
-                  } catch (error) {
-                    console.error("결과 전송 실패:", error);
-                    // 필요 시 에러 처리 추가 가능
-                  }
-                }}
-              >
-                챕터 목록
-              </Button>
-              <Button onClick={async () => {
-                try {
-                  await sendQuizResult();
-                  navigate('/home');
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+  //       <Card className="max-w-md w-full mx-4">
+  //         <CardHeader className="text-center">
+  //           <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+  //           <CardTitle>
+  //             {'퀴즈 완료!'}
+  //           </CardTitle>
+  //         </CardHeader>
+  //         <CardContent className="text-center space-y-4">
+  //           {(
+  //             <div className="bg-blue-50 p-4 rounded-lg">
+  //               <h3 className="font-semibold mb-2">결과</h3>
+  //               <p className="text-2xl font-bold text-blue-600">
+  //                 {correctAnswers}/{totalQuestions}
+  //               </p>
+  //               <p className="text-sm text-gray-600">
+  //                 정답률: {Math.round((correctAnswers / totalQuestions) * 100)}%
+  //               </p>
+  //             </div>
+  //           )}
+  //           <p className="text-gray-600">
+  //             '{chapter.title}' 퀴즈를 완료했습니다!
+  //           </p>
+  //           <div className="flex space-x-3">
+  //             <Button
+  //               variant="outline"
+  //               onClick={async () => {
+  //                 try {
+  //                   await sendQuizResult();
+  //                   navigate(`/learn/category/${categoryId}`);
+  //                 } catch (error) {
+  //                   console.error("결과 전송 실패:", error);
+  //                   // 필요 시 에러 처리 추가 가능
+  //                 }
+  //               }}
+  //             >
+  //               챕터 목록
+  //             </Button>
+  //             <Button onClick={async () => {
+  //               try {
+  //                 await sendQuizResult();
+  //                 navigate('/home');
 
-                } catch (error) {
-                  console.error("결과 전송 실패:", error);
-                  // 필요 시 에러 처리 추가 가능
-                }
-              }}>
-                홈으로
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  //               } catch (error) {
+  //                 console.error("결과 전송 실패:", error);
+  //                 // 필요 시 에러 처리 추가 가능
+  //               }
+  //             }}>
+  //               홈으로
+  //             </Button>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   );
+  // }
 
-  // 
+  
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 손 감지 상태 표시 인디케이터 */}
@@ -740,12 +740,12 @@ const QuizSession () => {
           
           {/* 퀴즈이기 때문에 시범을 안보여준다! */}
           <div className="grid lg:grid-cols-2 gap-12">
-              <QuizDisplay
+              {/* <QuizDisplay
                 currentSign={currentSign}
                 quizStarted={quizStarted}
                 feedback={feedback}
                 handleNextSign={handleNextSign}
-              />
+              /> */}
 
             {/* 웹캠 및 분류 결과 */}
             <WebcamSection
