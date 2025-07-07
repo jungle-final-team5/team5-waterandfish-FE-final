@@ -109,7 +109,7 @@ jobs:
             docker stop frontend || true
             docker rm   frontend || true
 
-            docker run -d --name frontend -p 80:80 \
+            docker run -d --name frontend -p 80:80 -p 443:443 \
               --env-file $RUNTIME_DIR/.env.production \
               -v $RUNTIME_DIR/ssl:/etc/nginx/ssl \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
