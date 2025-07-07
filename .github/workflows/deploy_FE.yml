@@ -1,4 +1,5 @@
 name: Deploy FE to EC2
+
 on:
   push:
     branches: [main]
@@ -6,43 +7,93 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      # AWS creds ➜ ECR push
-      - uses: aws-actions/configure-aws-credentials@v2
+    steps:
+      # -------------------------------------------------------------------
+      # 1. 소스코드 체크아웃
+      # -------------------------------------------------------------------
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      # -------------------------------------------------------------------
+      # 2. AWS 자격 증명 설정 → ECR 푸시용
+      # -------------------------------------------------------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      - run: |
+      # -------------------------------------------------------------------
+      # 3. 프론트엔드 Docker 이미지 빌드 & ECR 푸시
+      # -------------------------------------------------------------------
+      - name: Build Docker image
+        run: |
           docker build -t waterandfish-frontend:latest .
-          docker tag  waterandfish-frontend:latest \
+
+      - name: Tag image for ECR
+        run: |
+          docker tag waterandfish-frontend:latest \
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
+
+      - name: Push image to ECR
+        run: |
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
+      # -------------------------------------------------------------------
+      # 4. 런타임 파일(.env, SSL) 생성 — EC2로 같이 동기화됨
+      # -------------------------------------------------------------------
+      - name: Create runtime files from secrets
+        run: |
+          echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
+          mkdir -p ssl
+          echo "${{ secrets.CRT }}"       > ssl/certificate.crt
+          echo "${{ secrets.KEY }}"       > ssl/private.key
+          echo "${{ secrets.CA_BUNDLE }}" > ssl/ca_bundle.crt
+
+      # -------------------------------------------------------------------
+      # 5. EC2 원격 배포 (appleboy/ssh-action)
+      #    - sync: true  → 현재 워킹디렉터리 전체를 EC2 /tmp/_github_work 로 rsync
+      # -------------------------------------------------------------------
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          sync: true                # 깃 저장소 전체 복사
+          port: 22
+          sync: true
           script: |
-            # 1) AWS CLI (없으면 설치)
-            if ! command -v aws >/dev/null; then
-              sudo apt-get update -y && sudo apt-get install -y unzip
-              curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/aws.zip
-              unzip -qq /tmp/aws.zip -d /tmp && sudo /tmp/aws/install
+            # 이동: rsync 로 복사된 디렉터리로
+            cd /tmp/_github_work
+
+            # ------------------------------------------------------------
+            # 1) AWS CLI v2 설치 (없을 때만)
+            # ------------------------------------------------------------
+            if ! command -v aws >/dev/null 2>&1; then
+              sudo apt-get update -qq
+              sudo apt-get install -y -qq unzip
+              curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscli.zip
+              unzip -qq /tmp/awscli.zip -d /tmp
+              sudo /tmp/aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
             fi
-            # 2) ECR 로그인 & 이미지 최신화
+
+            # ------------------------------------------------------------
+            # 2) ECR 로그인 & 이미지 풀
+            # ------------------------------------------------------------
             aws ecr get-login-password --region ap-northeast-2 \
-            | docker login --username AWS --password-stdin \
-              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
+              | docker login --username AWS --password-stdin \
+                ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
+
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
-            # 3) 서비스 재기동
-            docker stop frontend || true && docker rm frontend || true
+
+            # ------------------------------------------------------------
+            # 3) 기존 컨테이너 중지/삭제 & 재기동
+            # ------------------------------------------------------------
+            docker stop frontend || true
+            docker rm   frontend || true
+
             docker run -d --name frontend -p 80:80 \
               --env-file .env.production \
               -v $PWD/ssl:/etc/nginx/ssl \
