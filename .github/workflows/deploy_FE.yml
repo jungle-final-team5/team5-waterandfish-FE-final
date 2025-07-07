@@ -86,11 +86,11 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            # Ubuntu 환경에서 awscli 설치 (pip 사용)
+            # Ubuntu 환경에서 awscli 설치 (pip + break-system-packages)
             if ! command -v aws &> /dev/null; then
               sudo apt-get update
               sudo apt-get install -y python3-pip
-              pip3 install --user awscli
+              pip3 install --user awscli --break-system-packages
               export PATH=$PATH:~/.local/bin
             fi
             if ! command -v docker &> /dev/null; then
