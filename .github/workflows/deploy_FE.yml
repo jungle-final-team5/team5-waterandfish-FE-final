@@ -56,18 +56,16 @@ jobs:
         run: |
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
-      # 9. EC2에 SSH로 접속해 배포 (docker-compose 없이)
+      # 9. EC2에 SSH로 접속하여 배포
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
+          username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
           script: |
-            # EC2 내부에서 ECR 인증
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
-            | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-            # ECR에서 이미지 pull
+            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
             docker stop frontend || true
             docker rm frontend || true
@@ -76,6 +74,6 @@ jobs:
               -v $PWD/ssl:/etc/nginx/ssl \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
-# 이 워크플로우는 main 브랜치에 push/PR될 때마다 실행되며,
-# 프론트엔드 Docker 이미지를 빌드해서 ECR에 업로드하고,
-# EC2에서 이미지를 pull하여 컨테이너를 실행(배포)합니다.
+# 이 워크플로우는 main 브랜치에 push될 때마다 실행되며,
+# 프론트엔드 Docker 이미지를 빌드해서 ECR에 업로드합니다.
+# EC2 등에서 이미지를 pull해서 배포하는 방식으로 연동하면 됩니다.
