@@ -12,15 +12,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # -------------------------------------------------------------------
+      # ------------------------------------------------------------
       # 1. 소스코드 체크아웃
-      # -------------------------------------------------------------------
+      # ------------------------------------------------------------
       - name: Checkout source
         uses: actions/checkout@v3
 
-      # -------------------------------------------------------------------
-      # 2. 런타임 파일(.env, SSL) 로컬 생성  ➜  **Docker build 전에 위치 변경**
-      # -------------------------------------------------------------------
+      # ------------------------------------------------------------
+      # 2. 런타임 파일(.env, SSL) 로컬 생성  (Docker build 전에 필요)
+      # ------------------------------------------------------------
       - name: Create runtime files from secrets
         run: |
           echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
@@ -29,9 +29,9 @@ jobs:
           echo "${{ secrets.KEY }}"       > ssl/private.key
           echo "${{ secrets.CA_BUNDLE }}" > ssl/ca_bundle.crt
 
-      # -------------------------------------------------------------------
+      # ------------------------------------------------------------
       # 3. AWS 자격 증명 설정 → ECR 푸시용
-      # -------------------------------------------------------------------
+      # ------------------------------------------------------------
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -39,9 +39,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      # -------------------------------------------------------------------
-      # 4. 프론트엔드 Docker 이미지 빌드 & ECR 푸시
-      # -------------------------------------------------------------------
+      # ------------------------------------------------------------
+      # 4. ECR 로그인 (docker push 전에 필수)
+      # ------------------------------------------------------------
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-northeast-2 | \
+            docker login --username AWS --password-stdin \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
+
+      # ------------------------------------------------------------
+      # 5. 프론트엔드 Docker 이미지 빌드 & ECR 푸시
+      # ------------------------------------------------------------
       - name: Build & Push Docker image
         run: |
           docker build -t waterandfish-frontend:latest .
@@ -49,9 +58,9 @@ jobs:
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
-      # -------------------------------------------------------------------
-      # 5. 런타임 파일을 EC2로 전송 (appleboy/scp-action)
-      # -------------------------------------------------------------------
+      # ------------------------------------------------------------
+      # 6. 런타임 파일을 EC2로 전송 (appleboy/scp-action)
+      # ------------------------------------------------------------
       - name: Copy runtime files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -62,9 +71,9 @@ jobs:
           source: ".env.production,ssl"
           target: "/home/${{ secrets.EC2_USERNAME }}/fe-runtime"
 
-      # -------------------------------------------------------------------
-      # 6. EC2 원격 배포 (appleboy/ssh-action)
-      # -------------------------------------------------------------------
+      # ------------------------------------------------------------
+      # 7. EC2 원격 배포 (appleboy/ssh-action)
+      # ------------------------------------------------------------
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
