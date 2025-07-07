@@ -1,114 +1,49 @@
 name: Deploy FE to EC2
-
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. 소스코드 체크아웃
-      - name: Checkout source
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      # 2. .env.production 파일을 GitHub Secrets에서 생성
-      - name: Copy .env.production from secrets
-        run: echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
-
-      # 3. SSL 인증서 파일을 GitHub Secrets에서 생성 (필요한 경우)
-      - name: Create SSL cert files from secrets
-        run: |
-          mkdir -p ssl
-          echo "${{ secrets.CRT }}" > ssl/certificate.crt
-          echo "${{ secrets.KEY }}" > ssl/private.key
-          echo "${{ secrets.CA_BUNDLE }}" > ssl/ca_bundle.crt
-
-      # 4. AWS 인증 정보 설정 (ECR 접근을 위해 필요)
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      # AWS creds ➜ ECR push
+      - uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      # 5. ECR에 Docker 로그인
-      - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ap-northeast-2 | \
-          docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
-
-      # 6. Docker 이미지 빌드
-      - name: Build Docker image
-        run: |
+      - run: |
           docker build -t waterandfish-frontend:latest .
-
-      # 7. ECR에 push할 태그 추가
-      - name: Tag Docker image for ECR
-        run: |
-          docker tag waterandfish-frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
-
-      # 8. Docker 이미지를 ECR에 push
-      - name: Push Docker image to ECR
-        run: |
+          docker tag  waterandfish-frontend:latest \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
-      # 9. .env.production, ssl 디렉토리 복사
-      - name: Copy .env.production to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          source: ".env.production"
-          target: "~"
-
-      - name: Copy ssl directory to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          source: "ssl"
-          target: "~"
-
-      # 10. EC2에서 배포
-      - name: Deploy to EC2
+      - name: Deploy on EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
+          sync: true                # 깃 저장소 전체 복사
           script: |
-            # Ubuntu 환경에서 awscli 설치 (pip + break-system-packages)
-            if ! command -v aws &> /dev/null; then
-              sudo apt-get update
-              sudo apt-get install -y python3-pip
-              pip3 install --user awscli --break-system-packages
-              export PATH=$PATH:~/.local/bin
+            # 1) AWS CLI (없으면 설치)
+            if ! command -v aws >/dev/null; then
+              sudo apt-get update -y && sudo apt-get install -y unzip
+              curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/aws.zip
+              unzip -qq /tmp/aws.zip -d /tmp && sudo /tmp/aws/install
             fi
-            if ! command -v docker &> /dev/null; then
-              sudo apt-get update && sudo apt-get install -y docker.io
-              sudo usermod -aG docker $USER
-            fi
-            # 배포
-            export PATH=$PATH:~/.local/bin
-            aws --version
-            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
+            # 2) ECR 로그인 & 이미지 최신화
+            aws ecr get-login-password --region ap-northeast-2 \
+            | docker login --username AWS --password-stdin \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
-            docker stop frontend || true
-            docker rm frontend || true
+            # 3) 서비스 재기동
+            docker stop frontend || true && docker rm frontend || true
             docker run -d --name frontend -p 80:80 \
-              --env-file ~/env.production \
-              -v ~/ssl:/etc/nginx/ssl \
+              --env-file .env.production \
+              -v $PWD/ssl:/etc/nginx/ssl \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
-
-# 이 워크플로우는 main 브랜치에 push될 때마다 실행되며,
-# 프론트엔드 Docker 이미지를 빌드해서 ECR에 업로드합니다.
-# EC2 등에서 이미지를 pull해서 배포하는 방식으로 연동하면 됩니다.
