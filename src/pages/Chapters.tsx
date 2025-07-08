@@ -38,8 +38,9 @@ const Chapters = () => {
       
       // WebSocket 연결 시도
       try {
-        const response = await API.get<{ success: boolean; data: { ws_urls: string[] } }>(`/ml/deploy/${chapterId}`);
+        const response = await API.get<{ success: boolean; data: { ws_urls: string[], lesson_mapper: { [key: string]: string } } }>(`/ml/deploy/${chapterId}`);
         if (response.data.success && response.data.data.ws_urls) {
+          console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
           await connectToWebSockets(response.data.data.ws_urls);
           showStatus(); // 전역 상태 표시 활성화
         }
