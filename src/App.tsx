@@ -18,7 +18,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import { AuthProvider } from "@/hooks/useAuth";
-import LetterSession from "./pages/Session_letter";
+import LetterSession from "./pages/LetterSession";
 import LearningGuide from "./pages/LearningGuide";
 import QuizSession from "./pages/QuizSession";
 import QuizReview from "./pages/ReviewSession";

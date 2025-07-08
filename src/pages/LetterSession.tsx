@@ -9,6 +9,8 @@ import { Camera } from '@mediapipe/camera_utils';
 import { drawLandmarks, drawOverlayMessage } from '../components/draw/draw';
 import { detectGesture } from '../components/draw/RightDetector';
 import API from '@/components/AxiosInstance';
+import SessionHeader from '@/components/SessionHeader';
+import LetterDisplay from '@/components/LetterDisplay';
 
 const LetterSession = () => {
   const navigate = useNavigate();
@@ -242,28 +244,15 @@ const LetterSession = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => navigate('/learn')} className="hover:bg-blue-50">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                돌아가기
-              </Button>
-              <div>
-                {setType === 'consonant'?(<h1 className="text-xl font-bold text-gray-800">자음 테스트</h1>):
-                (<h1 className="text-xl font-bold text-gray-800">모음 테스트</h1>)}
-                <p className="text-sm text-gray-600">
-                  문제 {currentIndex + 1}/{sets.length}
-                </p>
-              </div>
-            </div>
-            <div className="w-32">
-              <Progress value={progress} className="h-2" />
-            </div>
-          </div>
-        </div>
-      </header>
+        <SessionHeader
+        isQuizMode={false}
+        currentSign={"쑤퍼노바"}
+        chapter={"chaptar"}
+        currentSignIndex={1}
+        progress={1}
+        categoryId={undefined}
+        navigate={navigate}
+      />
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -284,12 +273,7 @@ const LetterSession = () => {
                 {setType === 'consonant'?(<CardTitle>자음 연습</CardTitle>):
                 (<CardTitle>모음 연습</CardTitle>)}
               </CardHeader>
-              <CardContent>
-                <div ref={decref} className="text-5xl text-center font-bold" />
-                {setType === 'consonant'?(<img src="/consonant.jpg" alt="자음표" className="mx-auto my-4 w-[480px] h-auto"/>):
-                (<img src="/vowel.jpg" alt="모음표" className="mx-auto my-4 w-[480px] h-auto"/>)}
-                <div ref={pileref} className="text-center text-3xl mt-4" />
-              </CardContent>
+              <LetterDisplay isVowel={setType !== 'consonant'} progress={10}/>
             </Card>
           </div>)}
 

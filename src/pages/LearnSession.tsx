@@ -26,12 +26,11 @@ const LearnSession = () => {
 
   // WebSocket 훅
   const { connectionStatus, wsList, broadcastMessage } = useWebsocket();
+  const { showStatus } = useGlobalWebSocketStatus();
 
   // 분류 로그 및 결과 수신 처리
-  const [logs, setLogs] = useState<any[]>([]);
   const [displayConfidence, setDisplayConfidence] = useState<string>('');
 
-  const { showStatus } = useGlobalWebSocketStatus();
 
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const [isTransmitting, setIsTransmitting] = useState(false);
@@ -106,9 +105,12 @@ const LearnSession = () => {
     }
   };
 
+  const DEBUG_FEEDBACK = async () => {
+    setFeedback('correct');
+  };
+
   // FeedbackDisplay 완료 콜백 함수. Feedback 복구 시 해당 메서드 실행하게끔 조치
   const handleFeedbackComplete = () => {
-    setFeedback("correct");
     console.log('🎉 FeedbackDisplay 완료, 다음 수어로 이동');
 
     handleNextSign();
@@ -127,6 +129,28 @@ const LearnSession = () => {
   };
 
   const poseLength = animData && animData.pose ? animData.pose.length : 0;
+
+  useEffect(() => {
+    API.get<{ success: boolean; data: { title: string }; message: string }>(`/chapters/${chapterId}/session`)
+      .then(res => {
+        const title = res.data.data.title;
+        if (title == '자음') {
+          navigate("/test/letter/consonant/study");
+        } else if (title == '모음') {
+          navigate("/test/letter/vowel/study");
+        }
+        else {
+          localStorage.removeItem("studyword");
+          setCurrentSignIndex(0);
+          setFeedback(null);
+        }
+      })
+      .catch(err => {
+        console.error('타입 조회 실패:', err);
+        navigate("/not-found");
+      });
+  }, [chapterId, categoryId, navigate]);
+  
 
   // 수어 변경 시점마다 애니메이션 자동 변경 [완료]
   useEffect(() => {
@@ -157,6 +181,8 @@ const LearnSession = () => {
     };
   }, [animData, currentFrame]);
 
+
+  // 각각의 웹 소켓에서 채점 결과를 수령한다. [완료]
     useEffect(() => {
      if (wsList && wsList.length > 0) {
    // 각 소켓에 대해 핸들러 등록
@@ -170,6 +196,11 @@ const LearnSession = () => {
          switch (msg.type) {
            case 'classification_result': {
              console.log('받은 분류 결과:', msg.data);
+              if(feedback && msg.data.prediction === "None")
+              {
+                setCurrentResult(msg.data);
+                break;
+              }
              const { prediction, confidence, probabilities } = msg.data;
              const target = currentSign?.word;
              let percent: number | undefined = undefined;
@@ -179,9 +210,15 @@ const LearnSession = () => {
                   percent = probabilities[target] * 100;
                 }
                 if (percent != null) {
+                  
                   setDisplayConfidence(`${percent.toFixed(1)}%`);
                 }
                 setCurrentResult(msg.data);
+                if(percent >= 50.0)
+                {
+                  setFeedback("correct");
+                  console.log("PASSED");
+                }
                 break;
            }
            default:
@@ -225,23 +262,32 @@ const LearnSession = () => {
     }
   }, [categoryId, chapterId]);
 
-  // 챕터 목록 준비 된 후 initialize [작업 중]
+  // 챕터 목록 준비 된 후 initialize [완료]
   useEffect(() => {
     setCurrentSignIndex(0);
 
-   
     // 컴포넌트 언마운트 시 정리 작업 실시 
     return () => {
-  //   signClassifierClient.disconnect();
-      //stopStream();
-      // if (transmissionIntervalRef.current) {
-      //   clearInterval(transmissionIntervalRef.current);
-      // }
+      if (transmissionIntervalRef.current) {
+         clearInterval(transmissionIntervalRef.current);
+      }
     };
   }, []);
 
 
-
+  
+if(sessionComplete) // 모든 내용이 완료 된 경우
+{
+  return (
+          <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-gray-800 mb-2">끝내준다!!</h1>
+          <Button onClick={() => navigate('/home')}>돌아가기</Button>
+        </div>
+      </div>
+    
+  );
+}
 
 
 
@@ -307,7 +353,18 @@ const LearnSession = () => {
           </div>
 
         </div>
-        <Button onClick={handleNextSign}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
+        <Button onClick={DEBUG_FEEDBACK}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
+
+                  {/* 피드백 표시 */}
+          {feedback && (
+            <div className="mt-8">
+              <FeedbackDisplay
+                feedback={feedback}
+                prediction={currentResult.prediction}
+                onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
+              />
+            </div>
+          )}
       </div>
       </div>
   );
