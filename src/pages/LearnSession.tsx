@@ -15,6 +15,9 @@ import SessionHeader from '@/components/SessionHeader';
 import LearningDisplay from '@/components/LearningDisplay';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import StreamingControls from '@/components/StreamingControls';
+import SessionInfo from '@/components/SessionInfo';
+import SystemStatus from '@/components/SystemStatus';
+import FeatureGuide from '@/components/FeatureGuide';
 
 
 const LearnSession = () => {
@@ -23,12 +26,18 @@ const LearnSession = () => {
 
   // WebSocket 훅
   const { connectionStatus, wsList, broadcastMessage } = useWebsocket();
+
+  // 분류 로그 및 결과 수신 처리
+  const [logs, setLogs] = useState<any[]>([]);
+  const [displayConfidence, setDisplayConfidence] = useState<string>('');
+
   const { showStatus } = useGlobalWebSocketStatus();
 
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const [isTransmitting, setIsTransmitting] = useState(false);
-  const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null); // 이 경우는 포인터 변수
+  const [currentResult, setCurrentResult] = useState<string | null>(null); // 이 경우는 포인터 변수
   const [isConnecting, setIsConnecting] = useState(false);
+  const [maxConfidence, setMaxConfidence] = useState(0.0);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   //const {findCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
@@ -148,6 +157,53 @@ const LearnSession = () => {
     };
   }, [animData, currentFrame]);
 
+    useEffect(() => {
+     if (wsList && wsList.length > 0) {
+   // 각 소켓에 대해 핸들러 등록
+   const handlers: { ws: WebSocket; fn: (e: MessageEvent) => void }[] = [];
+   setMaxConfidence(0);
+
+   wsList.forEach(ws => {
+     const handleMessage = (event: MessageEvent) => {
+       try {
+         const msg = JSON.parse(event.data);
+         switch (msg.type) {
+           case 'classification_result': {
+             console.log('받은 분류 결과:', msg.data);
+             const { prediction, confidence, probabilities } = msg.data;
+             const target = currentSign?.word;
+             let percent: number | undefined = undefined;
+                if (prediction === target) {
+                  percent = confidence * 100;
+                } else if (probabilities && target && probabilities[target] != null) {
+                  percent = probabilities[target] * 100;
+                }
+                if (percent != null) {
+                  setDisplayConfidence(`${percent.toFixed(1)}%`);
+                }
+                setCurrentResult(msg.data);
+                break;
+           }
+           default:
+             break;
+         }
+       } catch (e) {
+         console.error('WebSocket 메시지 파싱 오류:', e);
+       }
+     };
+     ws.addEventListener('message', handleMessage);
+     handlers.push({ ws, fn: handleMessage });
+   });
+
+   // 정리: 컴포넌트 언마운트 혹은 wsList 변경 시 리스너 해제
+   return () => {
+     handlers.forEach(({ ws, fn }) => {
+       ws.removeEventListener('message', fn);
+     });
+   };
+ }
+}, [wsList]);
+
 
   // 챕터 아이디를 통해 챕터 첫 준비 [완료]
   useEffect(() => {
@@ -205,12 +261,15 @@ const LearnSession = () => {
         {<LearningDisplay
           data={animData}
           currentFrame={currentFrame}
-          totalFrame={poseLength}
+          totalFrame={150}
         />}
+          <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
-        {/* 웹캠 및 분류 결과 */}
+
+     
 
           {/* 비디오 입력 영역 */}
+          <div className="space-y-4">
             <VideoInput
               width={640}
               height={480}
@@ -219,10 +278,9 @@ const LearnSession = () => {
               onStreamReady={handleStreamReady}
               onStreamError={handleStreamError}
               className="h-full"
-              currentSign={"asd"}
+              currentSign={currentSign}
+              currentResult={displayConfidence}
             />
-
-            <Button onClick={handleFeedbackComplete}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
 
             <StreamingControls
               isStreaming={isStreaming}
@@ -234,6 +292,7 @@ const LearnSession = () => {
               onStopStreaming={stopStreaming}
               onConfigChange={setStreamingConfig}
             />
+
             {/* 숨겨진 비디오 요소들 */}
             <div className="hidden">
               <video
@@ -243,21 +302,17 @@ const LearnSession = () => {
                 playsInline
                 className="w-full h-full object-cover"
               />
-        </div>
-                  {/* 피드백 표시 */}
-          {feedback && (
-            <div className="mt-8">
-              <FeedbackDisplay
-                feedback={feedback}
-                prediction={currentResult?.prediction}
-                onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
-              />
-              
+              <canvas ref={canvasRef} />
             </div>
-          )}
+          </div>
+
+        </div>
+        <Button onClick={handleNextSign}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
       </div>
-    </div>
+      </div>
   );
 };
 
 export default LearnSession;
+
+
