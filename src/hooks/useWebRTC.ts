@@ -15,7 +15,7 @@ export interface UseWebRTCReturn extends WebRTCState {
   createOffer: () => Promise<RTCSessionDescriptionInit>;
   handleAnswer: (answer: RTCSessionDescriptionInit) => Promise<void>;
   addIceCandidate: (candidate: RTCIceCandidateInit) => Promise<void>;
-  sendMessage: (message: WebRTCMessage) => boolean;
+  sendMessage: (message: WebRTCMessage, connectionId?: string) => boolean;
   disconnect: () => void;
   destroy: () => void;
 }

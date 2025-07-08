@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { Category, Chapter, Lesson } from '@/types/learning';
-import { useVideoStream } from '@/hooks/useVideoStream';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useVideoStreaming } from '@/hooks/useVideoStreaming';
@@ -9,7 +8,7 @@ import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import React, { useState, useRef, useEffect, useCallback, startTransition } from 'react';
 
 import API from '@/components/AxiosInstance';
-import useWebsocket from '@/hooks/useWebsocket';
+import useWebsocket, { getConnectionByUrl } from '@/hooks/useWebsocket';
 import VideoInput from '@/components/VideoInput';
 import SessionHeader from '@/components/SessionHeader';
 import LearningDisplay from '@/components/LearningDisplay';
@@ -19,6 +18,12 @@ import SessionInfo from '@/components/SessionInfo';
 import SystemStatus from '@/components/SystemStatus';
 import FeatureGuide from '@/components/FeatureGuide';
 
+// 재시도 설정
+const RETRY_CONFIG = {
+  maxAttempts: 3,
+  initialDelay: 1000, // 1초
+  maxDelay: 5000, // 5초
+};
 
 const LearnSession = () => {
   const { categoryId, chapterId } = useParams();
@@ -27,15 +32,99 @@ const LearnSession = () => {
   
   // URL state에서 lesson_mapper 가져오기
   const [lesson_mapper, setLessonMapper] = useState<{ [key: string]: string }>(location.state?.lesson_mapper || {});
+  const [currentWsUrl, setCurrentWsUrl] = useState<string>('');
+  const [currentConnectionId, setCurrentConnectionId] = useState<string>('');
   
+  // 재시도 관련 상태
+  const [retryAttempts, setRetryAttempts] = useState({
+    lessonMapper: 0,
+    wsConnection: 0,
+  });
+  const [isRetrying, setIsRetrying] = useState(false);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // lesson_mapper 재시도 함수
+   const retryLessonMapper = useCallback(async () => {
+     if (retryAttempts.lessonMapper >= RETRY_CONFIG.maxAttempts) {
+       console.error('[LearnSession] lesson_mapper 재시도 횟수 초과');
+       alert('데이터를 불러오는데 실패했습니다. 페이지를 새로고침하거나 다시 시도해주세요.');
+       setIsRetrying(false);
+       return;
+     }
+
+     setIsRetrying(true);
+     const delay = Math.min(
+       RETRY_CONFIG.initialDelay * Math.pow(2, retryAttempts.lessonMapper),
+       RETRY_CONFIG.maxDelay
+     );
+
+     console.log(`[LearnSession] lesson_mapper 재시도 ${retryAttempts.lessonMapper + 1}/${RETRY_CONFIG.maxAttempts} (${delay}ms 후)`);
+
+     retryTimeoutRef.current = setTimeout(() => {
+       // 이전 페이지로 돌아가서 다시 데이터 받아오기
+       if (location.state?.lesson_mapper && Object.keys(location.state.lesson_mapper).length > 0) {
+         setLessonMapper(location.state.lesson_mapper);
+         setRetryAttempts(prev => ({ ...prev, lessonMapper: 0 }));
+         // WebSocket 연결도 성공했거나 재시도가 필요없으면 전체 재시도 상태 해제
+         if (retryAttempts.wsConnection === 0 && currentConnectionId) {
+           setIsRetrying(false);
+         }
+         console.log('[LearnSession] lesson_mapper 재시도 성공');
+       } else {
+         setRetryAttempts(prev => ({ ...prev, lessonMapper: prev.lessonMapper + 1 }));
+         retryLessonMapper();
+       }
+     }, delay);
+   }, [retryAttempts.lessonMapper, retryAttempts.wsConnection, location.state, currentConnectionId]);
+
+     // WebSocket 연결 재시도 함수
+   const retryWsConnection = useCallback(async (targetUrl: string) => {
+     if (retryAttempts.wsConnection >= RETRY_CONFIG.maxAttempts) {
+       console.error('[LearnSession] WebSocket 연결 재시도 횟수 초과');
+       alert('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+       setIsRetrying(false);
+       return;
+     }
+
+     setIsRetrying(true);
+     const delay = Math.min(
+       RETRY_CONFIG.initialDelay * Math.pow(2, retryAttempts.wsConnection),
+       RETRY_CONFIG.maxDelay
+     );
+
+     console.log(`[LearnSession] WebSocket 연결 재시도 ${retryAttempts.wsConnection + 1}/${RETRY_CONFIG.maxAttempts} (${delay}ms 후)`);
+
+     retryTimeoutRef.current = setTimeout(() => {
+       const connection = getConnectionByUrl(targetUrl);
+       if (connection) {
+         setCurrentConnectionId(connection.id);
+         setRetryAttempts(prev => ({ ...prev, wsConnection: 0 }));
+         // lesson_mapper도 성공했거나 재시도가 필요없으면 전체 재시도 상태 해제
+         if (retryAttempts.lessonMapper === 0 && Object.keys(lesson_mapper).length > 0) {
+           setIsRetrying(false);
+         }
+         console.log('[LearnSession] WebSocket 연결 재시도 성공:', connection.id);
+       } else {
+         setRetryAttempts(prev => ({ ...prev, wsConnection: prev.wsConnection + 1 }));
+         retryWsConnection(targetUrl);
+       }
+     }, delay);
+   }, [retryAttempts.wsConnection, retryAttempts.lessonMapper, lesson_mapper]);
+
   // lesson_mapper 디버그 로그
   useEffect(() => {
     console.log('[LearnSession] lesson_mapper:', lesson_mapper);
-    console.log('[LearnSession] lesson_mapper keys:', lesson_mapper);
-  }, [lesson_mapper]);
+    console.log('[LearnSession] lesson_mapper keys:', Object.keys(lesson_mapper));
+    
+    // lesson_mapper가 비어있으면 재시도
+    if (Object.keys(lesson_mapper).length === 0 && !isRetrying) {
+      console.log('[LearnSession] lesson_mapper가 비어있음, 재시도 시작');
+      retryLessonMapper();
+    }
+  }, [lesson_mapper, isRetrying, retryLessonMapper]);
 
   // WebSocket 훅
-  const { connectionStatus, wsList, broadcastMessage } = useWebsocket();
+  const { connectionStatus, wsList, broadcastMessage, sendMessage } = useWebsocket();
 
   // 분류 로그 및 결과 수신 처리
   const [logs, setLogs] = useState<any[]>([]);
@@ -92,7 +181,46 @@ const LearnSession = () => {
   } = useVideoStreaming({
     connectionStatus,
     broadcastMessage,
+    sendMessage,
+    connectionId: currentConnectionId,
   });
+
+  // 이전 connectionId 추적을 위한 ref
+  const prevConnectionIdRef = useRef<string>('');
+
+  // connectionId 변경 시 비디오 스트리밍 갱신
+  useEffect(() => {
+    // 실제로 connectionId가 변경되었을 때만 처리
+    if (currentConnectionId && 
+        currentConnectionId !== prevConnectionIdRef.current && 
+        prevConnectionIdRef.current !== '') {
+      
+      console.log('[LearnSession] connectionId 변경 감지:', prevConnectionIdRef.current, '->', currentConnectionId);
+      
+      // 스트리밍 중일 때만 재시작
+      if (isStreaming) {
+        console.log('[LearnSession] 스트리밍 재시작 시작');
+        
+        // 기존 스트리밍 중지 후 새 connectionId로 재시작
+        stopStreaming();
+        
+        // 잠시 대기 후 재시작 (연결 정리 시간 확보)
+        const restartTimeout = setTimeout(() => {
+          startStreaming();
+          console.log('[LearnSession] 스트리밍 재시작 완료');
+        }, 100);
+        
+        return () => clearTimeout(restartTimeout);
+      } else {
+        console.log('[LearnSession] 스트리밍 중이 아니므로 재시작하지 않음');
+      }
+    }
+    
+    // connectionId 업데이트
+    if (currentConnectionId) {
+      prevConnectionIdRef.current = currentConnectionId;
+    }
+  }, [currentConnectionId, startStreaming, stopStreaming]);
 
   // 이벤트 핸들러
   const handleBack = () => {
@@ -169,12 +297,33 @@ const LearnSession = () => {
     };
   }, [animData, currentFrame]);
 
+  // 현재 수어에 대한 ws url 출력
   useEffect(() => {
     if (currentSignId) {
       console.log('[LearnSession] currentSignId:', currentSignId);
-      console.log('[LearnSession] current ws url :', lesson_mapper[currentSignId]);
+      const wsUrl = lesson_mapper[currentSignId] || '';
+      setCurrentWsUrl(wsUrl);
+      console.log('[LearnSession] currentWsUrl:', wsUrl);
+      
+      if (wsUrl) {
+        const connection = getConnectionByUrl(wsUrl);
+        if (connection) {
+          setCurrentConnectionId(connection.id);
+          setRetryAttempts(prev => ({ ...prev, wsConnection: 0 })); // 성공 시 재시도 카운터 리셋
+          console.log('[LearnSession] currentConnectionId:', connection.id);
+        } else {
+          console.warn(`[LearnSession] No connection found for targetUrl: ${wsUrl}, 재시도 시작`);
+          retryWsConnection(wsUrl);
+        }
+      } else {
+        console.warn('[LearnSession] currentSignId에 대한 WebSocket URL이 없음:', currentSignId);
+        // lesson_mapper에 해당 ID가 없으면 lesson_mapper 재시도
+        if (Object.keys(lesson_mapper).length === 0) {
+          retryLessonMapper();
+        }
+      }
     }
-  }, [currentSignId]);
+  }, [currentSignId, lesson_mapper, retryWsConnection, retryLessonMapper]);
 
     useEffect(() => {
      if (wsList && wsList.length > 0) {
@@ -256,6 +405,12 @@ const LearnSession = () => {
       // if (transmissionIntervalRef.current) {
       //   clearInterval(transmissionIntervalRef.current);
       // }
+      
+      // 재시도 타이머 정리
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
     };
   }, []);
 
