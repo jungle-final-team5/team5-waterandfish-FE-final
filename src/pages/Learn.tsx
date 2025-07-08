@@ -33,9 +33,9 @@ const Learn = () => {
   const [currentFrame, setCurrentFrame] = useState(0);
 
   const navigate = useNavigate();
-  const { wordId }= useParams();
+  const { wordId } = useParams();
+  const decodedWord = wordId ? decodeURIComponent(wordId) : '';
 
-  const { word } = useParams();
   const [currentStep, setCurrentStep] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -49,11 +49,13 @@ const Learn = () => {
 
   const [fetchedSign, setFetchedSign] = useState<Lesson | undefined>(undefined);
 
+  const normalize = (str: string) => str ? str.normalize('NFC').trim().toLowerCase() : '';
+
   // 모든 수어(flatten)
   const allSigns = (categories ?? [])
     .flatMap(cat =>
       (cat.chapters ?? []).flatMap(chap =>
-        (chap.signs ?? []).map(sign => ({
+        (chap.lessons ?? []).map(sign => ({
           ...sign,
           categoryTitle: cat.title,
           categoryId: cat.id
@@ -61,23 +63,20 @@ const Learn = () => {
       )
     );
 
-  // 현재 keyword에 해당하는 수어 찾기
-  const selectedSign = allSigns.find(sign => sign.word === word) as (Lesson & { categoryTitle?: string });
+  // word로 수어 찾기
+  const selectedSign = allSigns.find(
+    sign => sign.word && normalize(sign.word) === normalize(decodedWord)
+  );
 
   const signToShow = selectedSign;
-  const category = selectedSign && selectedSign.categoryTitle
-    ? selectedSign.categoryTitle
-    : '기타';
 
   // 추천 수어/검색결과 리스트 (실제 데이터 기반, 최대 6개)
   const exampleSigns = allSigns.slice(0, 6);
 
-    const loadAnim = async () => {
+  const loadAnim = async () => {
     try {
-       const id = wordId;
-       console.log(wordId);
-    const response = await API.get(`/anim/${id}`);
-        console.log(response);
+      if (!wordId) return;
+      const response = await API.get(`/anim/${encodeURIComponent(wordId)}`);
       setAnimData(response.data);
     } catch (error) {
       console.error('데이터 로드 실패:', error);
@@ -112,12 +111,15 @@ const Learn = () => {
     };
   }, [isPlaying, animationSpeed, animData, currentFrame]);
 
-
+  useEffect(() => {
+    console.log('allSigns:', allSigns);
+    console.log('decodedWord:', decodedWord);
+    console.log('selectedSign:', selectedSign);
+  }, [allSigns, decodedWord, selectedSign]);
 
   // 샘플 학습 데이터
   const learningData = {
-    category: category,
-    keyword: signToShow?.word ?? word,
+    keyword: signToShow?.word ?? wordId,
     steps: [
       {
         title: '예시 보기',
@@ -184,6 +186,10 @@ const Learn = () => {
     // eslint-disable-next-line
   }, [currentStepData.type]);
 
+  if (!categories || categories.length === 0) {
+    return <div className="text-center mt-10">수어 데이터를 불러오는 중입니다...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -200,8 +206,8 @@ const Learn = () => {
                 홈으로
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-gray-800">{signToShow?.word ?? word}</h1>
-                <p className="text-sm text-gray-600">{learningData.category}</p>
+                <h1 className="text-xl font-bold text-gray-800">{signToShow?.word ?? decodedWord ?? ''}</h1>
+                {/* <p className="text-sm text-gray-600">{category}</p> */}
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -330,7 +336,7 @@ const Learn = () => {
             <div className="text-center py-12">
               <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
-              <p className="text-gray-600 mb-6">'{signToShow?.word ?? word}' 수어를 성공적으로 학습했습니다.</p>
+              <p className="text-gray-600 mb-6">'{signToShow?.word ?? wordId}' 수어를 성공적으로 학습했습니다.</p>
               <div className="flex justify-center space-x-4">
                 <Button onClick={() => navigate('/home')} variant="outline">
                   홈으로 돌아가기
