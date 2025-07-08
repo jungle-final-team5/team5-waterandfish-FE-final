@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 
 interface FeedbackDisplayProps {
   feedback: 'correct' | 'incorrect';
-  prediction?: string;
+  prediction?: any;
   onComplete?: () => void;
 }
 
@@ -15,6 +15,11 @@ const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayPr
   const [waitingForNone, setWaitingForNone] = useState(false);
   const [noneCountdown, setNoneCountdown] = useState(0);
   const noneTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const lastCheckRef = useRef<number>(0);
+const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
+// 검사 최소 간격(ms) — 필요에 따라 조정하세요
+const CHECK_INTERVAL = 500;
 
   useEffect(() => {
     if (isCorrect) {
@@ -62,22 +67,6 @@ const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayPr
     }, 1000);
   };
 
-  const debug_goNext = () => {
-    setWaitingForNone(false);
-
-        noneTimerRef.current = setInterval(() => {
-      setNoneCountdown((prev) => {
-        if (prev <= 1) {
-          console.log('✅ None이 2초 동안 연속으로 유지되었습니다. 다음으로 진행합니다.');
-          clearNoneTimer();
-          onComplete?.();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
   const checkPredictionAndComplete = () => {
     if (prediction && prediction.toLowerCase() === 'none') {
       // 이미 타이머가 실행 중이 아닐 때만 시작
@@ -89,16 +78,19 @@ const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayPr
       }
     } else {
       console.log('⏳ Prediction이 아직 None이 아닙니다. 대기 중...');
+      console.log(prediction);
       setWaitingForNone(true);
     }
   };
 
   // prediction이 변경될 때마다 체크
-  useEffect(() => {
-    // 대기 중이거나 타이머 진행 중일 때 prediction 체크
+useEffect(() => {
+  const now = Date.now();
+
+  // 실제 검사 로직을 함수로 분리
+  const runCheck = () => {
     if (waitingForNone || noneCountdown > 0) {
-      if (prediction && prediction.toLowerCase() === 'none') {
-        // 이미 타이머가 실행 중이 아닐 때만 시작
+      if (prediction?.toLowerCase() === 'none') {
         if (!noneTimerRef.current && waitingForNone) {
           console.log('✅ Prediction이 None으로 변경되었습니다. 2초 타이머를 시작합니다.');
           startNoneTimer();
@@ -106,13 +98,38 @@ const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayPr
           console.log('⏳ None 타이머가 이미 실행 중입니다.');
         }
       } else if (prediction && prediction.toLowerCase() !== 'none') {
-        // None이 아닌 값으로 변경되면 타이머 리셋하고 다시 대기 상태로
         console.log('❌ Prediction이 None이 아님으로 변경됨. 타이머를 리셋하고 대기 상태로 돌아갑니다.');
         clearNoneTimer();
         setWaitingForNone(true);
       }
     }
-  }, [prediction, waitingForNone, noneCountdown, onComplete]);
+  };
+
+  const timeSince = now - lastCheckRef.current;
+  if (timeSince >= CHECK_INTERVAL) {
+    // 마지막 실행 시점과 충분한 간격이 있으면 즉시 실행
+    lastCheckRef.current = now;
+    console.log("실행!!");
+    runCheck();
+  } else {
+    // 그렇지 않으면, 남은 시간 후에 한 번만 실행 예약
+    if (!throttleTimerRef.current) {
+      throttleTimerRef.current = setTimeout(() => {
+        lastCheckRef.current = Date.now();
+        runCheck();
+        throttleTimerRef.current = null;
+      }, CHECK_INTERVAL - timeSince);
+    }
+  }
+
+  // cleanup: 언마운트 시 예약된 타이머 취소
+  return () => {
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
+  };
+}, [prediction, waitingForNone, noneCountdown, onComplete]);
 
   // 컴포넌트 언마운트 시 타이머 정리
   useEffect(() => {
@@ -171,7 +188,6 @@ const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayPr
                 )}
               </div>
             </div>
-            <Button onClick={debug_goNext}></Button>
           </CardContent>
         </Card>
       </div>

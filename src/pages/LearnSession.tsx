@@ -268,6 +268,29 @@ const LearnSession = () => {
 
   const poseLength = animData && animData.pose ? animData.pose.length : 0;
 
+  // 자음 모음쪽으로 네비게이팅 합니다. 이거 따로 빼야함
+  useEffect(() => {
+    API.get<{ success: boolean; data: { title: string }; message: string }>(`/chapters/${chapterId}/session`)
+      .then(res => {
+        const title = res.data.data.title;
+        if (title == '자음') {
+          navigate("/test/letter/consonant/study");
+        } else if (title == '모음') {
+          navigate("/test/letter/vowel/study");
+        }
+        else {
+          localStorage.removeItem("studyword");
+          setCurrentSignIndex(0);
+          setFeedback(null);
+        }
+      })
+      .catch(err => {
+        console.error('타입 조회 실패:', err);
+        navigate("/not-found");
+      });
+  }, [chapterId, categoryId, navigate]);
+
+
   // 수어 변경 시점마다 애니메이션 자동 변경 [완료]
   useEffect(() => {
     loadAnim();
@@ -338,6 +361,11 @@ const LearnSession = () => {
          switch (msg.type) {
            case 'classification_result': {
              console.log('받은 분류 결과:', msg.data);
+             if(feedback && msg.data.prediction === "None")
+              {
+                setCurrentResult(msg.data);
+                break;
+              }
              const { prediction, confidence, probabilities } = msg.data;
              const target = currentSign?.word;
              let percent: number | undefined = undefined;
@@ -350,6 +378,11 @@ const LearnSession = () => {
                   setDisplayConfidence(`${percent.toFixed(1)}%`);
                 }
                 setCurrentResult(msg.data);
+                if(percent >= 50.0)
+                {
+                  setFeedback("correct");
+                  console.log("PASSED");
+                }
                 break;
            }
            default:
@@ -396,16 +429,11 @@ const LearnSession = () => {
   // 챕터 목록 준비 된 후 initialize [작업 중]
   useEffect(() => {
     setCurrentSignIndex(0);
-
+    setFeedback(null);
+    setCurrentResult(null); // 이전 분류 결과 초기화
    
     // 컴포넌트 언마운트 시 정리 작업 실시 
     return () => {
-  //   signClassifierClient.disconnect();
-      //stopStream();
-      // if (transmissionIntervalRef.current) {
-      //   clearInterval(transmissionIntervalRef.current);
-      // }
-      
       // 재시도 타이머 정리
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
@@ -416,7 +444,19 @@ const LearnSession = () => {
 
 
 
-
+  
+if(sessionComplete) // 모든 내용이 완료 된 경우
+{
+  return (
+          <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-gray-800 mb-2">끝내준다!!</h1>
+          <Button onClick={() => navigate('/home')}>돌아가기</Button>
+        </div>
+      </div>
+    
+  );
+}
 
 
   return (
@@ -465,7 +505,9 @@ const LearnSession = () => {
               onStartStreaming={startStreaming}
               onStopStreaming={stopStreaming}
               onConfigChange={setStreamingConfig}
+              transitionSign={handleNextSign}
             />
+            
 
             {/* 숨겨진 비디오 요소들 */}
             <div className="hidden">
@@ -481,7 +523,16 @@ const LearnSession = () => {
           </div>
 
         </div>
-        <Button onClick={handleNextSign}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
+                  {/* 피드백 표시 */}
+          {feedback && (
+            <div className="mt-8">
+              <FeedbackDisplay
+                feedback={feedback}
+                prediction={currentResult.prediction}
+                onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
+              />
+            </div>
+          )}
       </div>
       </div>
   );
