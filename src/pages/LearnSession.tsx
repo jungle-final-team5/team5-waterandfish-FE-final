@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, startTransition } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import VideoInput from '@/components/VideoInput';
 import StreamingControls from '@/components/StreamingControls';
@@ -17,6 +17,9 @@ import { Button } from '@/components/ui/button';
 import { Chapter, Lesson } from '@/types/learning';
 import FeatureGuide from '@/components/FeatureGuide';
 import SystemStatus from '@/components/SystemStatus';
+import WebRTCService from '@/services/WebRTCService';
+import WebRTCSignalingClient from '@/services/WebRTCSignalingClient';
+import { ClassificationResult } from '@/services/SignClassifierClient'; // 타입만 재사용
 
 
 
@@ -37,6 +40,8 @@ const LearnSession = () => {
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isHandDetected, setIsHandDetected] = useState(false);
   const { state, startStream, stopStream, captureFrameAsync } = useVideoStream();
+  const signalingClientRef = useRef<WebRTCSignalingClient | null>(null);
+  const RTCservice = useRef<WebRTCService | null>(null);
   //const {canvasRef, state, startStream, stopStream, captureFrameAsync } = useVideoStream();
 
   //const {findCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
@@ -54,7 +59,7 @@ const LearnSession = () => {
   const [sessionComplete, setSessionComplete] = useState(false);
 
   const category = categoryId ? findCategoryById(categoryId) : null;
-
+  const signalingClient = new WebRTCSignalingClient('ws://your-signaling-server-url', 'sign-classification-room');
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
 
   // 비디오 스트리밍 훅
@@ -89,7 +94,9 @@ const LearnSession = () => {
     console.log(`🔌 서버 연결 시도 ${attemptNumber}...`);
     setIsConnecting(true);
 
+
     try {
+      await signalingClient.connect();
       const success = true;
       setIsConnected(success);
 
@@ -109,50 +116,59 @@ const LearnSession = () => {
   };
 
   // TODO : 나사 빠짐 해결 할 것
-  // const initializeSession = async (): Promise<void> => {
-  //   try {
-  //     // 분류 결과 콜백 설정
-  //     signClassifierClient.onResult((result) => {
-  //       if (isMovingNextSign == false) {
-  //         setCurrentResult(result);
-  //         console.log('분류 결과:', result);
-  //       }
-  //     });
+  const initializeSession = async (): Promise<void> => {
+    try {
+    // WebRTCSignalingClient 초기화
+    
+    signalingClientRef.current = signalingClient;
+    
+    // 분류 결과 이벤트 리스너 설정
+    signalingClient.on('classification-result', (message) => {
+      if (isMovingNextSign === false) {
+        const result = message.data as ClassificationResult;
+        setCurrentResult(result);
+        console.log('분류 결과:', result);
+      }
+      });
 
-  //     // 연결 재시도 로직
-  //     const maxAttempts = 5;
-  //     let connected = false;
+      // 연결 재시도 로직
+      const maxAttempts = 5;
+      let connected = false;
 
-  //     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-  //       connected = await attemptConnection(attempt);
+      // 연결이 확인되면 connected가 바뀌고 그 이후 반복문에서 빠져나옴
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        connected = await attemptConnection(attempt);
 
-  //       if (connected) {
-  //         break;
-  //       }
+        if (connected) {
+          break;
+        }
 
-  //       if (attempt < maxAttempts) {
-  //         console.log(`🔄 ${attempt}/${maxAttempts} 재시도 중... (3초 후)`);
-  //         await new Promise(resolve => setTimeout(resolve, 3000));
-  //       }
-  //     }
+        if (attempt < maxAttempts) {
+          console.log(`🔄 ${attempt}/${maxAttempts} 재시도 중... (3초 후)`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
 
-  //     if (connected) {
-  //       // 비디오 스트림 시작
-  //       setTimeout(async () => {
-  //         try {
-  //           await startStream();
-  //           console.log('🎥 비디오 스트림 시작 요청 완료');
-  //         } catch (error) {
-  //           console.error('비디오 스트림 시작 실패:', error);
-  //         }
-  //       }, 500);
-  //     } else {
-  //       console.error('❌ 최대 연결 시도 횟수 초과');
-  //     }
-  //   } catch (error) {
-  //     console.error('세션 초기화 실패:', error);
-  //   }
-  // };
+      // 연결이 확인 된 이후로 마저 준비가 이루어집니다.
+      if (connected) {
+        setTimeout(async () => {
+          try {
+            await startStream();
+            console.log('🎥 비디오 스트림 시작 요청 완료');
+
+            startTransition();
+          } catch (error) {
+            console.error('비디오 스트림 시작 실패:', error);
+          }
+        }, 500);
+      } else {
+        console.error('❌ 최대 연결 시도 횟수 초과');
+      }
+    } catch (error) {
+
+      console.error('세션 초기화 실패! : ', error);
+    }
+  };
 
   // TODO : 나사 빠짐 해결 할 것
   // const handleStartTransmission = () => {
@@ -295,24 +311,18 @@ const LearnSession = () => {
   // 챕터 목록 준비 된 후 initialize
   useEffect(() => {
     setCurrentSignIndex(0);
-    // initializeSession(); // 마운트 혹은 업데이트 루틴
+    initializeSession();
 
-    // 언마운트 루틴
-    // return () => {
-    //   signClassifierClient.disconnect();
-    //   stopStream();
-    //   if (transmissionIntervalRef.current) {
-    //     clearInterval(transmissionIntervalRef.current);
-    //   }
-    // };
+   
+    // 컴포넌트 언마운트 시 정리 작업 실시
+    return () => {
+  //   signClassifierClient.disconnect();
+      stopStream();
+      // if (transmissionIntervalRef.current) {
+      //   clearInterval(transmissionIntervalRef.current);
+      // }
+    };
   }, []);
-
-  // // 애니메이션 파일 교체
-  // useEffect(() => {
-  //   if (currentSign?.videoUrl) {
-  //     loadAnim(currentSign?.videoUrl);
-  //   }
-  // }, [currentSign?.videoUrl, loadAnim]);
 
   //======= 비디오 스트림 및 MediaPipe 포즈 감지 =======
   // useEffect(() => {
@@ -453,28 +463,28 @@ const LearnSession = () => {
   // }, [isConnected, isConnecting, state.isStreaming]);
 
   // 연결 상태 주기적 확인
-  // useEffect(() => {
-  //   const checkConnectionStatus = () => {
-  //     const currentStatus = signClassifierClient.getConnectionStatus();
-  //     if (currentStatus !== isConnected) {
-  //       console.log(`🔗 연결 상태 변경: ${isConnected} → ${currentStatus}`);
-  //       setIsConnected(currentStatus);
+  useEffect(() => {
+    const checkConnectionStatus = () => {
+      const currentStatus = RTCservice.getConnectionState();
+      if (currentStatus !== "connected") { // type RTCPeerConnectionState = "closed" | "connected" | "connecting" | "disconnected" | "failed" | "new";
+        console.log(`🔗 연결 상태 변경: ${isConnected} → ${currentStatus}`);
+        setIsConnected(currentStatus);
 
-  //       // 연결이 끊어진 경우 전송 중지
-  //       if (!currentStatus && isTransmitting) {
-  //         console.log('🔴 연결 끊어짐, 전송 중지');
-  //         setIsTransmitting(false);
-  //         if (transmissionIntervalRef.current) {
-  //           clearInterval(transmissionIntervalRef.current);
-  //           transmissionIntervalRef.current = null;
-  //         }
-  //       }
-  //     }
-  //   };
+        // 연결이 끊어진 경우 전송 중지
+        if (!currentStatus && isTransmitting) {
+          console.log('🔴 연결 끊어짐, 전송 중지');
+          setIsTransmitting(false);
+          if (transmissionIntervalRef.current) {
+            clearInterval(transmissionIntervalRef.current);
+            transmissionIntervalRef.current = null;
+          }
+        }
+      }
+    };
 
-  //   const interval = setInterval(checkConnectionStatus, 2000); // 2초마다 확인
-  //   return () => clearInterval(interval);
-  // }, [isConnected, isTransmitting]);
+    const interval = setInterval(checkConnectionStatus, 2000); // 2초마다 확인
+    return () => clearInterval(interval);
+  }, [isConnected, isTransmitting]);
 
   // 분류 결과와 정답 비교 로직 (4-8, 4-9 구현)
   useEffect(() => {
@@ -560,7 +570,6 @@ const LearnSession = () => {
           totalFrame={poseLength}
         />}
 
-
         {/* 웹캠 및 분류 결과 */}
 
           {/* 비디오 입력 영역 */}
@@ -587,7 +596,6 @@ const LearnSession = () => {
               onStopStreaming={stopStreaming}
               onConfigChange={setStreamingConfig}
             />
-
             {/* 숨겨진 비디오 요소들 */}
             <div className="hidden">
               <video
@@ -597,93 +605,10 @@ const LearnSession = () => {
                 playsInline
                 className="w-full h-full object-cover"
               />
-              
-          
         </div>
-        
       </div>
     </div>
   );
-  
-  // return (
-  //   <div className="min-h-screen bg-gray-50 p-6">
-  //     <div className="max-w-6xl mx-auto">
-  //       <PageHeader
-  //         title="단어 학습 세션"
-  //         connectionStatus={connectionStatus}
-  //         wsList={wsList}
-  //         onBack={handleBack}
-  //         onShowStatus={showStatus}
-  //       />
-
-  //       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  //         {/* 비디오 입력 영역 */}
-  //         <div className="space-y-4">
-  //           <VideoInput
-  //             width={640}
-  //             height={480}
-  //             autoStart={false}
-  //             showControls={true}
-  //             onStreamReady={handleStreamReady}
-  //             onStreamError={handleStreamError}
-  //             className="h-full"
-  //           />
-
-  //           <StreamingControls
-  //             isStreaming={isStreaming}
-  //             streamingStatus={streamingStatus}
-  //             streamingConfig={streamingConfig}
-  //             currentStream={currentStream}
-  //             connectionStatus={connectionStatus}
-  //             onStartStreaming={startStreaming}
-  //             onStopStreaming={stopStreaming}
-  //             onConfigChange={setStreamingConfig}
-  //           />
-
-  //           {/* 숨겨진 비디오 요소들 */}
-  //           <div className="hidden">
-  //             <video
-  //               ref={videoRef}
-  //               autoPlay
-  //               muted
-  //               playsInline
-  //               className="w-full h-full object-cover"
-  //             />
-  //             <canvas ref={canvasRef} />
-  //           </div>
-  //         </div>
-
-  //         {/* 정보 패널 */}
-  //         <div className="space-y-6">
-  //           <SessionInfo
-  //             chapterId={chapterId}
-  //             currentStream={currentStream}
-  //             connectionStatus={connectionStatus}
-  //             wsList={wsList}
-  //             isStreaming={isStreaming}
-  //             streamInfo={streamInfo}
-  //             streamingStatus={streamingStatus}
-  //             streamingConfig={streamingConfig}
-  //             streamingStats={streamingStats}
-  //           />
-
-  //           <SystemStatus
-  //             currentStream={currentStream}
-  //             connectionStatus={connectionStatus}
-  //             wsList={wsList}
-  //             isStreaming={isStreaming}
-  //             streamingStats={streamingStats}
-  //           />
-
-  //           <FeatureGuide
-  //             connectionStatus={connectionStatus}
-  //             isStreaming={isStreaming}
-  //           />
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
 };
 
 export default LearnSession;

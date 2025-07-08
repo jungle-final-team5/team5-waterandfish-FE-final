@@ -128,10 +128,6 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Monitor className="h-5 w-5" />
-            <span>비디오 입력</span>
-          </div>
           
           {showControls && (
             <div className="flex items-center space-x-2">
