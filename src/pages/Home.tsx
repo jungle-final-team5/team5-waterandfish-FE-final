@@ -131,11 +131,11 @@ const Home = () => {
   useEffect(() => {
     const fetchDailySign = async () => {
       try {
-        const res = await API.get<{ success: boolean; data: { lesson: RecommendedSign } }>(
+        const res = await API.get<{ success: boolean; data: { lessons: RecommendedSign[] } }>(
           '/recommendations/daily-sign'
         );
-        if (res.data.success && res.data.data && res.data.data.lesson) {
-          setRecommendedSign(res.data.data.lesson);
+        if (res.data.success && res.data.data && Array.isArray(res.data.data.lessons) && res.data.data.lessons.length > 0) {
+          setRecommendedSign(res.data.data.lessons[0]);
         } else {
           setRecommendedSign(null);
         }
@@ -151,10 +151,12 @@ const Home = () => {
     return /^[\u3131-\u314E\u314F-\u3163]+$/.test(text);
   }
 
-  // 오늘 날짜 기반 seed 생성
+  // 오늘 날짜 기반 seed 생성 (KST 기준)
   function getTodaySeed() {
-    const today = new Date();
-    return today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+    const now = new Date();
+    // KST는 UTC+9
+    now.setHours(now.getHours() + 9);
+    return now.toISOString().slice(0, 10); // 'YYYY-MM-DD'
   }
 
   // seed 기반 랜덤 인덱스 생성
@@ -473,7 +475,11 @@ const Home = () => {
           </div>
           <Button 
             variant="secondary"
-            onClick={() => recommendedSign && navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`)}
+            onClick={() => {
+              console.log('추천 수어:', recommendedSign);
+              console.log('word:', recommendedSign?.word);
+              if (recommendedSign) navigate(`/learn/word/${encodeURIComponent(recommendedSign.word ?? '')}`);
+            }}
             className="bg-white/90 hover:bg-white/100 border-white/90 hover:scale-105 transition-all duration-200 backdrop-blur-sm"
             disabled={!recommendedSign}
           >
