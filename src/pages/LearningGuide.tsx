@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,8 +19,12 @@ import VideoInput from '@/components/VideoInput';
 const LearningGuide = () => {
   const { chapterId: paramChapterId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const {  categories } = useLearningData();
   const chapterId = paramChapterId;
+  
+  // URL state에서 lesson_mapper 가져오기
+  const lesson_mapper = location.state?.lesson_mapper || {};
 
   console.log('chapterId', chapterId);
   if (!chapterId) {
@@ -40,11 +44,11 @@ const LearningGuide = () => {
   const startContents = () => {
     if(isQuiz)
     {
-      navigate(`/quiz/chapter/${chapterId}`);
+      navigate(`/quiz/chapter/${chapterId}`, { state: { lesson_mapper } });
     }
     else
     {
-      navigate(`/learn/chapter/${chapterId}`);
+      navigate(`/learn/chapter/${chapterId}`, { state: { lesson_mapper } });
     }
   };
 
