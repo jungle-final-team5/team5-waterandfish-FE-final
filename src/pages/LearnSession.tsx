@@ -378,7 +378,7 @@ const LearnSession = () => {
                   setDisplayConfidence(`${percent.toFixed(1)}%`);
                 }
                 setCurrentResult(msg.data);
-                if(percent >= 50.0)
+                if(percent >= 80.0)
                 {
                   setFeedback("correct");
                   console.log("PASSED");
