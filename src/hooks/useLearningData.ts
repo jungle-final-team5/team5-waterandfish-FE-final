@@ -24,6 +24,7 @@ export const useLearningData = () => {
         if (res.data && Array.isArray(res.data.data)) {
           setCategories(res.data.data);
         } else {
+          console.error('카테고리 파싱 실패: 응답 구조가 예상과 다름', res.data);
           setCategories([]);
         }
         setCategoriesError(null);

@@ -9,8 +9,10 @@ import { useLearningData } from '@/hooks/useLearningData';
 import API from '@/components/AxiosInstance';
 
 interface SearchResult {
-  lesson_id: string;
-  sign_text: string;
+  id: string;
+  word: string;
+  description?: string;
+  videoUrl?: string;
   score?: number;
 }
 
@@ -32,11 +34,11 @@ const SearchPage = () => {
 
   const fetchSearchResults = async (query: string) => {
     try {
-      const res = await API.get<{ success: boolean; data: SearchResult[]; message: string }>("/search", {
+      const res = await API.get<{ success: boolean; data: { lessons: SearchResult[] }; message: string }>("/search", {
         params: { q: query, k: 10 },
       });
-      setSearchResults(res.data.data);
-      setOpen(res.data.data.length > 0);
+      setSearchResults(res.data.data.lessons);
+      setOpen(res.data.data.lessons.length > 0);
     } catch {
       setSearchResults([]);
       setOpen(false);
@@ -61,17 +63,14 @@ const SearchPage = () => {
 
   // sign 선택 → ID 기반 라우팅
   const handleSignSelect = async (sign: SearchResult) => {
-    if (!sign.sign_text) {
-      alert('검색 결과에 sign_text가 없습니다. 관리자에게 문의하세요.');
+    if (!sign.word) {
+      alert('검색 결과에 word(수어 단어명)가 없습니다. 관리자에게 문의하세요.');
       return;
     }
-    // views 증가 API 호출
     try {
-      await API.post(`/lessons/${sign.lesson_id}/view`);
-    } catch (e) {
-      // 조회수 증가 실패해도 무시
-    }
-    navigate(`/learn/word/${encodeURIComponent(sign.lesson_id)}`);
+      await API.post(`/lessons/${sign.id}/view`);
+    } catch { /* 조회수 증가 실패해도 무시 */ }
+    navigate(`/learn/word/${encodeURIComponent(sign.word)}`);
     setOpen(false);
     setSearchTerm("");
   };
@@ -155,12 +154,12 @@ const SearchPage = () => {
                   <div className="mt-4 space-y-2">
                     {searchResults.slice(0, 5).map((sign) => (
                       <Button
-                        key={sign.lesson_id}
+                        key={sign.id}
                         variant="outline"
                         onClick={() => handleSignSelect(sign)}
                         className="w-full flex justify-between items-center"
                       >
-                        <span>{sign.sign_text}</span>
+                        <span>{sign.word}</span>
                         {sign.score && (
                           <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             유사도: {sign.score.toFixed(2)}
@@ -193,8 +192,11 @@ const SearchPage = () => {
                       key={sign.id}
                       variant="outline"
                       onClick={() => {
-                        console.log('인기수어 클릭:', sign.id, 'isValidObjectId:', /^[a-f\d]{24}$/i.test(sign.id));
-                        navigate(`/learn/word/${sign.id}`);
+                        if (!sign.word) {
+                          alert('인기 수어에 word(수어 단어명)가 없습니다. 관리자에게 문의하세요.');
+                          return;
+                        }
+                        navigate(`/learn/word/${encodeURIComponent(sign.word)}`);
                       }}
                       className="h-auto p-3 hover:bg-violet-50 border-gray-200 flex flex-col items-start"
                     >
