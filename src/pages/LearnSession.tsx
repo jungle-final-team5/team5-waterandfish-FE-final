@@ -3,8 +3,9 @@ import { Category, Chapter, Lesson } from '@/types/learning';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useVideoStreaming } from '@/hooks/useVideoStreaming';
+import { ClassificationResult } from '@/services/SignClassifierClient'; // 타입만 재사용
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
-import React, { useState, useRef, useEffect, useCallback  } from 'react';
+import React, { useState, useRef, useEffect, useCallback, startTransition } from 'react';
 
 import API from '@/components/AxiosInstance';
 import useWebsocket, { getConnectionByUrl } from '@/hooks/useWebsocket';
@@ -126,12 +127,19 @@ const LearnSession = () => {
   const { connectionStatus, wsList, broadcastMessage, sendMessage } = useWebsocket();
 
   // 분류 로그 및 결과 수신 처리
+  const [logs, setLogs] = useState<any[]>([]);
   const [displayConfidence, setDisplayConfidence] = useState<string>('');
-  const [currentResult, setCurrentResult] = useState<string | null>(null);
 
+  const { showStatus } = useGlobalWebSocketStatus();
+
+  const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
+  const [isTransmitting, setIsTransmitting] = useState(false);
+  const [currentResult, setCurrentResult] = useState<string | null>(null); // 이 경우는 포인터 변수
+  const [isConnecting, setIsConnecting] = useState(false);
   const [maxConfidence, setMaxConfidence] = useState(0.0);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  //const {findCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
   const { findCategoryById, findChapterById, findHierarchyByChapterId } = useLearningData();
 
   const [chapter, setChapter] = useState<Chapter | null>(null);
@@ -219,6 +227,14 @@ const LearnSession = () => {
     window.history.back();
   };
 
+  // 이 함수로, 실질적인 컨텐츠 타이머 시작
+  const handleStartRecording = () => {
+    setIsRecording(true);
+    setFeedback(null);
+    setCurrentResult(null); // 이전 분류 결과 초기화
+    console.log('🎬 수어 녹화 시작:', currentSign?.word);
+  };
+
   // 다음 수어(레슨)으로 넘어가는 내용 [완료]
   const handleNextSign = async () => {
     setIsMovingNextSign(false);
@@ -230,12 +246,9 @@ const LearnSession = () => {
     }
   };
 
-  const DEBUG_FEEDBACK = async () => {
-    setFeedback('correct');
-  };
-
   // FeedbackDisplay 완료 콜백 함수. Feedback 복구 시 해당 메서드 실행하게끔 조치
   const handleFeedbackComplete = () => {
+    setFeedback("correct");
     console.log('🎉 FeedbackDisplay 완료, 다음 수어로 이동');
 
     handleNextSign();
@@ -255,6 +268,7 @@ const LearnSession = () => {
 
   const poseLength = animData && animData.pose ? animData.pose.length : 0;
 
+  // 자음 모음쪽으로 네비게이팅 합니다. 이거 따로 빼야함
   useEffect(() => {
     API.get<{ success: boolean; data: { title: string }; message: string }>(`/chapters/${chapterId}/session`)
       .then(res => {
@@ -275,7 +289,7 @@ const LearnSession = () => {
         navigate("/not-found");
       });
   }, [chapterId, categoryId, navigate]);
-  
+
 
   // 수어 변경 시점마다 애니메이션 자동 변경 [완료]
   useEffect(() => {
@@ -334,36 +348,6 @@ const LearnSession = () => {
     }
   }, [currentSignId, lesson_mapper, retryWsConnection, retryLessonMapper]);
 
-  // 현재 수어에 대한 ws url 출력
-  useEffect(() => {
-    if (currentSignId) {
-      console.log('[LearnSession] currentSignId:', currentSignId);
-      const wsUrl = lesson_mapper[currentSignId] || '';
-      setCurrentWsUrl(wsUrl);
-      console.log('[LearnSession] currentWsUrl:', wsUrl);
-      
-      if (wsUrl) {
-        const connection = getConnectionByUrl(wsUrl);
-        if (connection) {
-          setCurrentConnectionId(connection.id);
-          setRetryAttempts(prev => ({ ...prev, wsConnection: 0 })); // 성공 시 재시도 카운터 리셋
-          console.log('[LearnSession] currentConnectionId:', connection.id);
-        } else {
-          console.warn(`[LearnSession] No connection found for targetUrl: ${wsUrl}, 재시도 시작`);
-          retryWsConnection(wsUrl);
-        }
-      } else {
-        console.warn('[LearnSession] currentSignId에 대한 WebSocket URL이 없음:', currentSignId);
-        // lesson_mapper에 해당 ID가 없으면 lesson_mapper 재시도
-        if (Object.keys(lesson_mapper).length === 0) {
-          retryLessonMapper();
-        }
-      }
-    }
-  }, [currentSignId, lesson_mapper, retryWsConnection, retryLessonMapper]);
-
-
-  // 각각의 웹 소켓에서 채점 결과를 수령한다. [완료]
     useEffect(() => {
      if (wsList && wsList.length > 0) {
    // 각 소켓에 대해 핸들러 등록
@@ -377,7 +361,7 @@ const LearnSession = () => {
          switch (msg.type) {
            case 'classification_result': {
              console.log('받은 분류 결과:', msg.data);
-              if(feedback && msg.data.prediction === "None")
+             if(feedback && msg.data.prediction === "None")
               {
                 setCurrentResult(msg.data);
                 break;
@@ -391,7 +375,6 @@ const LearnSession = () => {
                   percent = probabilities[target] * 100;
                 }
                 if (percent != null) {
-                  
                   setDisplayConfidence(`${percent.toFixed(1)}%`);
                 }
                 setCurrentResult(msg.data);
@@ -443,20 +426,14 @@ const LearnSession = () => {
     }
   }, [categoryId, chapterId]);
 
-  // 챕터 목록 준비 된 후 initialize [완료]
+  // 챕터 목록 준비 된 후 initialize [작업 중]
   useEffect(() => {
     setCurrentSignIndex(0);
     setFeedback(null);
     setCurrentResult(null); // 이전 분류 결과 초기화
-
+   
     // 컴포넌트 언마운트 시 정리 작업 실시 
     return () => {
-  //   signClassifierClient.disconnect();
-      //stopStream();
-      // if (transmissionIntervalRef.current) {
-      //   clearInterval(transmissionIntervalRef.current);
-      // }
-      
       // 재시도 타이머 정리
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
@@ -464,6 +441,7 @@ const LearnSession = () => {
       }
     };
   }, []);
+
 
 
   
@@ -479,7 +457,6 @@ if(sessionComplete) // 모든 내용이 완료 된 경우
     
   );
 }
-
 
 
   return (
@@ -501,6 +478,9 @@ if(sessionComplete) // 모든 내용이 완료 된 경우
           totalFrame={150}
         />}
           <div className="mt-4 p-3 bg-gray-100 rounded-md">
+
+
+     
 
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">
@@ -525,7 +505,9 @@ if(sessionComplete) // 모든 내용이 완료 된 경우
               onStartStreaming={startStreaming}
               onStopStreaming={stopStreaming}
               onConfigChange={setStreamingConfig}
+              transitionSign={handleNextSign}
             />
+            
 
             {/* 숨겨진 비디오 요소들 */}
             <div className="hidden">
@@ -541,8 +523,6 @@ if(sessionComplete) // 모든 내용이 완료 된 경우
           </div>
 
         </div>
-        <Button onClick={DEBUG_FEEDBACK}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
-
                   {/* 피드백 표시 */}
           {feedback && (
             <div className="mt-8">

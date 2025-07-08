@@ -12,6 +12,7 @@ interface StreamingControlsProps {
   onStartStreaming: () => void;
   onStopStreaming: () => void;
   onConfigChange: (config: StreamingConfig) => void;
+  transitionSign: () => void;
 }
 
 const StreamingControls: React.FC<StreamingControlsProps> = ({
@@ -23,6 +24,7 @@ const StreamingControls: React.FC<StreamingControlsProps> = ({
   onStartStreaming,
   onStopStreaming,
   onConfigChange,
+  transitionSign
 }) => {
   const handleConfigChange = (key: keyof StreamingConfig, value: number | string) => {
     onConfigChange({ ...streamingConfig, [key]: value });
@@ -55,6 +57,7 @@ const StreamingControls: React.FC<StreamingControlsProps> = ({
             </>
           )}
         </Button>
+        <Button onClick={transitionSign}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
       </div>
     
     </div>
