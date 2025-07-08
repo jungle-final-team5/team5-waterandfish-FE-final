@@ -2,60 +2,114 @@ name: Deploy FE to EC2
 
 on:
   push:
-    branches: [main] # main 브랜치에 push될 때마다 실행
+    branches: [main]
   pull_request:
-    branches: [main] # main 브랜치에 PR될 때마다 실행
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # ------------------------------------------------------------
       # 1. 소스코드 체크아웃
+      # ------------------------------------------------------------
       - name: Checkout source
         uses: actions/checkout@v3
 
-      # 2. .env.production 파일을 GitHub Secrets에서 생성
-      - name: Copy .env.production from secrets
-        run: echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
-
-      # 3. SSL 인증서 파일을 GitHub Secrets에서 생성 (필요한 경우)
-      - name: Create SSL cert files from secrets
+      # ------------------------------------------------------------
+      # 2. 런타임 파일(.env, SSL) 로컬 생성
+      # ------------------------------------------------------------
+      - name: Create runtime files from secrets
         run: |
+          echo "${{ secrets.ENV_PRODUCTION }}" > .env.production
           mkdir -p ssl
-          echo "${{ secrets.CRT }}" > ssl/certificate.crt
-          echo "${{ secrets.KEY }}" > ssl/private.key
+          echo "${{ secrets.CRT }}"       > ssl/certificate.crt
+          echo "${{ secrets.KEY }}"       > ssl/private.key
           echo "${{ secrets.CA_BUNDLE }}" > ssl/ca_bundle.crt
 
-      # 4. AWS 인증 정보 설정 (ECR 접근을 위해 필요)
-      - name: Configure AWS credentials
+      # ------------------------------------------------------------
+      # 3. AWS 자격 증명 설정 & ECR 로그인 (로컬 빌드/푸시 용)
+      # ------------------------------------------------------------
+      - name: Configure & login to ECR
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      # 5. ECR에 Docker 로그인
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region ap-northeast-2 | \
-          docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
+            docker login --username AWS --password-stdin \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
 
-      # 6. Docker 이미지 빌드
-      - name: Build Docker image
+      # ------------------------------------------------------------
+      # 4. Docker 이미지 빌드 & 푸시
+      # ------------------------------------------------------------
+      - name: Build & Push Docker image
         run: |
           docker build -t waterandfish-frontend:latest .
-
-      # 7. ECR에 push할 태그 추가
-      - name: Tag Docker image for ECR
-        run: |
-          docker tag waterandfish-frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
-
-      # 8. Docker 이미지를 ECR에 push
-      - name: Push Docker image to ECR
-        run: |
+          docker tag  waterandfish-frontend:latest \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
 
-# 이 워크플로우는 main 브랜치에 push될 때마다 실행되며,
-# 프론트엔드 Docker 이미지를 빌드해서 ECR에 업로드합니다.
-# EC2 등에서 이미지를 pull해서 배포하는 방식으로 연동하면 됩니다.
+      # ------------------------------------------------------------
+      # 5. 런타임 파일을 EC2로 전송
+      # ------------------------------------------------------------
+      - name: Copy runtime files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          source: ".env.production,ssl"
+          target: "/home/${{ secrets.EC2_USERNAME }}/fe-runtime"
+
+      # ------------------------------------------------------------
+      # 6. EC2 원격 배포
+      #    - AWS 크리덴셜을 envs로 전달해 ECR pull 인증 해결
+      # ------------------------------------------------------------
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
+          envs_format: 'export {{ .Name }}="{{ .Value }}"'
+          script: |
+            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            export AWS_REGION="ap-northeast-2"
+
+            set -e
+            RUNTIME_DIR=/home/${{ secrets.EC2_USERNAME }}/fe-runtime
+
+            # 1) AWS CLI v2 설치 (없으면)
+            if ! command -v aws >/dev/null 2>&1; then
+              sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
+              sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq unzip
+              curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscli.zip
+              unzip -qq /tmp/awscli.zip -d /tmp
+              sudo /tmp/aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+            fi
+
+            # 2) ECR 로그인 & 이미지 pull
+            aws ecr get-login-password --region ap-northeast-2 | \
+              docker login --username AWS --password-stdin \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
+
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest
+
+            # 3) 기존 컨테이너 중지/삭제 & 재기동
+            docker stop frontend || true
+            docker rm   frontend || true
+
+            docker run -d --name frontend -p 80:80 -p 443:443 \
+              --env-file $RUNTIME_DIR/.env.production \
+              -v $RUNTIME_DIR/ssl:/etc/nginx/ssl \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/waterandfish-frontend:latest

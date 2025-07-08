@@ -34,31 +34,26 @@ const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
   const { studyDates, currentStreak, longestStreak, loading } = useStreakData();
   const today = new Date();
   
-  // 날짜가 학습한 날짜인지 확인하는 함수 (KST 기준 YYYY-MM-DD 문자열로 비교)
+  // 날짜가 학습한 날짜인지 확인하는 함수 (문자열 직접 비교)
   const isStudyDate = (date: Date) => {
-    const kstDate = toKSTDate(date);
-    // 오늘 이후(미래)는 무조건 false
-    if (kstDate > toKSTDate(today)) return false;
-    return (studyDates ?? []).some(studyDateStr => {
-      // studyDateStr은 'YYYY-MM-DD' 형식이라고 가정, KST 기준으로 Date 객체 생성
-      const studyDate = new Date(studyDateStr + 'T09:00:00+09:00');
-      return (
-        kstDate.getFullYear() === studyDate.getFullYear() &&
-        kstDate.getMonth() === studyDate.getMonth() &&
-        kstDate.getDate() === studyDate.getDate()
-      );
-    });
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
+    return (studyDates ?? []).includes(dateStr);
   };
 
-  // 오늘 날짜인지 확인하는 함수 (KST 기준 YYYY-MM-DD 문자열로 비교)
+  // 오늘 날짜인지 확인하는 함수 (문자열 직접 비교)
   const isToday = (date: Date) => {
-    const kstDate = toKSTDate(date);
-    const kstToday = toKSTDate(today);
-    return (
-      kstDate.getFullYear() === kstToday.getFullYear() &&
-      kstDate.getMonth() === kstToday.getMonth() &&
-      kstDate.getDate() === kstToday.getDate()
-    );
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
+    const todayY = today.getFullYear();
+    const todayM = String(today.getMonth() + 1).padStart(2, '0');
+    const todayD = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${todayY}-${todayM}-${todayD}`;
+    return dateStr === todayStr;
   };
 
   return (

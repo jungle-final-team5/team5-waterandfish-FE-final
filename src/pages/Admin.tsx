@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Plus, Edit, Trash2 } from 'lucide-react';
-import { useLearningData } from '@/hooks/useLearningData';
+import { useLearningData } from '@/hooks/useLearningDataAdmin';
 import { CategoryModal } from '@/components/CategoryModal';
 import { ChapterModal } from '@/components/ChapterModal';
 import { Category, Chapter } from '@/types/learning';
@@ -138,7 +138,7 @@ const Admin = () => {
                               {chapter.type === 'word' ? '단어' : '문장'}
                             </span>
                           </TableCell>
-                          <TableCell>{chapter.signs.length}개</TableCell>
+                          <TableCell>{chapter.lessons.length}개</TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
                               <Button
@@ -181,7 +181,7 @@ const Admin = () => {
           if (editingCategory) {
             updateCategory(editingCategory.id, categoryData);
           } else {
-            const res = await API.post("/learning/category", categoryData);
+            const res = await API.post("/category", categoryData);
             const createdCategory = res.data as { id: string }; 
             addCategory(categoryData,createdCategory.id);
             // API.post("/learning/category",categoryData);
@@ -199,9 +199,9 @@ const Admin = () => {
           if (editingChapter) {
             updateChapter(editingChapter.categoryId, editingChapter.chapter.id, chapterData);
             const lessonIds = chapterData.signs.map(sign => sign.id);
-            await API.post("/learning/connect/lesson",{"chapter":editingChapter.chapter.id, "lesson": lessonIds});
+            await API.post(`/chapters/${editingChapter.chapter.id}/lessons/connect`,{"chapter":editingChapter.chapter.id, "lesson": lessonIds});
           } else {
-            const chapterRes = await API.post<Chapter>("/learning/chapter", {
+            const chapterRes = await API.post<Chapter>("/chapters", {
                 categoryid: selectedCategoryId,
                 title: chapterData["title"],
                 type: chapterData["type"]
@@ -209,7 +209,7 @@ const Admin = () => {
             const chapterId = (chapterRes.data as any).id;// ✅ ObjectId 문자열
             addChapter(selectedCategoryId, chapterData,chapterId);
             const lessonIds = chapterData.signs.map(sign => sign.id);
-            await API.post("/learning/connect/lesson",{"chapter":chapterId, "lesson": lessonIds});
+            await API.post(`/chapters/${chapterId}/lessons/connect`,{"chapter":chapterId, "lesson": lessonIds});
           }
           handleChapterModalClose();
         }}
