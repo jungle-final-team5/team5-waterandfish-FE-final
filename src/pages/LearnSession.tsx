@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Category, Chapter, Lesson } from '@/types/learning';
 import { useVideoStream } from '@/hooks/useVideoStream';
 import { useLearningData } from '@/hooks/useLearningData';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useVideoStreaming } from '@/hooks/useVideoStreaming';
 import { ClassificationResult } from '@/services/SignClassifierClient'; // 타입만 재사용
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
@@ -23,6 +23,16 @@ import FeatureGuide from '@/components/FeatureGuide';
 const LearnSession = () => {
   const { categoryId, chapterId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // URL state에서 lesson_mapper 가져오기
+  const [lesson_mapper, setLessonMapper] = useState<{ [key: string]: string }>(location.state?.lesson_mapper || {});
+  
+  // lesson_mapper 디버그 로그
+  useEffect(() => {
+    console.log('[LearnSession] lesson_mapper:', lesson_mapper);
+    console.log('[LearnSession] lesson_mapper keys:', lesson_mapper);
+  }, [lesson_mapper]);
 
   // WebSocket 훅
   const { connectionStatus, wsList, broadcastMessage } = useWebsocket();
@@ -61,6 +71,7 @@ const LearnSession = () => {
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
+
 
   // 비디오 스트리밍 훅
   const {
