@@ -29,6 +29,8 @@ export const useLearningData = () => {
         }
         setCategoriesError(null);
         setCategoriesLoading(false);
+        console.log("catrgory is readyt");
+
       })
       .catch((err: unknown) => {
         setCategories([]);
@@ -39,6 +41,7 @@ export const useLearningData = () => {
         }
         setCategoriesError(msg);
         setCategoriesLoading(false);
+        
       });
   }, []);
 
@@ -103,8 +106,8 @@ export const useLearningData = () => {
     return res.data.data.chapter || null;
   };
 
-    // 챕터 내 레슨 다 가져와
-  const findLessonsByChapterId = async (chapterId: string): Promise<Chapter | null> => {
+    // 챕터 내 레슨을 비롯한 모든 내용 가져오기
+  const findHierarchyByChapterId = async (chapterId: string): Promise<any> => {
     // 입력값 검증
     if (!chapterId || typeof chapterId !== 'string') {
       console.warn('findLessonsByChapterId: Invalid chapterId provided');
@@ -112,14 +115,15 @@ export const useLearningData = () => {
     }
 
     const res = await API.get<{ success: boolean; data: { chapter: Chapter }; message: string }>(`/chapters/${chapterId}/session`);
-    console.log('lesson list!!', res.data.data);
-    return res.data.data.lessons || null;
+    console.log('lesson list!!', res.data);
+    return res.data.data || null;
   }
 
 
 
   // 카테고리 ID로 카테고리 찾기
   const findCategoryById = (categoryId: string): Category | null => {
+
     if (!categoryId || typeof categoryId !== 'string') {
       console.warn('findCategoryById: Invalid categoryId provided');
       return null;
@@ -132,7 +136,8 @@ export const useLearningData = () => {
 
     try {
       const category = categories.find(cat => cat?.id === categoryId);
-      return category || null;
+      console.log(category);
+      return category;
     } catch (error) {
       console.error('findCategoryById: Error during search', error);
       return null;
@@ -188,6 +193,6 @@ export const useLearningData = () => {
     findChapterById,
     findCategoryById,
     findCategoryByChapterId,
-    findLessonsByChapterId
+    findHierarchyByChapterId
   };
 };

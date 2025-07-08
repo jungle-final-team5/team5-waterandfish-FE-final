@@ -114,7 +114,7 @@ const LandmarkViewerTSX = ({
   // const pitchRef = useRef(178.7 * Math.PI / 180);
   // const rollRef = useRef(0 * Math.PI / 180);
 
-  const cameraInitPos: CameraPosition = { x: 0.053, y: 0.739, z: 0.592 };
+  const cameraInitPos: CameraPosition = { x: -0.061, y: 0.739, z: 0.592 };
   const cameraInitRot: CameraRotation = { x: 0, y: 0, z: 0 };
 
   // 카메라에 대한 초기 회전 값 지정

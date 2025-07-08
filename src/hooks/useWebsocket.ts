@@ -300,7 +300,7 @@ const sendMessage = (message: string | ArrayBuffer | Blob, connectionId?: string
         return false;
     } else {
         // 모든 연결된 웹소켓으로 메시지 전송
-        console.log('[sendMessage] globalWebSocketState.wsUrls', globalWebSocketState.wsUrls);
+        //console.log('[sendMessage] globalWebSocketState.wsUrls', globalWebSocketState.wsUrls);
         const connectedSockets = globalWebSocketState.connections.filter(
             conn => conn.ws?.readyState === WebSocket.OPEN
         );

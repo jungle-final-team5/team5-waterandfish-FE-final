@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Camera, CameraOff, Settings, Monitor, AlertCircle } from 'lucide-react';
+import { Lesson } from '@/types/learning';
 
 interface VideoInputProps { // 비디오 입력 컴포넌트 속성 인터페이스
   onStreamReady?: (stream: MediaStream) => void;
@@ -12,6 +13,8 @@ interface VideoInputProps { // 비디오 입력 컴포넌트 속성 인터페이
   autoStart?: boolean;
   showControls?: boolean;
   className?: string;
+  currentSign: Lesson;
+  currentResult: string;
 }
 
 const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌트 함수
@@ -21,7 +24,9 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
   height = 480,
   autoStart = false,
   showControls = true,
-  className = ""
+  className = "",
+  currentSign = null,
+  currentResult = ""
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null); // 비디오 요소 참조
   const streamRef = useRef<MediaStream | null>(null); // 비디오 스트림 참조
@@ -126,10 +131,6 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Monitor className="h-5 w-5" />
-            <span>비디오 입력</span>
-          </div>
           
           {showControls && (
             <div className="flex items-center space-x-2">
@@ -185,6 +186,16 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
           )}
         </div>
       </CardContent>
+
+            {/* 현재 수어 텍스트 표시 */}
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="text-center">
+          <p className="text-sm text-blue-600 mb-2">따라해보세요</p>
+          <h2 className="text-3xl font-bold text-blue-800">
+            "{currentSign?.word}" | "{currentResult}"
+          </h2>
+        </div>
+      </div>
     </Card>
   );
 };
