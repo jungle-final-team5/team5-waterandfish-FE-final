@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, XCircle, Lightbulb } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { Button } from './ui/button';
 
 interface FeedbackDisplayProps {
   feedback: 'correct' | 'incorrect';
@@ -49,6 +50,22 @@ const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayPr
     setWaitingForNone(false); // 타이머 시작 시 대기 상태 해제
     
     noneTimerRef.current = setInterval(() => {
+      setNoneCountdown((prev) => {
+        if (prev <= 1) {
+          console.log('✅ None이 2초 동안 연속으로 유지되었습니다. 다음으로 진행합니다.');
+          clearNoneTimer();
+          onComplete?.();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const debug_goNext = () => {
+    setWaitingForNone(false);
+
+        noneTimerRef.current = setInterval(() => {
       setNoneCountdown((prev) => {
         if (prev <= 1) {
           console.log('✅ None이 2초 동안 연속으로 유지되었습니다. 다음으로 진행합니다.');
@@ -154,6 +171,7 @@ const FeedbackDisplay = ({ feedback, prediction, onComplete }: FeedbackDisplayPr
                 )}
               </div>
             </div>
+            <Button onClick={debug_goNext}></Button>
           </CardContent>
         </Card>
       </div>
