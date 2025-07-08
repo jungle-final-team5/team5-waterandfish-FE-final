@@ -4,7 +4,7 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useVideoStreaming } from '@/hooks/useVideoStreaming';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
-import React, { useState, useRef, useEffect  } from 'react';
+import React, { useState, useRef, useEffect, useCallback  } from 'react';
 
 import API from '@/components/AxiosInstance';
 import useWebsocket, { getConnectionByUrl } from '@/hooks/useWebsocket';
