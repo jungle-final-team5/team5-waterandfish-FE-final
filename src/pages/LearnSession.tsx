@@ -62,6 +62,7 @@ const LearnSession = () => {
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const currentSign = lessons[currentSignIndex];
+  const currentSignId = lessons[currentSignIndex]?.id;
   const [isRecording, setIsRecording] = useState(false);
 
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -167,6 +168,13 @@ const LearnSession = () => {
       }
     };
   }, [animData, currentFrame]);
+
+  useEffect(() => {
+    if (currentSignId) {
+      console.log('[LearnSession] currentSignId:', currentSignId);
+      console.log('[LearnSession] current ws url :', lesson_mapper[currentSignId]);
+    }
+  }, [currentSignId]);
 
     useEffect(() => {
      if (wsList && wsList.length > 0) {
