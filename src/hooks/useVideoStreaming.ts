@@ -5,19 +5,24 @@ import {
   StreamingStatus, 
   DEFAULT_STREAMING_CONFIG 
 } from '@/types/streaming';
+import { getConnectionByUrl } from '@/hooks/useWebsocket';
 
 interface UseVideoStreamingProps {
   connectionStatus: string;
   broadcastMessage: (data: ArrayBuffer) => boolean;
+  sendMessage: (data: ArrayBuffer, connectionId?: string) => boolean;  
   onStreamReady?: (stream: MediaStream) => void;
   onStreamError?: (error: string) => void;
+  connectionId: string;
 }
 
 export const useVideoStreaming = ({
   connectionStatus,
   broadcastMessage,
+  sendMessage,
   onStreamReady,
-  onStreamError
+  onStreamError,
+  connectionId
 }: UseVideoStreamingProps) => {
   // 스트리밍 상태
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
@@ -117,7 +122,19 @@ export const useVideoStreaming = ({
         uint8Array[i] = binaryString.charCodeAt(i);
       }
       
-      const success = broadcastMessage(arrayBuffer);
+      let success = false;
+      if (connectionId) {
+        // Get connection by URL to find the connectionId
+        console.log('[useVideoStreaming] connectionId:', connectionId);
+        if (connectionId) {
+          success = sendMessage(arrayBuffer, connectionId);
+        } else {
+          alert(`No connection found for connectionId: ${connectionId}`);
+          throw new Error(`No connection found for connectionId: ${connectionId}`);
+        }
+      } else {
+        throw new Error('connectionId is required');
+      }
       
       if (success) {
         setStreamingStats(prev => ({
