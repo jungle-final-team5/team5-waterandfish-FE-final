@@ -2,6 +2,13 @@
 // TODO 정리하기
 // 직접적인 리팩터링은 아님! 
 
+
+/*
+7월 8일 갱신
+학습 또는 퀴즈 진행 할 때마다 기록 시스템만 기존 내용으로 가져오면 완벽히 정리 가능.
+
+*/
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';

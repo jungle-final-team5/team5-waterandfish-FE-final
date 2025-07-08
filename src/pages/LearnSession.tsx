@@ -1,12 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Category, Chapter, Lesson } from '@/types/learning';
-import { useVideoStream } from '@/hooks/useVideoStream';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useVideoStreaming } from '@/hooks/useVideoStreaming';
-import { ClassificationResult } from '@/services/SignClassifierClient'; // 타입만 재사용
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
-import React, { useState, useRef, useEffect, useCallback, startTransition } from 'react';
+import React, { useState, useRef, useEffect  } from 'react';
 
 import API from '@/components/AxiosInstance';
 import useWebsocket from '@/hooks/useWebsocket';
@@ -15,9 +13,6 @@ import SessionHeader from '@/components/SessionHeader';
 import LearningDisplay from '@/components/LearningDisplay';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import StreamingControls from '@/components/StreamingControls';
-import SessionInfo from '@/components/SessionInfo';
-import SystemStatus from '@/components/SystemStatus';
-import FeatureGuide from '@/components/FeatureGuide';
 
 
 const LearnSession = () => {
@@ -30,16 +25,11 @@ const LearnSession = () => {
 
   // 분류 로그 및 결과 수신 처리
   const [displayConfidence, setDisplayConfidence] = useState<string>('');
+  const [currentResult, setCurrentResult] = useState<string | null>(null);
 
-
-  const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
-  const [isTransmitting, setIsTransmitting] = useState(false);
-  const [currentResult, setCurrentResult] = useState<string | null>(null); // 이 경우는 포인터 변수
-  const [isConnecting, setIsConnecting] = useState(false);
   const [maxConfidence, setMaxConfidence] = useState(0.0);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  //const {findCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
   const { findCategoryById, findChapterById, findHierarchyByChapterId } = useLearningData();
 
   const [chapter, setChapter] = useState<Chapter | null>(null);
@@ -51,7 +41,6 @@ const LearnSession = () => {
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const currentSign = lessons[currentSignIndex];
-  const [isRecording, setIsRecording] = useState(false);
 
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
@@ -84,14 +73,6 @@ const LearnSession = () => {
   // 이벤트 핸들러
   const handleBack = () => {
     window.history.back();
-  };
-
-  // 이 함수로, 실질적인 컨텐츠 타이머 시작
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    setFeedback(null);
-    setCurrentResult(null); // 이전 분류 결과 초기화
-    console.log('🎬 수어 녹화 시작:', currentSign?.word);
   };
 
   // 다음 수어(레슨)으로 넘어가는 내용 [완료]
@@ -265,6 +246,8 @@ const LearnSession = () => {
   // 챕터 목록 준비 된 후 initialize [완료]
   useEffect(() => {
     setCurrentSignIndex(0);
+    setFeedback(null);
+    setCurrentResult(null); // 이전 분류 결과 초기화
 
     // 컴포넌트 언마운트 시 정리 작업 실시 
     return () => {
@@ -310,9 +293,6 @@ if(sessionComplete) // 모든 내용이 완료 된 경우
           totalFrame={150}
         />}
           <div className="mt-4 p-3 bg-gray-100 rounded-md">
-
-
-     
 
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">

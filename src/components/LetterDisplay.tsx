@@ -29,12 +29,8 @@ const imagePath = useMemo(() => {
             className="max-w-full h-auto rounded-lg shadow-md"
           />
         </div>
-        <div className="text-center text-lg font-semibold">
-          진행도: {Math.floor(progress)}/19
-        </div>
       </div>
     </div>
   );
 };
-
 export default LetterDisplay; 
