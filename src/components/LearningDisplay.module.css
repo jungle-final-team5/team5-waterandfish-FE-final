@@ -1,0 +1,33 @@
+.learning-display {
+  position: relative;
+  /* 컨텐츠와 테두리 사이에 공간 확보 */
+  padding: 16px;
+  background: white;
+  overflow: hidden;
+}
+
+/* 실제 테두리 역할을 할 가상 요소 */
+.learning-display::before,
+.learning-display::after {
+  content: '';
+  position: absolute;
+  top: 0;  left: 50%;
+  height: 4px;             /* 테두리 두께 */
+  background: #3498db;      /* 채워질 색상 */
+  transform-origin: center;
+  /* 너비를 0~50% 사이로 늘려갈 것 */
+  width: calc(var(--progress) * 50%);
+  transition: width 0.1s linear;
+}
+
+.learning-display::after {
+  /* 오른쪽에서 왼쪽으로 */
+  left: auto;
+  right: 50%;
+}
+
+/* 아래쪽 테두리에도 적용하려면 아래처럼 추가 */
+/*
+.learning-display::nth-child(3),
+.learning-display::nth-child(4) { ... }
+*/

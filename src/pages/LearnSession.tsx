@@ -233,7 +233,7 @@ const LearnSession = () => {
     handleNextSign();
   };
 
-  // TODO : id 교체 될 방안을 강구 할 것
+
   const loadAnim = async () => {
     try {
       const id = currentSign.id;
@@ -245,12 +245,14 @@ const LearnSession = () => {
     }
   };
 
+  const poseLength = animData && animData.pose ? animData.pose.length : 0;
+
+  // 수어 변경 시점마다 애니메이션 자동 변경
   useEffect(() => {
     loadAnim();
   }, [currentSign]);
 
   // 애니메이션 자동 재생 처리 및 프레임 조절
-  // 내용 일부라도 바뀌면 재생 속도를 비롯한 환경 전부 엎어짐
   useEffect(() => {
     if (animData) {
       animationIntervalRef.current = setInterval(() => {
@@ -281,12 +283,7 @@ const LearnSession = () => {
       const loadChapter = async () => {
         try {
           const lessons = await findLessonsByChapterId(chapterId);
-          console.log(lessons);
-          console.log("---");
           setLessons(lessons);
-
-          console.log(lessons);
-
         } catch (error) {
           console.error('챕터 데이터 로드 실패:', error);
         }
@@ -295,6 +292,7 @@ const LearnSession = () => {
     }
   }, [categoryId, chapterId]);
 
+  // 챕터 목록 준비 된 후 initialize
   useEffect(() => {
     setCurrentSignIndex(0);
     // initializeSession(); // 마운트 혹은 업데이트 루틴
@@ -559,14 +557,13 @@ const LearnSession = () => {
         {<LearningDisplay
           data={animData}
           currentFrame={currentFrame}
-          currentSign={"학교"}
+          totalFrame={poseLength}
         />}
 
 
         {/* 웹캠 및 분류 결과 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
           {/* 비디오 입력 영역 */}
-          <div className="space-y-4">
             <VideoInput
               width={640}
               height={480}
@@ -575,7 +572,10 @@ const LearnSession = () => {
               onStreamReady={handleStreamReady}
               onStreamError={handleStreamError}
               className="h-full"
+              currentSign={"asd"}
             />
+
+            <Button onClick={handleNextSign}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
 
             <StreamingControls
               isStreaming={isStreaming}
@@ -597,39 +597,10 @@ const LearnSession = () => {
                 playsInline
                 className="w-full h-full object-cover"
               />
-              <canvas ref={canvasRef} />
-            </div>
-          </div>
-
-          {/* 정보 패널 */}
-          <div className="space-y-6">
-            <SessionInfo
-              chapterId={chapterId}
-              currentStream={currentStream}
-              connectionStatus={connectionStatus}
-              wsList={wsList}
-              isStreaming={isStreaming}
-              streamInfo={streamInfo}
-              streamingStatus={streamingStatus}
-              streamingConfig={streamingConfig}
-              streamingStats={streamingStats}
-            />
-
-            <SystemStatus
-              currentStream={currentStream}
-              connectionStatus={connectionStatus}
-              wsList={wsList}
-              isStreaming={isStreaming}
-              streamingStats={streamingStats}
-            />
-
-            <FeatureGuide
-              connectionStatus={connectionStatus}
-              isStreaming={isStreaming}
-            />
-          </div>
+              
+          
         </div>
-        <Button onClick={handleNextSign}>[DEBUG] 챕터 내 다음 내용으로 넘어가기</Button>
+        
       </div>
     </div>
   );

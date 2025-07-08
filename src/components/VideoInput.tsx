@@ -12,6 +12,7 @@ interface VideoInputProps { // 비디오 입력 컴포넌트 속성 인터페이
   autoStart?: boolean;
   showControls?: boolean;
   className?: string;
+  currentSign: any;
 }
 
 const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌트 함수
@@ -21,7 +22,8 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
   height = 480,
   autoStart = false,
   showControls = true,
-  className = ""
+  className = "",
+  currentSign = "aa"
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null); // 비디오 요소 참조
   const streamRef = useRef<MediaStream | null>(null); // 비디오 스트림 참조
@@ -185,6 +187,16 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
           )}
         </div>
       </CardContent>
+
+            {/* 현재 수어 텍스트 표시 */}
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="text-center">
+          <p className="text-sm text-blue-600 mb-2">따라해보세요</p>
+          <h2 className="text-3xl font-bold text-blue-800">
+            "{currentSign.word}"
+          </h2>
+        </div>
+      </div>
     </Card>
   );
 };
