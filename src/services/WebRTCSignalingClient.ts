@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 
 export interface SignalingMessage {
   type: 'join' | 'offer' | 'answer' | 'ice-candidate' | 'video-frame' | 'leave' | 'new-peer' | 'joined' | 'peer-disconnected' | 'classification-result';
-  data?: any;
+  data?: unknown;
   room_id?: string;
   peer_id?: string;
   offer?: RTCSessionDescriptionInit;
@@ -29,7 +29,12 @@ export class WebRTCSignalingClient extends EventEmitter {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        this.websocket = new WebSocket(this.url);
+        // ws/wss 자동 변환
+        let wsUrl = this.url;
+        if (typeof window !== 'undefined' && window.location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
+          wsUrl = wsUrl.replace('ws://', 'wss://');
+        }
+        this.websocket = new WebSocket(wsUrl);
 
         this.websocket.onopen = () => {
           this.isConnected = true;
