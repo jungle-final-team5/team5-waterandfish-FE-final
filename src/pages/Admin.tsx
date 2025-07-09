@@ -10,6 +10,7 @@ import { CategoryModal } from '@/components/CategoryModal';
 import { ChapterModal } from '@/components/ChapterModal';
 import { Category, Chapter } from '@/types/learning';
 import API from '@/components/AxiosInstance';
+import { api } from '@/lib/api';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -107,7 +108,10 @@ const Admin = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => deleteCategory(category.id)}
+                      onClick={() => {
+                        API.delete(`/category/${category.id}`)
+                        deleteCategory(category.id)
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -151,7 +155,10 @@ const Admin = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => deleteChapter(category.id, chapter.id)}
+                                onClick={() => {
+                                  API.delete(`/chapters/${chapter.id}`)
+                                  deleteChapter(category.id, chapter.id)
+                                }}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
