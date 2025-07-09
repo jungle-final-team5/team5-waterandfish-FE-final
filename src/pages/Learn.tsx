@@ -19,6 +19,8 @@ import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
 import { Lesson } from '@/types/learning';
+import { Hands } from '@mediapipe/hands';
+import VideoInput from '@/components/VideoInput';
 
 interface LessonApiResponse {
   success: boolean;
@@ -29,6 +31,7 @@ interface LessonApiResponse {
 type ApiSign = Lesson & { sign_text: string };
 
 const Learn = () => {
+
   const [animData, setAnimData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
 
@@ -75,11 +78,11 @@ const Learn = () => {
 
   const loadAnim = async () => {
     try {
-      if (!wordId) return;
-      const response = await API.get(`/anim/${encodeURIComponent(wordId)}`);
+      const id = "686269ddcba901ab2b745002";
+      const response = await API.get(`/anim/${id}`);
       setAnimData(response.data);
     } catch (error) {
-      console.error('데이터 로드 실패:', error);
+      console.error('애니메이션 불러오는데 실패했습니다 : ', error);
     }
   };
 
@@ -164,6 +167,10 @@ const Learn = () => {
       setProgress(((currentStep + 1) / learningData.steps.length) * 100);
       setFeedback(null);
     }
+  };
+
+  const DEBUG_FEEDBACK_OFF = () => {
+       setFeedback(null);
   };
 
   const handleRetry = () => {
@@ -283,7 +290,17 @@ const Learn = () => {
                 {currentStepData.type === 'practice' ? '따라하기' : '웹캠 미리보기'}
               </h3>
               
-              <WebcamView isRecording={isRecording} />
+             <VideoInput
+              width={640}
+              height={480}
+              autoStart={false}
+              showControls={true}
+              onStreamReady={null}
+              onStreamError={null}
+              className="h-full"
+              currentSign={null}
+              currentResult={null}
+            />
               
               {currentStepData.type === 'practice' && (
                 <div className="flex justify-center space-x-4">
@@ -327,7 +344,7 @@ const Learn = () => {
           {/* Feedback Display */}
           {feedback && (
             <div className="mt-8">
-              <FeedbackDisplay feedback={feedback} />
+              <FeedbackDisplay feedback={feedback} prediction={"none"} onComplete={DEBUG_FEEDBACK_OFF} />
             </div>
           )}
 
