@@ -187,7 +187,7 @@ const LearnSession = () => {
 
   // 이전 connectionId 추적을 위한 ref
   const prevConnectionIdRef = useRef<string>('');
-
+  
   // connectionId 변경 시 비디오 스트리밍 갱신
   useEffect(() => {
     // 실제로 connectionId가 변경되었을 때만 처리
@@ -221,7 +221,7 @@ const LearnSession = () => {
       prevConnectionIdRef.current = currentConnectionId;
     }
   }, [currentConnectionId, startStreaming, stopStreaming]);
-
+  
   // 이벤트 핸들러
   const handleBack = () => {
     window.history.back();
@@ -319,7 +319,7 @@ const LearnSession = () => {
       }
     };
   }, [animData, currentFrame]);
-
+  
   // 현재 수어에 대한 ws url 출력
   useEffect(() => {
     if (currentSignId) {

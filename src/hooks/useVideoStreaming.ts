@@ -172,7 +172,7 @@ export const useVideoStreaming = ({
     if (isStreamingRef.current) {
       animationFrameRef.current = requestAnimationFrame(captureFrame);
     }
-  }, [connectionStatus, broadcastMessage, streamingConfig, streamingStats.actualFPS]);
+  }, [connectionStatus, broadcastMessage, streamingConfig, streamingStats.actualFPS,connectionId, sendMessage]);
 
   // 스트리밍 시작
   const startStreaming = useCallback(() => {
