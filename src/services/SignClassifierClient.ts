@@ -4,9 +4,16 @@ export interface ClassificationResult {
   probabilities: Record<string, number>;
 }
 
-export interface VideoChunkMessage {
-  type: 'video_chunk';
-  data: string; // base64 encoded image
+// 랜드마크 데이터 타입 정의
+export interface LandmarksData {
+  pose: number[][] | null;      // 33개 포즈 랜드마크 [x, y, z]
+  left_hand: number[][] | null; // 21개 왼손 랜드마크 [x, y, z]
+  right_hand: number[][] | null; // 21개 오른손 랜드마크 [x, y, z]
+}
+
+export interface LandmarksMessage {
+  type: 'landmarks';
+  data: LandmarksData;
   timestamp: number;
 }
 
@@ -24,7 +31,7 @@ export interface PongMessage {
   type: 'pong';
 }
 
-export type WebSocketMessage = VideoChunkMessage | ClassificationResultMessage | PingMessage | PongMessage;
+export type WebSocketMessage = LandmarksMessage | ClassificationResultMessage | PingMessage | PongMessage;
 
 export class SignClassifierClient {
   private websocket: WebSocket | null = null;
@@ -47,7 +54,7 @@ export class SignClassifierClient {
         this.websocket = new WebSocket(this.serverUrl);
         
         this.websocket.onopen = () => {
-          console.log('✅ 분류 서버에 연결됨');
+          console.log('✅ 분류 서버에 연결됨 (랜드마크 모드)');
           this.isConnected = true;
           this.reconnectAttempts = 0;
           resolve(true);
@@ -99,33 +106,25 @@ export class SignClassifierClient {
     });
   }
 
-  sendVideoChunk(videoBlob: Blob): boolean {
+  sendLandmarks(landmarksData: LandmarksData): boolean {
     if (!this.isConnected || !this.websocket) {
       console.warn('⚠️ 서버에 연결되지 않음');
       return false;
     }
 
-    // 비디오 데이터를 base64로 인코딩
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64Data = result.split(',')[1]; // data:image/jpeg;base64, 제거
-      
-      const message: VideoChunkMessage = {
-        type: 'video_chunk',
-        data: base64Data,
-        timestamp: Date.now()
-      };
-      
-      try {
-        this.websocket!.send(JSON.stringify(message));
-      } catch (error) {
-        console.error('❌ 비디오 청크 전송 실패:', error);
-      }
+    const message: LandmarksMessage = {
+      type: 'landmarks',
+      data: landmarksData,
+      timestamp: Date.now()
     };
-    
-    reader.readAsDataURL(videoBlob);
-    return true;
+
+    try {
+      this.websocket.send(JSON.stringify(message));
+      return true;
+    } catch (error) {
+      console.error('❌ 랜드마크 데이터 전송 실패:', error);
+      return false;
+    }
   }
 
   sendPing(): boolean {

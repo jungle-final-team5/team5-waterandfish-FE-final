@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { signClassifierClient, ClassificationResult } from '../services/SignClassifierClient';
+import { signClassifierClient, ClassificationResult, LandmarksData } from '../services/SignClassifierClient';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useVideoStream } from '../hooks/useVideoStream';
+import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import { Button } from '@/components/ui/button';
 
 import HandDetectionIndicator from '@/components/HandDetectionIndicator';
