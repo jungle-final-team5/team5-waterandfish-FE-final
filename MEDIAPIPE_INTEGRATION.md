@@ -28,10 +28,11 @@ npm install @mediapipe/holistic
 MediaPipe Holistic 처리를 담당하는 커스텀 hook
 
 **주요 기능:**
-- MediaPipe 초기화 및 설정
+- MediaPipe 초기화 및 설정 (EC2 환경 최적화)
 - 카메라 스트림 관리
 - 랜드마크 추출 및 변환
 - 실시간 시각화 (디버그용)
+- 다중 CDN 전략 및 재시도 로직
 
 **사용법:**
 ```typescript
@@ -180,6 +181,52 @@ const { } = useMediaPipeHolistic({
   }
 });
 ```
+
+## 🌐 EC2 환경 최적화
+
+### 환경 정보
+- **서버**: EC2 t3-xlarge
+- **OS**: Linux
+- **컨테이너**: Docker
+- **프론트엔드**: React + Vite
+
+### 해결된 문제들
+1. **ES 모듈 호환성 문제**: MediaPipe 모듈의 `default` export 처리
+2. **CDN 로딩 순서 문제**: 스크립트 태그 우선 로딩 전략
+3. **WASM 파일 접근성**: 다중 CDN 전략으로 네트워크 문제 해결
+
+### 핵심 해결 방법
+```typescript
+// 1. 다중 CDN 전략
+const CDN_URLS = [
+  'https://cdn.jsdelivr.net/npm/@mediapipe/holistic',
+  'https://unpkg.com/@mediapipe/holistic',
+  'https://cdnjs.cloudflare.com/ajax/libs/mediapipe-holistic'
+];
+
+// 2. 전역 객체 우선 검색
+const globalPaths = [
+  'MediaPipe.Holistic',
+  'MediaPipe.holistic',
+  'Holistic',
+  'holistic'
+];
+
+// 3. 스크립트 태그 로딩 후 재검색
+await loadMediaPipeViaScript();
+```
+
+### 성공적인 초기화 로그
+```javascript
+✅ MediaPipe 스크립트 로드 성공
+✅ CDN 접근 가능
+✅ 전역 객체에서 Holistic 발견
+✅ Holistic 생성자 확인됨
+✅ MediaPipe 모듈 로드 성공
+✅ MediaPipe Holistic 초기화 완료
+```
+
+자세한 내용은 [EC2 MediaPipe 디버깅 가이드](./EC2_MEDIAPIPE_DEBUGGING.md)를 참조하세요.
 
 ## 📈 확장 가능성
 
