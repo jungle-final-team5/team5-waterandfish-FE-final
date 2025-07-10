@@ -150,22 +150,81 @@ const LetterSession = () => {
       // 약간의 지연을 두어 정리가 완료되도록 함
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Hands 인스턴스 생성 - 동적 import 사용
-      console.log('MediaPipe Hands 동적 로드 시작');
-      
-      
-        
-        const handcst = await import('@mediapipe/hands');
-        console.log('MediaPipe Hands 로드 성공:', handcst);
-      
-      
-      const hands = new handcst.default({
-        locateFile: (file) => {
-          // CDN URL을 더 안정적으로 설정
-          const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
+       console.log('MediaPipe Hands dynamic load via hands.js');
+      // ESM entrypoint인 hands.js를 직접 불러와 실제 클래스 가져오기
+      const mpHandModule = await import('@mediapipe/hands/hands.js');
+      console.log('Loaded hands.js exports:', Object.keys(mpHandModule));
+      const HandsConstructor = mpHandModule.Hands;
+      if (typeof HandsConstructor !== 'function') {
+        console.error('Invalid Hands constructor from hands.js:', mpHandModule);
+        throw new Error('MediaPipe Hands 생성자를 찾을 수 없습니다 (hands.js)');
+      }
+      const hands = new HandsConstructor({
+        locateFile: (file: string) => {
+          const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240';
           return `${baseUrl}/${file}`;
         },
       });
+      console.log('MediaPipe Hands instance created successfully');
+    //   // Hands 인스턴스 생성 - 동적 import 사용
+    //   console.log('MediaPipe Hands 동적 로드 시작');
+      
+      
+        
+    //     const mpHandModule = await import('@mediapipe/hands');
+    //     console.log('MediaPipe Hands 로드 성공:', mpHandModule);
+
+    //   console.log('🔍 MediaPipe 모듈 구조 확인:', Object.keys(mpHandModule));
+    // console.log('🔍 default export 타입:', typeof mpHandModule.default);
+
+    //   let handSave: any = null;
+      
+    //   if(mpHandModule.Hands)
+    //   {
+    //     handSave = mpHandModule.Hands;
+    //     console.log("handSave가 hands로");
+    //   }
+    //   else if(mpHandModule.default)
+    //   {
+    //     if (typeof mpHandModule.default === 'object' && mpHandModule.default !== null) {
+    //     console.log('default export 객체의 키들:', Object.keys(mpHandModule.default));
+        
+    //     // 다양한 가능한 키 이름 확인
+    //     const possibleKeys = ['Hands', 'hands', 'HandsSolution', 'handsSolution'];
+    //     for (const key of possibleKeys) {
+    //       if (mpHandModule.default[key]) {
+    //         handSave = mpHandModule.default[key];
+    //         console.log(`✅ default export 객체에서 ${key} 발견`);
+    //         break;
+    //       }
+    //     }
+        
+    //     // 모든 속성을 순회하며 함수 타입 찾기
+    //     if (!handSave) {
+    //       for (const [key, value] of Object.entries(mpHandModule.default)) {
+    //         if (typeof value === 'function' && key.toLowerCase().includes('holistic')) {
+    //           handSave = value;
+    //           console.log(`✅ default export에서 함수 발견: ${key}`);
+    //           break;
+    //         }
+    //       }
+    //     }
+    //   }
+    //   // default가 함수인 경우 (생성자일 수 있음)
+    //   else if (typeof mpHandModule.default === 'function') {
+    //     handSave = mpHandModule.default;
+    //     console.log('✅ default export가 Holistic 생성자인 것으로 추정');
+    //   }
+    // }
+      
+      
+    //   const hands = new handSave({
+    //     locateFile: (file) => {
+    //       // CDN URL을 더 안정적으로 설정
+    //       const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
+    //       return `${baseUrl}/${file}`;
+    //     },
+    //   });
 
       console.log("complete loaded ");
 
