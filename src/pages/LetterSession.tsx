@@ -9,6 +9,7 @@ import API from '@/components/AxiosInstance';
 import SessionHeader from '@/components/SessionHeader';
 import LetterDisplay from '@/components/LetterDisplay';
 
+
 const LetterSession = () => {
   const [gesture, setGesture] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -150,17 +151,14 @@ const LetterSession = () => {
       // Hands 인스턴스 생성 - 동적 import 사용
       console.log('MediaPipe Hands 동적 로드 시작');
       
-      let HandsConstructor;
-      try {
-        const { Hands } = await import('@mediapipe/hands');
-        HandsConstructor = Hands;
-        console.log('MediaPipe Hands 로드 성공:', typeof HandsConstructor);
-      } catch (error) {
-        console.error('MediaPipe Hands 로드 실패:', error);
-        throw new Error('MediaPipe Hands를 로드할 수 없습니다. 페이지를 새로고침해주세요.');
-      }
       
-      const hands = new HandsConstructor({
+      
+        const { Hands } = await import('@mediapipe/hands');
+        
+        console.log('MediaPipe Hands 로드 성공:', Hands);
+      
+      
+      const hands = new Hands({
         locateFile: (file) => {
           // CDN URL을 더 안정적으로 설정
           const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
