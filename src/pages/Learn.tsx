@@ -18,12 +18,9 @@ import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
-import { Lesson as LessonBase } from '@/types/learning';
+import { Lesson } from '@/types/learning';
+import { Hands } from '@mediapipe/hands';
 import VideoInput from '@/components/VideoInput';
-
-interface Lesson extends LessonBase {
-  sign_text?: string;
-}
 
 interface LessonApiResponse {
   success: boolean;
@@ -39,11 +36,8 @@ const Learn = () => {
   const [currentFrame, setCurrentFrame] = useState(0);
 
   const navigate = useNavigate();
-  const { lessonId } = useParams();
-
-  const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [lessonLoading, setLessonLoading] = useState(true);
-  const [lessonError, setLessonError] = useState<string | null>(null);
+  const { wordId } = useParams();
+  const decodedWord = wordId ? decodeURIComponent(wordId) : '';
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -54,26 +48,38 @@ const Learn = () => {
   const [animationSpeed, setAnimationSpeed] = useState(30);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // lessonId로 단일 lesson fetch
-  useEffect(() => {
-    if (!lessonId) return;
-    setLessonLoading(true);
-    setLessonError(null);
-    API.get<{ success: boolean; data: Lesson; message?: string }>(`/lessons/${lessonId}`)
-      .then(res => {
-        setLesson(res.data.data);
-        setLessonLoading(false);
-      })
-      .catch((err) => {
-        setLesson(null);
-        setLessonLoading(false);
-        setLessonError('존재하지 않는 수어입니다');
-      });
-  }, [lessonId]);
+  const { categories } = useLearningData();
+
+  const [fetchedSign, setFetchedSign] = useState<Lesson | undefined>(undefined);
+
+  const normalize = (str: string) => str ? str.normalize('NFC').trim().toLowerCase() : '';
+
+  // 모든 수어(flatten)
+  const allSigns = (categories ?? [])
+    .flatMap(cat =>
+      (cat.chapters ?? []).flatMap(chap =>
+        (chap.lessons ?? []).map(sign => ({
+          ...sign,
+          categoryTitle: cat.title,
+          categoryId: cat.id
+        }) as Lesson & { categoryTitle: string; categoryId: string })
+      )
+    );
+
+  // word로 수어 찾기
+  const selectedSign = allSigns.find(
+    sign => sign.word && normalize(sign.word) === normalize(decodedWord)
+  );
+
+  const signToShow = selectedSign;
+
+  // 추천 수어/검색결과 리스트 (실제 데이터 기반, 최대 6개)
+  const exampleSigns = allSigns.slice(0, 6);
 
   const loadAnim = async () => {
     try {
-      const response = await API.get(`/anim/${lessonId}`);
+      const id = "686269ddcba901ab2b745002";
+      const response = await API.get(`/anim/${id}`);
       setAnimData(response.data);
     } catch (error) {
       console.error('애니메이션 불러오는데 실패했습니다 : ', error);
@@ -109,13 +115,14 @@ const Learn = () => {
   }, [isPlaying, animationSpeed, animData, currentFrame]);
 
   useEffect(() => {
-    console.log('lessonId:', lessonId);
-    console.log('lesson:', lesson);
-  }, [lessonId, lesson]);
+    console.log('allSigns:', allSigns);
+    console.log('decodedWord:', decodedWord);
+    console.log('selectedSign:', selectedSign);
+  }, [allSigns, decodedWord, selectedSign]);
 
   // 샘플 학습 데이터
   const learningData = {
-    keyword: lesson?.sign_text ?? lessonId,
+    keyword: signToShow?.word ?? wordId,
     steps: [
       {
         title: '예시 보기',
@@ -186,12 +193,8 @@ const Learn = () => {
     // eslint-disable-next-line
   }, [currentStepData.type]);
 
-  // 데이터 로딩/에러 처리
-  if (lessonLoading) {
-    return <div className="text-center mt-10">수어 정보를 불러오는 중입니다...</div>;
-  }
-  if (lessonError) {
-    return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
+  if (!categories || categories.length === 0) {
+    return <div className="text-center mt-10">수어 데이터를 불러오는 중입니다...</div>;
   }
 
   return (
@@ -210,7 +213,7 @@ const Learn = () => {
                 홈으로
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-gray-800">{lesson?.sign_text ?? lessonId ?? ''}</h1>
+                <h1 className="text-xl font-bold text-gray-800">{signToShow?.word ?? decodedWord ?? ''}</h1>
                 {/* <p className="text-sm text-gray-600">{category}</p> */}
               </div>
             </div>
@@ -350,7 +353,7 @@ const Learn = () => {
             <div className="text-center py-12">
               <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
-              <p className="text-gray-600 mb-6">'{lesson?.sign_text ?? lessonId}' 수어를 성공적으로 학습했습니다.</p>
+              <p className="text-gray-600 mb-6">'{signToShow?.word ?? wordId}' 수어를 성공적으로 학습했습니다.</p>
               <div className="flex justify-center space-x-4">
                 <Button onClick={() => navigate('/home')} variant="outline">
                   홈으로 돌아가기
