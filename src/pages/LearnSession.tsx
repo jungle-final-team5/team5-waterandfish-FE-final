@@ -226,7 +226,8 @@ const LearnSession = () => {
     lastLandmarks,
     startCamera,
     stopCamera,
-    retryInitialization
+    retryInitialization,
+    error
   } = useMediaPipeHolistic({
     onLandmarks: handleLandmarksDetected,
     modelComplexity: 1,
