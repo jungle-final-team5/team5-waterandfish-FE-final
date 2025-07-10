@@ -78,7 +78,7 @@ const LetterSession = () => {
 
   // 카메라 초기화 함수
   const initializeCamera = async () => {
-    let HandConst: any = null;
+    
     // 이미 초기화 중이면 중복 실행 방지
     if (isInitializingRef.current) {
       console.log('카메라 초기화가 이미 진행 중입니다.');
@@ -159,7 +159,7 @@ const LetterSession = () => {
         console.log('MediaPipe Hands 로드 성공:', handcst);
       
       
-      const hands = new Hands({
+      const hands = new handcst.default.constructor({
         locateFile: (file) => {
           // CDN URL을 더 안정적으로 설정
           const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
