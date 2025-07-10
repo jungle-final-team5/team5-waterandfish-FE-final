@@ -2,7 +2,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useRef, useState } from 'react';
-import { Hands } from '@mediapipe/hands';
 import { Camera } from '@mediapipe/camera_utils';
 import { drawLandmarks, drawOverlayMessage, drawWarningMessage } from '../components/draw/draw';
 import { detectGesture } from '../components/draw/RightDetector';
@@ -69,7 +68,7 @@ const LetterSession = () => {
   const [words, setWords] = useState('');
 
   // 카메라 관련 refs 추가
-  const handsRef = useRef<Hands | null>(null);
+  const handsRef = useRef<any | null>(null);
   const cameraRef = useRef<Camera | null>(null);
   const retryCountRef = useRef(0);
   const maxRetries = 3;
@@ -147,8 +146,24 @@ const LetterSession = () => {
       // 약간의 지연을 두어 정리가 완료되도록 함
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Hands 인스턴스 생성
-      const hands = new Hands({
+      // Hands 인스턴스 생성 - 동적 import 사용
+      console.log('MediaPipe Hands 동적 로드 시작');
+      
+      let HandsConstructor;
+      try {
+        const { Hands } = await import('@mediapipe/hands');
+        HandsConstructor = Hands;
+        console.log('MediaPipe Hands 로드 성공:', typeof HandsConstructor);
+      } catch (error) {
+        console.error('MediaPipe Hands 로드 실패:', error);
+        throw new Error('MediaPipe Hands를 로드할 수 없습니다. 페이지를 새로고침해주세요.');
+      }
+      
+      if (typeof HandsConstructor !== 'function') {
+        throw new Error('MediaPipe Hands 생성자가 유효하지 않습니다.');
+      }
+      
+      const hands = new HandsConstructor({
         locateFile: (file) => {
           // CDN URL을 더 안정적으로 설정
           const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
@@ -576,13 +591,13 @@ useEffect(() => {
                     className="border border-gray-300"  
                     style={{ 
                       transform: 'scaleX(-1)',
-                      display: !isCameraInitializing && !cameraError ? 'block' : 'none'
+                      visibility: !isCameraInitializing && !cameraError ? 'visible' : 'hidden'
                     }}
                   />
                   <div 
                     ref={resultRef} 
                     className="text-center text-xl mt-4"
-                    style={{ display: !isCameraInitializing && !cameraError ? 'block' : 'none' }}
+                    style={{ visibility: !isCameraInitializing && !cameraError ? 'visible' : 'hidden' }}
                   />
                 </>
               </CardContent>
