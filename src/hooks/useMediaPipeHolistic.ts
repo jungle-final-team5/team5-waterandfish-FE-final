@@ -13,8 +13,6 @@ interface UseMediaPipeHolisticOptions {
   minDetectionConfidence?: number;
   minTrackingConfidence?: number;
   enableLogging?: boolean;
-  sendMessage?: (message: string) => void;
-  connectionId?: string;
 }
 
 interface UseMediaPipeHolisticReturn {
