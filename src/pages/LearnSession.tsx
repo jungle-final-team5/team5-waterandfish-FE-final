@@ -8,7 +8,7 @@ import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import React, { useState, useRef, useEffect, useCallback, startTransition } from 'react';
 
 import API from '@/components/AxiosInstance';
-import useWebsocket, { getConnectionByUrl } from '@/hooks/useWebsocket';
+import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
 import VideoInput from '@/components/VideoInput';
 import SessionHeader from '@/components/SessionHeader';
 import LearningDisplay from '@/components/LearningDisplay';
@@ -29,6 +29,7 @@ const RETRY_CONFIG = {
 
 const LearnSession = () => {
   const { categoryId, chapterId } = useParams();
+  // ...existing code...
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
@@ -176,6 +177,13 @@ const LearnSession = () => {
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
 
+  // sessionComplete 시 소켓 연결 해제
+  useEffect(() => {
+    if (sessionComplete) {
+      disconnectWebSockets();
+    }
+  }, [sessionComplete]);
+
   //const category = categoryId ? findCategoryById(categoryId) : null;
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -236,16 +244,16 @@ const LearnSession = () => {
     enableLogging: false // MediaPipe 내부 로그 숨김
   });
 
-  useEffect(() => {
-    // message type: type: landmarks, data: [pose: [x, y, z], left_hand: [x, y, z], right_hand: [x, y, z]]
-    if (lastLandmarks) {
-      const landmarksData = {
-        type: 'landmarks',
-        data: { pose: lastLandmarks.pose, left_hand: lastLandmarks.left_hand, right_hand: lastLandmarks.right_hand }
-      };
-      sendMessage(JSON.stringify(landmarksData), currentConnectionId);
-    }
-  }, [lastLandmarks, sendMessage, currentConnectionId]);
+useEffect(() => {
+  // 스트리밍 중일 때만 소켓으로 전송
+  if (isStreaming && lastLandmarks) {
+    const landmarksData = {
+      type: 'landmarks',
+      data: { pose: lastLandmarks.pose, left_hand: lastLandmarks.left_hand, right_hand: lastLandmarks.right_hand }
+    };
+    sendMessage(JSON.stringify(landmarksData), currentConnectionId);
+  }
+}, [isStreaming, lastLandmarks, sendMessage, currentConnectionId]);
 
   // 이전 connectionId 추적을 위한 ref
   const prevConnectionIdRef = useRef<string>('');
