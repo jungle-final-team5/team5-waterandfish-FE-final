@@ -160,10 +160,6 @@ const LetterSession = () => {
         throw new Error('MediaPipe Hands를 로드할 수 없습니다. 페이지를 새로고침해주세요.');
       }
       
-      if (typeof HandsConstructor !== 'function') {
-        throw new Error('MediaPipe Hands 생성자가 유효하지 않습니다.');
-      }
-      
       const hands = new HandsConstructor({
         locateFile: (file) => {
           // CDN URL을 더 안정적으로 설정
