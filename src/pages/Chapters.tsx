@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import {Lesson,Chapter,Category} from '../types/learning';
 import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import API from '@/components/AxiosInstance';
-import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
+import useWebsocket, { connectToWebSockets, disconnectWebSockets } from '@/hooks/useWebsocket';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 
 // 챕터별 상태 계산 함수
@@ -29,7 +29,11 @@ const Chapters = () => {
   // 전역 WebSocket 상태 관리
   const { showStatus } = useGlobalWebSocketStatus();
   const { connectionStatus, wsList } = useWebsocket();
-
+  useEffect(() => {
+      
+        disconnectWebSockets();
+      
+    }, [])
   const handleStartChapter = async (chapterId: string, lessonIds: string[]) => {
     const path = `/learn/chapter/${chapterId}/guide`;
     
