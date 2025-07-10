@@ -155,11 +155,54 @@ const LetterSession = () => {
       
       
         
-        const handcst = await import('@mediapipe/hands');
-        console.log('MediaPipe Hands 로드 성공:', handcst);
+        const mpHandModule = await import('@mediapipe/hands');
+        console.log('MediaPipe Hands 로드 성공:', mpHandModule);
+
+      console.log('🔍 MediaPipe 모듈 구조 확인:', Object.keys(mpHandModule));
+    console.log('🔍 default export 타입:', typeof mpHandModule.default);
+
+      let handSave: any = null;
+      
+      if(mpHandModule.Hands)
+      {
+        handSave = mpHandModule.Hands;
+        console.log("handSave가 hands로");
+      }
+      else if(mpHandModule.default)
+      {
+        if (typeof mpHandModule.default === 'object' && mpHandModule.default !== null) {
+        console.log('default export 객체의 키들:', Object.keys(mpHandModule.default));
+        
+        // 다양한 가능한 키 이름 확인
+        const possibleKeys = ['Hands', 'hands', 'HandsSolution', 'handsSolution'];
+        for (const key of possibleKeys) {
+          if (mpHandModule.default[key]) {
+            handSave = mpHandModule.default[key];
+            console.log(`✅ default export 객체에서 ${key} 발견`);
+            break;
+          }
+        }
+        
+        // 모든 속성을 순회하며 함수 타입 찾기
+        if (!handSave) {
+          for (const [key, value] of Object.entries(mpHandModule.default)) {
+            if (typeof value === 'function' && key.toLowerCase().includes('holistic')) {
+              handSave = value;
+              console.log(`✅ default export에서 함수 발견: ${key}`);
+              break;
+            }
+          }
+        }
+      }
+      // default가 함수인 경우 (생성자일 수 있음)
+      else if (typeof mpHandModule.default === 'function') {
+        handSave = mpHandModule.default;
+        console.log('✅ default export가 Holistic 생성자인 것으로 추정');
+      }
+    }
       
       
-      const hands = new handcst.default({
+      const hands = new handSave({
         locateFile: (file) => {
           // CDN URL을 더 안정적으로 설정
           const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
