@@ -150,15 +150,20 @@ const LetterSession = () => {
       console.log('MediaPipe Hands 동적 로드 시작');
       
       
-        const apiz = await import('@mediapipe/hands');
-        const vista = apiz.Hands;
-        console.log("--");
-      const hands = new vista({
-        locateFile: (file) => {
-          // CDN URL을 더 안정적으로 설정
-          const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
-          return `${baseUrl}/${file}`;
-        },
+      // Dynamic import of MediaPipe Hands
+      const apiz = await import('@mediapipe/hands');
+      console.log('Loaded hands module:', apiz);
+      // Resolve the actual Hands constructor
+      const HandsCtor = apiz.Hands ?? apiz.default?.Hands;
+      if (typeof HandsCtor !== 'function') {
+          console.error('Invalid Hands constructor:', apiz);
+          throw new Error('MediaPipe Hands 생성자를 찾을 수 없습니다.');
+      }
+      const hands = new HandsCtor({
+          locateFile: (file: string) => {
+              const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
+              return `${baseUrl}/${file}`;
+          },
       });
 
       console.log("complete loaded ");
