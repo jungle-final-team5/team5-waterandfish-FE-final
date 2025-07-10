@@ -297,7 +297,11 @@ useEffect(() => {
   const handleBack = () => {
     window.history.back();
   };
-
+  useEffect(() => {
+    return () => { 
+      disconnectWebSockets();
+    }
+  }, []);
   // 이 함수로, 실질적인 컨텐츠 타이머 시작
   const handleStartRecording = () => {
     setIsRecording(true);
