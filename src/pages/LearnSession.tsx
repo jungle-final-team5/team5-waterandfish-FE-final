@@ -374,13 +374,14 @@ useEffect(() => {
 
     initialize();
 
-    // 언마운트 시 정리
+    // 언마운트 시 정리 (disconnectWebSockets는 sessionComplete에서만 호출)
     return () => {
       signClassifierClient.disconnect();
       stopCamera();
       if (transmissionIntervalRef.current) {
         clearInterval(transmissionIntervalRef.current);
       }
+      // disconnectWebSockets()는 여기서 호출하지 않음
     };
   }, [isInitialized]);
 

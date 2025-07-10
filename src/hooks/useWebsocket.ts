@@ -182,7 +182,7 @@ const connectToWebSockets = (wsUrls: string[], autoReconnect: boolean = true): W
     console.log(`Connecting to ${uniqueWsUrls.length} WebSocket(s)`);
 
     // 기존 연결 정리
-    disconnectWebSockets();
+    // disconnectWebSockets();
 
     const connections: WebSocketConnection[] = [];
 
