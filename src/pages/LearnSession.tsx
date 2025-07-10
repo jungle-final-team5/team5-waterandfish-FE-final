@@ -225,7 +225,8 @@ const LearnSession = () => {
     isProcessing,
     lastLandmarks,
     startCamera,
-    stopCamera
+    stopCamera,
+    retryInitialization
   } = useMediaPipeHolistic({
     onLandmarks: handleLandmarksDetected,
     modelComplexity: 1,
@@ -682,6 +683,13 @@ const LearnSession = () => {
           <div>오른손: {lastLandmarks.right_hand ? `${lastLandmarks.right_hand.length}개` : '없음'}</div>
         </div>
       )}
+      {/* 미디어 파이프 홀리스틱 수동 초기화 */}
+      <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
+        <div className="font-semibold mb-1">미디어 파이프 홀리스틱 수동 초기화:</div>
+        <div>
+          <Button onClick={retryInitialization}>초기화 재시도</Button>
+        </div>
+      </div>
 
     </div>
   );
