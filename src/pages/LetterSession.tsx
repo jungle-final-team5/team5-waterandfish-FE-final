@@ -159,7 +159,7 @@ const LetterSession = () => {
         console.log('MediaPipe Hands 로드 성공:', handcst);
       
       
-      const hands = new handcst.default.constructor({
+      const hands = new handcst.default({
         locateFile: (file) => {
           // CDN URL을 더 안정적으로 설정
           const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
