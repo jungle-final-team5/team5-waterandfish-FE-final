@@ -154,7 +154,7 @@ const LearnSession = () => {
 
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const [isTransmitting, setIsTransmitting] = useState(false);
-  const [currentResult, setCurrentResult] = useState<string | null>(null); // 이 경우는 포인터 변수
+  const [currentResult, setCurrentResult] = useState<any>(null); // 분류 결과 객체로 세팅
   const [isConnecting, setIsConnecting] = useState(false);
   const [maxConfidence, setMaxConfidence] = useState(0.0);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -323,9 +323,8 @@ useEffect(() => {
 
   // FeedbackDisplay 완료 콜백 함수. Feedback 복구 시 해당 메서드 실행하게끔 조치
   const handleFeedbackComplete = () => {
-    setFeedback("correct");
+    // setFeedback("correct"); // 중복 호출 제거
     console.log('🎉 FeedbackDisplay 완료, 다음 수어로 이동');
-
     handleNextSign();
   };
 
@@ -500,7 +499,7 @@ useEffect(() => {
                   setDisplayConfidence(`${percent.toFixed(1)}%`);
                 }
                 setCurrentResult(msg.data);
-                if (percent >= 80.0) {
+                if (percent >= 80.0 && feedback !== "correct") {
                   setFeedback("correct");
                   console.log("PASSED");
                 }
@@ -605,18 +604,26 @@ useEffect(() => {
 
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">
-            <VideoInput
-              width={640}
-              height={480}
-              autoStart={false}
-              showControls={true}
-              onStreamReady={handleStreamReady}
-              onStreamError={handleStreamError}
-              className="h-full"
-              currentSign={currentSign}
-              currentResult={displayConfidence}
-            />
-
+            {/* VideoInput 제거, 직접 video/canvas 렌더링 */}
+            <div className="relative w-full max-w-lg mx-auto">
+              <video
+                ref={videoRef}
+                width={640}
+                height={480}
+                autoPlay
+                muted
+                playsInline
+                className="rounded-lg bg-black w-full h-auto object-cover"
+                style={{ aspectRatio: '4/3' }}
+              />
+              <canvas
+                ref={canvasRef}
+                width={640}
+                height={480}
+                className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                style={{ aspectRatio: '4/3' }}
+              />
+            </div>
             <StreamingControls
               isStreaming={isStreaming}
               streamingStatus={streamingStatus}
@@ -628,19 +635,6 @@ useEffect(() => {
               onConfigChange={setStreamingConfig}
               transitionSign={handleNextSign}
             />
-
-
-            {/* 숨겨진 비디오 요소들 */}
-            <div className="hidden">
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              />
-              <canvas ref={canvasRef} />
-            </div>
           </div>
 
         </div>
@@ -649,7 +643,7 @@ useEffect(() => {
           <div className="mt-8">
             <FeedbackDisplay
               feedback={feedback}
-              prediction={currentResult.prediction}
+              prediction={currentResult?.prediction ?? ''}
               onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
             />
           </div>
