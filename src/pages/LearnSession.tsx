@@ -233,7 +233,9 @@ const LearnSession = () => {
     isProcessing,
     lastLandmarks,
     startCamera,
-    stopCamera
+    stopCamera,
+    retryInitialization,
+    error
   } = useMediaPipeHolistic({
     onLandmarks: handleLandmarksDetected,
     modelComplexity: 1,
@@ -350,7 +352,7 @@ useEffect(() => {
         console.log('✅ 세션 초기화 완료');
         return true;
       } else {
-        console.log('❌ 카메라 시작 실패');
+        console.log('[LearnSession] ❌ 카메라 시작 실패');
         return false;
       }
     } catch (error) {
@@ -689,6 +691,13 @@ useEffect(() => {
           <div>오른손: {lastLandmarks.right_hand ? `${lastLandmarks.right_hand.length}개` : '없음'}</div>
         </div>
       )}
+      {/* 미디어 파이프 홀리스틱 수동 초기화 */}
+      <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
+        <div className="font-semibold mb-1">미디어 파이프 홀리스틱 수동 초기화:</div>
+        <div>
+          <Button onClick={retryInitialization}>초기화 재시도</Button>
+        </div>
+      </div>
 
     </div>
   );

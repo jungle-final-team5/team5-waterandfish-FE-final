@@ -506,7 +506,7 @@ export const useMediaPipeHolisticStreaming = (
       console.log('✅ 카메라 시작됨');
       return true;
     } catch (error) {
-      console.error('❌ 카메라 시작 실패:', error);
+      console.error('[useMediaPipeHolisticStreaming] ❌ 카메라 시작 실패:', error);
       return false;
     }
   }, [isInitialized]);
