@@ -59,6 +59,12 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- MediaPipe Holistic (수어 인식)
+
+## 📚 주요 문서
+
+- [MediaPipe 통합 가이드](./MEDIAPIPE_INTEGRATION.md) - MediaPipe Holistic 통합 방법
+- [EC2 MediaPipe 디버깅 가이드](./EC2_MEDIAPIPE_DEBUGGING.md) - EC2 환경에서의 MediaPipe 문제 해결
 
 ## How can I deploy this project?
 
