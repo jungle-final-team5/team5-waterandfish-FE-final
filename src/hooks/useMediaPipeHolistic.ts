@@ -13,6 +13,8 @@ interface UseMediaPipeHolisticOptions {
   minDetectionConfidence?: number;
   minTrackingConfidence?: number;
   enableLogging?: boolean;
+  maxRetries?: number;
+  retryDelay?: number;
 }
 
 interface UseMediaPipeHolisticReturn {
@@ -21,10 +23,85 @@ interface UseMediaPipeHolisticReturn {
   isInitialized: boolean;
   isProcessing: boolean;
   lastLandmarks: LandmarksData | null;
+  error: string | null;
   startCamera: () => Promise<boolean>;
   stopCamera: () => void;
   processFrame: () => void;
+  retryInitialization: () => Promise<boolean>;
 }
+
+// MediaPipe 모듈 로딩 상태 추적
+let mediaPipeLoadPromise: Promise<boolean> | null = null;
+let mediaPipeLoadAttempts = 0;
+const MAX_GLOBAL_RETRIES = 3;
+
+// MediaPipe 모듈 로딩 함수
+const loadMediaPipeModule = async (): Promise<boolean> => {
+  try {
+    // 동적 import로 MediaPipe 모듈 로드
+    const { Holistic } = await import('@mediapipe/holistic');
+    
+    // 모듈이 제대로 로드되었는지 확인
+    if (typeof Holistic !== 'function') {
+      throw new Error('Holistic constructor not found');
+    }
+    
+    // 테스트 인스턴스 생성으로 초기화 확인
+    const testHolistic = new Holistic({
+      locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+      }
+    });
+    
+    // 기본 옵션으로 초기화 테스트
+    testHolistic.setOptions({
+      modelComplexity: 0,
+      smoothLandmarks: false,
+      enableSegmentation: false,
+      smoothSegmentation: false,
+      refineFaceLandmarks: false,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+    
+    // 정리
+    await testHolistic.close();
+    
+    console.log('✅ MediaPipe 모듈 로드 성공');
+    return true;
+  } catch (error) {
+    console.error('❌ MediaPipe 모듈 로드 실패:', error);
+    return false;
+  }
+};
+
+// WASM 파일 접근성 확인
+const checkWasmAccessibility = async (): Promise<boolean> => {
+  const wasmFiles = [
+    'holistic_solution_simd_wasm_bin.js',
+    'holistic_solution_simd_wasm_bin.wasm'
+  ];
+  
+  try {
+    for (const file of wasmFiles) {
+      const response = await fetch(`https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`, {
+        method: 'HEAD',
+        mode: 'cors'
+      });
+      
+      if (!response.ok) {
+        console.warn(`⚠️ WASM 파일 접근 실패: ${file}`);
+        return false;
+      }
+    }
+    
+    console.log('✅ WASM 파일 접근 가능');
+    return true;
+  } catch (error) {
+    console.error('❌ WASM 파일 접근 확인 실패:', error);
+    return false;
+  }
+};
 
 export const useMediaPipeHolistic = (
   options: UseMediaPipeHolisticOptions = {}
@@ -48,7 +125,9 @@ export const useMediaPipeHolistic = (
     refineFaceLandmarks = false,
     minDetectionConfidence = 0.5,
     minTrackingConfidence = 0.5,
-    enableLogging = false
+    enableLogging = false,
+    maxRetries = 3,
+    retryDelay = 2000
   } = options;
 
   // 콘솔 로그 필터링 함수
@@ -133,18 +212,49 @@ export const useMediaPipeHolistic = (
     }
   }, []);
 
-  // MediaPipe 초기화
-  const initializeMediaPipe = useCallback(async () => {
+  // 지연 함수
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // MediaPipe 초기화 (재시도 로직 포함)
+  const initializeMediaPipe = useCallback(async (retryCount = 0): Promise<boolean> => {
     try {
+      setError(null);
+      
       // WebGL 지원 확인
       if (!checkWebGLSupport()) {
         throw new Error('WebGL이 지원되지 않아 MediaPipe를 초기화할 수 없습니다');
       }
 
+      // WASM 파일 접근성 확인
+      const wasmAccessible = await checkWasmAccessibility();
+      if (!wasmAccessible) {
+        throw new Error('WASM 파일에 접근할 수 없습니다. 네트워크 연결을 확인해주세요.');
+      }
+
       // 로그 필터링 시작
       const cleanupLogs = filterConsoleLogs();
       
-      console.log('🎯 MediaPipe Holistic 초기화 중...');
+      console.log(`🎯 MediaPipe Holistic 초기화 중... (시도 ${retryCount + 1}/${maxRetries + 1})`);
+      
+      // 전역 로딩 상태 확인
+      if (mediaPipeLoadPromise) {
+        console.log('⏳ MediaPipe 모듈 로딩 대기 중...');
+        const loadSuccess = await mediaPipeLoadPromise;
+        if (!loadSuccess) {
+          throw new Error('MediaPipe 모듈 로딩 실패');
+        }
+      } else {
+        // 새로운 로딩 시도
+        mediaPipeLoadPromise = loadMediaPipeModule();
+        const loadSuccess = await mediaPipeLoadPromise;
+        if (!loadSuccess) {
+          mediaPipeLoadPromise = null;
+          throw new Error('MediaPipe 모듈 로딩 실패');
+        }
+      }
+
+      // Holistic 인스턴스 생성
+      const { Holistic } = await import('@mediapipe/holistic');
       
       const holistic = new Holistic({
         locateFile: (file) => {
@@ -211,8 +321,19 @@ export const useMediaPipeHolistic = (
       
       return true;
     } catch (error) {
-      console.error('❌ MediaPipe Holistic 초기화 실패:', error);
+      console.error(`❌ MediaPipe Holistic 초기화 실패 (시도 ${retryCount + 1}):`, error);
+      
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      setError(`초기화 실패: ${errorMessage}`);
       setIsInitialized(false);
+      
+      // 재시도 로직
+      if (retryCount < maxRetries) {
+        console.log(`🔄 ${retryDelay}ms 후 재시도...`);
+        await delay(retryDelay);
+        return initializeMediaPipe(retryCount + 1);
+      }
+      
       return false;
     }
   }, [
@@ -225,7 +346,9 @@ export const useMediaPipeHolistic = (
     minDetectionConfidence,
     minTrackingConfidence,
     filterConsoleLogs,
-    checkWebGLSupport
+    checkWebGLSupport,
+    maxRetries,
+    retryDelay
   ]);
 
   // 랜드마크 시각화 (디버그용)
@@ -337,14 +460,33 @@ export const useMediaPipeHolistic = (
     };
   }, [initializeMediaPipe, stopCamera]);
 
+  // 수동 재시도 함수
+  const retryInitialization = useCallback(async (): Promise<boolean> => {
+    console.log('🔄 MediaPipe 초기화 재시도...');
+    setError(null);
+    
+    // 기존 인스턴스 정리
+    if (holisticRef.current) {
+      await holisticRef.current.close();
+      holisticRef.current = null;
+    }
+    
+    // 전역 로딩 상태 리셋
+    mediaPipeLoadPromise = null;
+    
+    return initializeMediaPipe();
+  }, [initializeMediaPipe]);
+
   return {
     videoRef,
     canvasRef,
     isInitialized,
     isProcessing,
     lastLandmarks,
+    error,
     startCamera,
     stopCamera,
-    processFrame
+    processFrame,
+    retryInitialization
   };
 }; 
