@@ -151,9 +151,9 @@ const LetterSession = () => {
       
       
         const apiz = await import('@mediapipe/hands');
-        console.log(apiz);
+        const vista = apiz.Hands;
         console.log("--");
-      const hands = new Hands({
+      const hands = new vista({
         locateFile: (file) => {
           // CDN URL을 더 안정적으로 설정
           const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
