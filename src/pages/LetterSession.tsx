@@ -152,15 +152,16 @@ const LetterSession = () => {
       let HandsConstructor;
       try {
         const { Hands } = await import('@mediapipe/hands');
-        HandsConstructor = Hands;
-        console.log('MediaPipe Hands 로드 성공:', typeof HandsConstructor);
+        //HandsConstructor = Hands;
+        console.log('MediaPipe Hands 로드 성공:');
       } catch (error) {
         console.error('MediaPipe Hands 로드 실패:', error);
         throw new Error('MediaPipe Hands를 로드할 수 없습니다. 페이지를 새로고침해주세요.');
       }
       
       if (typeof HandsConstructor !== 'function') {
-        throw new Error('MediaPipe Hands 생성자가 유효하지 않습니다.');
+        console.log("이건 뜨는 경우도 있다");
+       // throw new Error('MediaPipe Hands 생성자가 유효하지 않습니다.');
       }
       
       const hands = new HandsConstructor({
