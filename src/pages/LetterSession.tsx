@@ -73,19 +73,51 @@ const LetterSession = () => {
   const cameraRef = useRef<Camera | null>(null);
   const retryCountRef = useRef(0);
   const maxRetries = 3;
+  const isInitializingRef = useRef(false);
 
   // 카메라 초기화 함수
   const initializeCamera = async () => {
+    // 이미 초기화 중이면 중복 실행 방지
+    if (isInitializingRef.current) {
+      console.log('카메라 초기화가 이미 진행 중입니다.');
+      return;
+    }
+    
     try {
+      isInitializingRef.current = true;
       setIsCameraInitializing(true);
       setCameraError(null);
+
+      // DOM 요소들이 준비될 때까지 잠시 대기
+      let attempts = 0;
+      const maxAttempts = 20; // 더 많은 시도 횟수
+      
+      while (attempts < maxAttempts) {
+        const videoElement = videoRef.current;
+        const canvasElement = canvasRef.current;
+        const resultElement = resultRef.current;
+
+        if (videoElement && canvasElement && resultElement) {
+          console.log('DOM 요소들이 준비되었습니다.');
+          break;
+        }
+        
+        console.log(`DOM 요소 대기 중... (${attempts + 1}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, 150)); // 더 긴 대기 시간
+        attempts++;
+      }
 
       const videoElement = videoRef.current;
       const canvasElement = canvasRef.current;
       const resultElement = resultRef.current;
 
       if (!videoElement || !canvasElement || !resultElement) {
-        throw new Error('필요한 DOM 요소를 찾을 수 없습니다.');
+        console.error('DOM 요소 확인:', {
+          video: !!videoElement,
+          canvas: !!canvasElement,
+          result: !!resultElement
+        });
+        throw new Error('필요한 DOM 요소를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
       }
 
       const canvasCtx = canvasElement.getContext('2d');
@@ -93,15 +125,27 @@ const LetterSession = () => {
         throw new Error('Canvas 컨텍스트를 가져올 수 없습니다.');
       }
 
-      // 기존 인스턴스 정리
-      if (handsRef.current) {
-        handsRef.current.close();
-        handsRef.current = null;
-      }
+      // 기존 인스턴스 정리 - 더 안전한 정리
       if (cameraRef.current) {
-        cameraRef.current.stop();
+        try {
+          cameraRef.current.stop();
+        } catch (error) {
+          console.warn('카메라 정리 중 오류:', error);
+        }
         cameraRef.current = null;
       }
+      
+      if (handsRef.current) {
+        try {
+          handsRef.current.close();
+        } catch (error) {
+          console.warn('Hands 정리 중 오류:', error);
+        }
+        handsRef.current = null;
+      }
+      
+      // 약간의 지연을 두어 정리가 완료되도록 함
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Hands 인스턴스 생성
       const hands = new Hands({
@@ -174,9 +218,16 @@ const LetterSession = () => {
       const camera = new Camera(videoElement, {
         onFrame: async () => {
           try {
-            await hands.send({ image: videoElement });
+            // hands 인스턴스가 유효한지 확인
+            if (hands) {
+              await hands.send({ image: videoElement });
+            }
           } catch (error) {
             console.error('Hands processing error:', error);
+            // BindingError가 발생하면 에러만 로그하고 자동 재시작하지 않음
+            if (error.name === 'BindingError' || error.message.includes('deleted object')) {
+              console.log('MediaPipe Hands 오류 발생 - 수동으로 카메라 재시작이 필요합니다.');
+            }
           }
         },
         width: 640,
@@ -191,6 +242,7 @@ const LetterSession = () => {
       cameraRef.current = camera;
       setIsCameraInitializing(false);
       retryCountRef.current = 0;
+      isInitializingRef.current = false;
       
       console.log('카메라 초기화 성공');
 
@@ -209,18 +261,22 @@ const LetterSession = () => {
         setIsCameraInitializing(false);
         setCameraError('카메라를 초기화할 수 없습니다. 페이지를 새로고침해주세요.');
       }
+      isInitializingRef.current = false;
     }
   };
 
   // 카메라 재시작 함수
   const restartCamera = () => {
     retryCountRef.current = 0;
-    initializeCamera();
+    // 재시작 시에도 약간의 지연을 두어 DOM이 준비될 시간을 줌
+    setTimeout(() => {
+      initializeCamera();
+    }, 100);
   };
 
   const handleNext = () => {
     setProgressPercent(0);
-    if (currentIndex < sets.length - 1) {
+    if (currentIndex < sets.length) {
       setCurrentIndex(currentIndex + 1);
     }
   };
@@ -282,8 +338,8 @@ const startTimeRef = useRef<number | null>(null);
 
 useEffect(() => {
   pges.current = ges.current;
-    navigated.current = false;
-    setProgressPercent(0);
+  navigated.current = false;
+  setProgressPercent(0);
     
   if (pges.current != null && ges.current != null) {
     if ( pges.current === ges.current &&
@@ -389,11 +445,15 @@ useEffect(() => {
   }, [words]);
 
   useEffect(() => {
-    // 컴포넌트 마운트 시 카메라 초기화
-    initializeCamera();
+    // 컴포넌트 마운트 시 카메라 초기화를 약간 지연시켜 DOM이 렌더링될 시간을 줌
+    const timer = setTimeout(() => {
+      console.log('카메라 초기화 시작');
+      initializeCamera();
+    }, 300); // 더 긴 지연 시간
 
     // 컴포넌트 언마운트 시 정리
     return () => {
+      clearTimeout(timer);
       if (handsRef.current) {
         handsRef.current.close();
       }
@@ -499,13 +559,32 @@ useEffect(() => {
                   </div>
                 )}
                 
-                {!isCameraInitializing && !cameraError && (
-                  <>
-                    <video ref={videoRef} style={{ display: 'none' }} autoPlay muted playsInline width="640" height="480" />
-                    <canvas ref={canvasRef} width="640" height="480" className="border border-gray-300"  style={{ transform: 'scaleX(-1)' }}/>
-                    <div ref={resultRef} className="text-center text-xl mt-4" />
-                  </>
-                )}
+                <>
+                  <video 
+                    ref={videoRef} 
+                    style={{ display: 'none' }} 
+                    autoPlay 
+                    muted 
+                    playsInline 
+                    width="640" 
+                    height="480" 
+                  />
+                  <canvas 
+                    ref={canvasRef} 
+                    width="640" 
+                    height="480" 
+                    className="border border-gray-300"  
+                    style={{ 
+                      transform: 'scaleX(-1)',
+                      display: !isCameraInitializing && !cameraError ? 'block' : 'none'
+                    }}
+                  />
+                  <div 
+                    ref={resultRef} 
+                    className="text-center text-xl mt-4"
+                    style={{ display: !isCameraInitializing && !cameraError ? 'block' : 'none' }}
+                  />
+                </>
               </CardContent>
             </Card>
           </div>
