@@ -245,15 +245,14 @@ const LearnSession = () => {
   });
 
 useEffect(() => {
-  // 스트리밍 중일 때만 소켓으로 전송
-  if (isStreaming && lastLandmarks) {
+  if (lastLandmarks) {
     const landmarksData = {
       type: 'landmarks',
       data: { pose: lastLandmarks.pose, left_hand: lastLandmarks.left_hand, right_hand: lastLandmarks.right_hand }
     };
     sendMessage(JSON.stringify(landmarksData), currentConnectionId);
   }
-}, [isStreaming, lastLandmarks, sendMessage, currentConnectionId]);
+}, [lastLandmarks, sendMessage, currentConnectionId]);
 
   // 이전 connectionId 추적을 위한 ref
   const prevConnectionIdRef = useRef<string>('');
