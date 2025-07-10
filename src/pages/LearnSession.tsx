@@ -8,7 +8,7 @@ import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import React, { useState, useRef, useEffect, useCallback, startTransition } from 'react';
 
 import API from '@/components/AxiosInstance';
-import useWebsocket, { getConnectionByUrl } from '@/hooks/useWebsocket';
+import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
 import VideoInput from '@/components/VideoInput';
 import SessionHeader from '@/components/SessionHeader';
 import LearningDisplay from '@/components/LearningDisplay';
@@ -29,6 +29,7 @@ const RETRY_CONFIG = {
 
 const LearnSession = () => {
   const { categoryId, chapterId } = useParams();
+  // ...existing code...
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
@@ -176,6 +177,13 @@ const LearnSession = () => {
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
 
+  // sessionComplete 시 소켓 연결 해제
+  useEffect(() => {
+    if (sessionComplete) {
+      disconnectWebSockets();
+    }
+  }, [sessionComplete]);
+
   //const category = categoryId ? findCategoryById(categoryId) : null;
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -238,16 +246,15 @@ const LearnSession = () => {
     enableLogging: false // MediaPipe 내부 로그 숨김
   });
 
-  useEffect(() => {
-    // message type: type: landmarks, data: [pose: [x, y, z], left_hand: [x, y, z], right_hand: [x, y, z]]
-    if (lastLandmarks) {
-      const landmarksData = {
-        type: 'landmarks',
-        data: { pose: lastLandmarks.pose, left_hand: lastLandmarks.left_hand, right_hand: lastLandmarks.right_hand }
-      };
-      sendMessage(JSON.stringify(landmarksData), currentConnectionId);
-    }
-  }, [lastLandmarks, sendMessage, currentConnectionId]);
+useEffect(() => {
+  if (lastLandmarks) {
+    const landmarksData = {
+      type: 'landmarks',
+      data: { pose: lastLandmarks.pose, left_hand: lastLandmarks.left_hand, right_hand: lastLandmarks.right_hand }
+    };
+    sendMessage(JSON.stringify(landmarksData), currentConnectionId);
+  }
+}, [lastLandmarks, sendMessage, currentConnectionId]);
 
   // 이전 connectionId 추적을 위한 ref
   const prevConnectionIdRef = useRef<string>('');
@@ -290,7 +297,11 @@ const LearnSession = () => {
   const handleBack = () => {
     window.history.back();
   };
-
+  useEffect(() => {
+    return () => { 
+      disconnectWebSockets();
+    }
+  }, []);
   // 이 함수로, 실질적인 컨텐츠 타이머 시작
   const handleStartRecording = () => {
     setIsRecording(true);
@@ -367,13 +378,14 @@ const LearnSession = () => {
 
     initialize();
 
-    // 언마운트 시 정리
+    // 언마운트 시 정리 (disconnectWebSockets는 sessionComplete에서만 호출)
     return () => {
       signClassifierClient.disconnect();
       stopCamera();
       if (transmissionIntervalRef.current) {
         clearInterval(transmissionIntervalRef.current);
       }
+      // disconnectWebSockets()는 여기서 호출하지 않음
     };
   }, [isInitialized]);
 

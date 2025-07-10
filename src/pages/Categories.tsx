@@ -8,12 +8,17 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
 import API from '@/components/AxiosInstance';
 import { Category } from '@/types/learning';
+import { disconnectWebSockets } from '@/hooks/useWebsocket';
 
 const Categories = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const isCompleted = useRef(false);
-
+  useEffect(() => {
+     
+      disconnectWebSockets();
+    
+  }, []);
   useEffect(() => {
     API.get<{ success: boolean; data: Category[]; message: string }>('/category/list')
       .then(res => {
