@@ -81,22 +81,45 @@ const loadMediaPipeViaScript = (): Promise<boolean> => {
       return;
     }
     
-    // 스크립트 태그 생성
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js';
-    script.async = true;
+    // 다양한 스크립트 URL 시도
+    const scriptUrls = [
+      'https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js',
+      'https://unpkg.com/@mediapipe/holistic@0.5.1675471629/holistic.js',
+      'https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js',
+      'https://unpkg.com/@mediapipe/holistic/holistic.js'
+    ];
     
-    script.onload = () => {
-      console.log('✅ MediaPipe 스크립트 로드 성공');
-      resolve(true);
+    let currentIndex = 0;
+    
+    const tryNextScript = () => {
+      if (currentIndex >= scriptUrls.length) {
+        console.error('❌ 모든 MediaPipe 스크립트 URL 시도 실패');
+        resolve(false);
+        return;
+      }
+      
+      const scriptUrl = scriptUrls[currentIndex];
+      console.log(`📥 MediaPipe 스크립트 로딩 시도: ${scriptUrl}`);
+      
+      const script = document.createElement('script');
+      script.src = scriptUrl;
+      script.async = true;
+      
+      script.onload = () => {
+        console.log(`✅ MediaPipe 스크립트 로드 성공: ${scriptUrl}`);
+        resolve(true);
+      };
+      
+      script.onerror = () => {
+        console.warn(`⚠️ MediaPipe 스크립트 로드 실패: ${scriptUrl}`);
+        currentIndex++;
+        tryNextScript();
+      };
+      
+      document.head.appendChild(script);
     };
     
-    script.onerror = () => {
-      console.error('❌ MediaPipe 스크립트 로드 실패');
-      resolve(false);
-    };
-    
-    document.head.appendChild(script);
+    tryNextScript();
   });
 };
 
@@ -148,12 +171,13 @@ const loadMediaPipeModule = async (): Promise<boolean> => {
       throw new Error('MediaPipe CDN에 접근할 수 없습니다');
     }
 
-    // 동적 import로 MediaPipe 모듈 로드 (최후의 수단)
+    // 동적 import로 MediaPipe 모듈 로드 (개선된 방식)
     console.log('📥 MediaPipe 모듈 동적 import 시도...');
     const mediapipeModule = await import('@mediapipe/holistic');
     
     // 모듈 구조 확인
     console.log('🔍 MediaPipe 모듈 구조 확인:', Object.keys(mediapipeModule));
+    console.log('🔍 default export 타입:', typeof mediapipeModule.default);
     
     // 다양한 방식으로 Holistic 생성자 찾기
     let Holistic: any = null;
@@ -163,17 +187,33 @@ const loadMediaPipeModule = async (): Promise<boolean> => {
       Holistic = mediapipeModule.Holistic;
       console.log('✅ 직접 export에서 Holistic 발견');
     }
-    // 2. default export 확인
+    // 2. default export 확인 (개선된 로직)
     else if (mediapipeModule.default) {
-      console.log('🔍 default export 확인:', typeof mediapipeModule.default);
+      console.log('🔍 default export 상세 분석...');
       
       // default가 객체인 경우
       if (typeof mediapipeModule.default === 'object' && mediapipeModule.default !== null) {
-        if (mediapipeModule.default.Holistic) {
-          Holistic = mediapipeModule.default.Holistic;
-          console.log('✅ default export 객체에서 Holistic 발견');
-        } else {
-          console.log('default export 객체의 키들:', Object.keys(mediapipeModule.default));
+        console.log('default export 객체의 키들:', Object.keys(mediapipeModule.default));
+        
+        // 다양한 가능한 키 이름 확인
+        const possibleKeys = ['Holistic', 'holistic', 'HolisticSolution', 'holisticSolution'];
+        for (const key of possibleKeys) {
+          if (mediapipeModule.default[key]) {
+            Holistic = mediapipeModule.default[key];
+            console.log(`✅ default export 객체에서 ${key} 발견`);
+            break;
+          }
+        }
+        
+        // 모든 속성을 순회하며 함수 타입 찾기
+        if (!Holistic) {
+          for (const [key, value] of Object.entries(mediapipeModule.default)) {
+            if (typeof value === 'function' && key.toLowerCase().includes('holistic')) {
+              Holistic = value;
+              console.log(`✅ default export에서 함수 발견: ${key}`);
+              break;
+            }
+          }
         }
       }
       // default가 함수인 경우 (생성자일 수 있음)
@@ -191,12 +231,55 @@ const loadMediaPipeModule = async (): Promise<boolean> => {
       }
     }
     
+    // 4. 스크립트 태그 로딩 후 전역 객체 재확인
+    if (!Holistic) {
+      console.log('🔄 스크립트 태그 로딩 후 전역 객체 재확인...');
+      await loadMediaPipeViaScript();
+      
+      if (typeof window !== 'undefined') {
+        // 다양한 전역 객체 경로 확인
+        const globalPaths = [
+          'MediaPipe.Holistic',
+          'MediaPipe.holistic',
+          'Holistic',
+          'holistic',
+          'MediaPipeHolistic',
+          'mediaPipeHolistic'
+        ];
+        
+        for (const path of globalPaths) {
+          const parts = path.split('.');
+          let obj: any = window;
+          let found = true;
+          
+          for (const part of parts) {
+            if (obj && obj[part]) {
+              obj = obj[part];
+            } else {
+              found = false;
+              break;
+            }
+          }
+          
+          if (found && typeof obj === 'function') {
+            Holistic = obj;
+            console.log(`✅ 전역 객체에서 발견: ${path}`);
+            break;
+          }
+        }
+      }
+    }
+    
     if (!Holistic) {
       console.error('❌ Holistic 생성자를 찾을 수 없습니다');
       console.log('사용 가능한 exports:', Object.keys(mediapipeModule));
       console.log('default export 타입:', typeof mediapipeModule.default);
       if (mediapipeModule.default && typeof mediapipeModule.default === 'object') {
         console.log('default export 내용:', mediapipeModule.default);
+        console.log('default export의 모든 속성:');
+        for (const [key, value] of Object.entries(mediapipeModule.default)) {
+          console.log(`  ${key}: ${typeof value}`);
+        }
       }
       throw new Error('Holistic constructor not found in module');
     }
@@ -434,10 +517,36 @@ export const useMediaPipeHolistic = (
       let Holistic: any = null;
       
       // 1. 전역 객체에서 찾기 (우선순위)
-      if (typeof window !== 'undefined' && (window as any).MediaPipe) {
-        if ((window as any).MediaPipe.Holistic) {
-          Holistic = (window as any).MediaPipe.Holistic;
-          console.log('✅ 전역 MediaPipe 객체에서 Holistic 사용');
+      if (typeof window !== 'undefined') {
+        // 다양한 전역 객체 경로 확인
+        const globalPaths = [
+          'MediaPipe.Holistic',
+          'MediaPipe.holistic',
+          'Holistic',
+          'holistic',
+          'MediaPipeHolistic',
+          'mediaPipeHolistic'
+        ];
+        
+        for (const path of globalPaths) {
+          const parts = path.split('.');
+          let obj: any = window;
+          let found = true;
+          
+          for (const part of parts) {
+            if (obj && obj[part]) {
+              obj = obj[part];
+            } else {
+              found = false;
+              break;
+            }
+          }
+          
+          if (found && typeof obj === 'function') {
+            Holistic = obj;
+            console.log(`✅ 전역 객체에서 Holistic 발견: ${path}`);
+            break;
+          }
         }
       }
       
@@ -448,20 +557,83 @@ export const useMediaPipeHolistic = (
         // 직접 export 확인
         if (mediapipeModule.Holistic) {
           Holistic = mediapipeModule.Holistic;
+          console.log('✅ 모듈에서 직접 export Holistic 발견');
         }
-        // default export 확인
+        // default export 확인 (개선된 로직)
         else if (mediapipeModule.default) {
+          console.log('🔍 모듈 default export 분석...');
+          
           if (typeof mediapipeModule.default === 'object' && mediapipeModule.default !== null) {
-            if (mediapipeModule.default.Holistic) {
-              Holistic = mediapipeModule.default.Holistic;
+            console.log('default export 객체의 키들:', Object.keys(mediapipeModule.default));
+            
+            // 다양한 가능한 키 이름 확인
+            const possibleKeys = ['Holistic', 'holistic', 'HolisticSolution', 'holisticSolution'];
+            for (const key of possibleKeys) {
+              if (mediapipeModule.default[key]) {
+                Holistic = mediapipeModule.default[key];
+                console.log(`✅ default export 객체에서 ${key} 발견`);
+                break;
+              }
+            }
+            
+            // 모든 속성을 순회하며 함수 타입 찾기
+            if (!Holistic) {
+              for (const [key, value] of Object.entries(mediapipeModule.default)) {
+                if (typeof value === 'function' && key.toLowerCase().includes('holistic')) {
+                  Holistic = value;
+                  console.log(`✅ default export에서 함수 발견: ${key}`);
+                  break;
+                }
+              }
             }
           } else if (typeof mediapipeModule.default === 'function') {
             Holistic = mediapipeModule.default;
+            console.log('✅ default export가 Holistic 생성자인 것으로 추정');
+          }
+        }
+      }
+      
+      // 3. 스크립트 태그 로딩 후 재시도
+      if (!Holistic) {
+        console.log('🔄 스크립트 태그 로딩 후 Holistic 재검색...');
+        await loadMediaPipeViaScript();
+        
+        // 전역 객체 재확인
+        if (typeof window !== 'undefined') {
+          const globalPaths = [
+            'MediaPipe.Holistic',
+            'MediaPipe.holistic',
+            'Holistic',
+            'holistic',
+            'MediaPipeHolistic',
+            'mediaPipeHolistic'
+          ];
+          
+          for (const path of globalPaths) {
+            const parts = path.split('.');
+            let obj: any = window;
+            let found = true;
+            
+            for (const part of parts) {
+              if (obj && obj[part]) {
+                obj = obj[part];
+              } else {
+                found = false;
+                break;
+              }
+            }
+            
+            if (found && typeof obj === 'function') {
+              Holistic = obj;
+              console.log(`✅ 스크립트 로딩 후 전역 객체에서 발견: ${path}`);
+              break;
+            }
           }
         }
       }
       
       if (!Holistic) {
+        console.error('❌ Holistic 생성자를 찾을 수 없습니다');
         throw new Error('Holistic constructor not found in module or global object');
       }
       
