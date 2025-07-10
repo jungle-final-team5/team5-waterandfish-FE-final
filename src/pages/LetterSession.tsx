@@ -150,22 +150,19 @@ const LetterSession = () => {
       // 약간의 지연을 두어 정리가 완료되도록 함
       await new Promise(resolve => setTimeout(resolve, 100));
 
-       console.log('MediaPipe Hands dynamic load via hands.js');
-      // ESM entrypoint인 hands.js를 직접 불러와 실제 클래스 가져오기
-      const mpHandModule = await import('@mediapipe/hands/hands.js');
-      console.log('Loaded hands.js exports:', Object.keys(mpHandModule));
-      const HandsConstructor = mpHandModule.Hands;
-      if (typeof HandsConstructor !== 'function') {
-        console.error('Invalid Hands constructor from hands.js:', mpHandModule);
-        throw new Error('MediaPipe Hands 생성자를 찾을 수 없습니다 (hands.js)');
-      }
-      const hands = new HandsConstructor({
-        locateFile: (file: string) => {
-          const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240';
-          return `${baseUrl}/${file}`;
-        },
-      });
-      console.log('MediaPipe Hands instance created successfully');
+           console.log('MediaPipe Hands dynamic load via hands.js');
+      // ESM entrypoint인 hands.js를 직접 불러와 실제 클래스 가져오기 (CDN)
+// 전역으로 로드된 Hands 생성자 사용
+const HandsConstructor = (window as any).Hands;
+if (typeof HandsConstructor !== 'function') {
+  console.error('window.Hands is not a constructor:', (window as any).Hands);
+  throw new Error('MediaPipe Hands 생성자를 찾을 수 없습니다 (global)');
+}
+const hands = new HandsConstructor({
+  locateFile: (file: string) =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`,
+});
+console.log('MediaPipe Hands instance created via global script');
     //   // Hands 인스턴스 생성 - 동적 import 사용
     //   console.log('MediaPipe Hands 동적 로드 시작');
       
