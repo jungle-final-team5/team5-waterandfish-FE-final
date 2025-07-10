@@ -12,6 +12,8 @@ import LetterDisplay from '@/components/LetterDisplay';
 
 const LetterSession = () => {
   const [gesture, setGesture] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isCameraInitializing, setIsCameraInitializing] = useState(true);
   const navigate = useNavigate();
   const { setType,qOrs } = useParams();
   const [sets] = useState(() => {
@@ -65,6 +67,156 @@ const LetterSession = () => {
   const navigated = useRef<boolean>(false);
 
   const [words, setWords] = useState('');
+
+  // 카메라 관련 refs 추가
+  const handsRef = useRef<Hands | null>(null);
+  const cameraRef = useRef<Camera | null>(null);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
+
+  // 카메라 초기화 함수
+  const initializeCamera = async () => {
+    try {
+      setIsCameraInitializing(true);
+      setCameraError(null);
+
+      const videoElement = videoRef.current;
+      const canvasElement = canvasRef.current;
+      const resultElement = resultRef.current;
+
+      if (!videoElement || !canvasElement || !resultElement) {
+        throw new Error('필요한 DOM 요소를 찾을 수 없습니다.');
+      }
+
+      const canvasCtx = canvasElement.getContext('2d');
+      if (!canvasCtx) {
+        throw new Error('Canvas 컨텍스트를 가져올 수 없습니다.');
+      }
+
+      // 기존 인스턴스 정리
+      if (handsRef.current) {
+        handsRef.current.close();
+        handsRef.current = null;
+      }
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+        cameraRef.current = null;
+      }
+
+      // Hands 인스턴스 생성
+      const hands = new Hands({
+        locateFile: (file) => {
+          // CDN URL을 더 안정적으로 설정
+          const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
+          return `${baseUrl}/${file}`;
+        },
+      });
+
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7,
+      });
+
+      hands.onResults((results: any) => {
+        if (!canvasCtx || !canvasElement) return;
+        
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+          const landmarks = results.multiHandLandmarks[0];
+          const handvc = Math.sqrt(
+            (landmarks[0].y - landmarks[9].y) ** 2 +
+            (landmarks[0].x - landmarks[9].x) ** 2
+          );
+          const handedness = results.multiHandedness?.[0]?.label || "Unknown";
+          if (handvc > 0.13 && handvc <= 0.5) {
+            drawLandmarks(canvasCtx, landmarks, canvasElement);
+            const gesture = detectGesture(landmarks, handedness);
+            if (gesture) {
+              resultElement.textContent = `🖐️ ${gesture}`;
+              ges.current = gesture;
+              setGesture(gesture);
+            } else {
+              resultElement.textContent = 'Hand detected';
+              ges.current = null;
+              setProgressPercent(0);
+              setGesture(null);
+            }
+            if (gesture == 'ㄹ' && decref.current?.textContent?.charAt(0) == 'ㅌ') {
+              drawWarningMessage(canvasCtx, canvasElement, '검지와 약지를 붙여주세요');
+            } else if (gesture == 'ㅌ' && decref.current?.textContent?.charAt(0) == 'ㄹ') {
+              drawWarningMessage(canvasCtx, canvasElement, '검지와 중지를 붙여주세요');
+            } else if (gesture == 'ㅠ' && decref.current?.textContent?.charAt(0) == 'ㅅ') {
+              drawWarningMessage(canvasCtx, canvasElement, '손가락을 벌려주세요');
+            } else if (gesture == 'ㅅ' && decref.current?.textContent?.charAt(0) == 'ㅠ') {
+              drawWarningMessage(canvasCtx, canvasElement, '손가락을 벌려주세요');
+            }
+          } else {
+            drawOverlayMessage(
+              canvasCtx,
+              canvasElement,
+              handvc <= 0.13 ? '손을 앞으로 옮겨주세요' : '손을 뒤로 빼주세요'
+            );
+            ges.current = null;
+          }
+        } else {
+          resultElement.textContent = 'Waiting for hand...';
+          setProgressPercent(0);
+        }
+        canvasCtx.restore();
+      });
+
+      // Camera 인스턴스 생성
+      const camera = new Camera(videoElement, {
+        onFrame: async () => {
+          try {
+            await hands.send({ image: videoElement });
+          } catch (error) {
+            console.error('Hands processing error:', error);
+          }
+        },
+        width: 640,
+        height: 480,
+      });
+
+      // 카메라 시작
+      await camera.start();
+      
+      // 성공적으로 초기화되면 refs에 저장
+      handsRef.current = hands;
+      cameraRef.current = camera;
+      setIsCameraInitializing(false);
+      retryCountRef.current = 0;
+      
+      console.log('카메라 초기화 성공');
+
+    } catch (error) {
+      console.error('카메라 초기화 실패:', error);
+      setCameraError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
+      
+      // 재시도 로직
+      if (retryCountRef.current < maxRetries) {
+        retryCountRef.current++;
+        console.log(`카메라 재시도 ${retryCountRef.current}/${maxRetries}`);
+        setTimeout(() => {
+          initializeCamera();
+        }, 2000); // 2초 후 재시도
+      } else {
+        setIsCameraInitializing(false);
+        setCameraError('카메라를 초기화할 수 없습니다. 페이지를 새로고침해주세요.');
+      }
+    }
+  };
+
+  // 카메라 재시작 함수
+  const restartCamera = () => {
+    retryCountRef.current = 0;
+    initializeCamera();
+  };
 
   const handleNext = () => {
     setProgressPercent(0);
@@ -237,82 +389,21 @@ useEffect(() => {
   }, [words]);
 
   useEffect(() => {
-    const videoElement = videoRef.current;
-    const canvasElement = canvasRef.current;
-    const resultElement = resultRef.current;
+    // 컴포넌트 마운트 시 카메라 초기화
+    initializeCamera();
 
-    if (!videoElement || !canvasElement || !resultElement) return;
-    const canvasCtx = canvasElement.getContext('2d');
-    if (!canvasCtx) return;
-
-    const hands = new Hands({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-    });
-
-    hands.setOptions({
-      maxNumHands: 2,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7,
-    });
-
-    hands.onResults((results: any) => {
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const landmarks = results.multiHandLandmarks[0];
-        const handvc = Math.sqrt(
-          (landmarks[0].y - landmarks[9].y) ** 2 +
-          (landmarks[0].x - landmarks[9].x) ** 2
-        );
-        const handedness = results.multiHandedness?.[0]?.label || "Unknown";
-        if (handvc > 0.13 && handvc <= 0.5) {
-          drawLandmarks(canvasCtx, landmarks, canvasElement);
-          const gesture = detectGesture(landmarks,handedness);
-          if (gesture) {
-            resultElement.textContent = `🖐️ ${gesture}`;
-            ges.current = gesture;
-            setGesture(gesture);
-          } else {
-            resultElement.textContent = 'Hand detected';
-            ges.current = null;
-            setProgressPercent(0);
-            setGesture(null);
-          }
-          if (gesture == 'ㄹ' &&decref.current?.textContent?.charAt(0) == 'ㅌ' ){
-            drawWarningMessage(canvasCtx, canvasElement, '검지와 약지를 붙여주세요');
-          }else if (gesture == 'ㅌ' &&decref.current?.textContent?.charAt(0) == 'ㄹ' ){
-            drawWarningMessage(canvasCtx, canvasElement, '검지와 중지를 붙여주세요');
-          }else if (gesture == 'ㅠ' && decref.current?.textContent?.charAt(0) == 'ㅅ') {
-            drawWarningMessage(canvasCtx, canvasElement, '손가락을 벌려주세요');
-          } else if (gesture == 'ㅅ' && decref.current?.textContent?.charAt(0) == 'ㅠ') {
-            drawWarningMessage(canvasCtx, canvasElement, '손가락을 벌려주세요');}
-        } else {
-          drawOverlayMessage(
-            canvasCtx,
-            canvasElement,
-            handvc <= 0.13 ? '손을 앞으로 옮겨주세요' : '손을 뒤로 빼주세요'
-          );
-          ges.current = null;
-        }
-      } else {
-        resultElement.textContent = 'Waiting for hand...';
-        setProgressPercent(0);
+    // 컴포넌트 언마운트 시 정리
+    return () => {
+      if (handsRef.current) {
+        handsRef.current.close();
       }
-      canvasCtx.restore();
-    });
-
-    const camera = new Camera(videoElement, {
-      onFrame: async () => {
-        await hands.send({ image: videoElement });
-      },
-      width: 640,
-      height: 480,
-    });
-
-    camera.start();
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+      }
+      if (gestureTimerRef.current) {
+        clearTimeout(gestureTimerRef.current);
+      }
+    };
   }, []);
 
   const progress = (currentIndex / sets.length) * 100;
@@ -392,9 +483,29 @@ useEffect(() => {
                 <CardTitle>손 모양 인식</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center">
-                <video ref={videoRef} style={{ display: 'none' }} autoPlay muted playsInline width="640" height="480" />
-                <canvas ref={canvasRef} width="640" height="480" className="border border-gray-300"  style={{ transform: 'scaleX(-1)' }}/>
-                <div ref={resultRef} className="text-center text-xl mt-4" />
+                {isCameraInitializing && (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">카메라 초기화 중...</p>
+                  </div>
+                )}
+                
+                {cameraError && (
+                  <div className="text-center py-8">
+                    <p className="text-red-600 mb-4">{cameraError}</p>
+                    <Button onClick={restartCamera} variant="outline">
+                      카메라 재시작
+                    </Button>
+                  </div>
+                )}
+                
+                {!isCameraInitializing && !cameraError && (
+                  <>
+                    <video ref={videoRef} style={{ display: 'none' }} autoPlay muted playsInline width="640" height="480" />
+                    <canvas ref={canvasRef} width="640" height="480" className="border border-gray-300"  style={{ transform: 'scaleX(-1)' }}/>
+                    <div ref={resultRef} className="text-center text-xl mt-4" />
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
