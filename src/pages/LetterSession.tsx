@@ -150,8 +150,9 @@ const LetterSession = () => {
       console.log('MediaPipe Hands 동적 로드 시작');
       
       
-
-        const { Hands } = await import('@mediapipe/hands');
+        const apiz = await import('@mediapipe/hands');
+        console.log(apiz);
+        console.log("--");
       const hands = new Hands({
         locateFile: (file) => {
           // CDN URL을 더 안정적으로 설정
