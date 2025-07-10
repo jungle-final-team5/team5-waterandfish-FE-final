@@ -8,7 +8,7 @@ import { detectGesture } from '../components/draw/RightDetector';
 import API from '@/components/AxiosInstance';
 import SessionHeader from '@/components/SessionHeader';
 import LetterDisplay from '@/components/LetterDisplay';
-
+import { Hands } from '@mediapipe/hands';
 
 const LetterSession = () => {
   const [gesture, setGesture] = useState<string | null>(null);
@@ -155,12 +155,11 @@ const LetterSession = () => {
       
       
         
-        const { Hands } = await import('@mediapipe/hands');
-        HandConst = Hands;
-        console.log('MediaPipe Hands 로드 성공:', Hands);
+        const handcst = await import('@mediapipe/hands');
+        console.log('MediaPipe Hands 로드 성공:', handcst);
       
       
-      const hands = new HandConst.default.constructor({
+      const hands = new Hands({
         locateFile: (file) => {
           // CDN URL을 더 안정적으로 설정
           const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
