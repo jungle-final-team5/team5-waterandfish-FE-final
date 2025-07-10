@@ -1,7 +1,153 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { Holistic, Results } from '@mediapipe/holistic';
-import { Camera } from '@mediapipe/camera_utils';
 import { LandmarksData } from '@/services/SignClassifierClient';
+
+// Camera 클래스 타입 정의
+interface CameraOptions {
+  onFrame: () => Promise<void>;
+  width?: number;
+  height?: number;
+  facingMode?: string;
+}
+
+interface CameraInterface {
+  start(): Promise<void>;
+  stop(): void;
+}
+
+// Camera 클래스 구현
+class MediaPipeCamera implements CameraInterface {
+  private video: HTMLVideoElement;
+  private stream: MediaStream | null = null;
+  private animationId: number | null = null;
+  private options: CameraOptions;
+
+  constructor(video: HTMLVideoElement, options: CameraOptions) {
+    this.video = video;
+    this.options = options;
+  }
+
+  async start(): Promise<void> {
+    try {
+      // 기존 스트림 정리
+      if (this.stream) {
+        this.stream.getTracks().forEach(track => track.stop());
+      }
+
+      // 카메라 접근 시도
+      const constraints: MediaStreamConstraints = {
+        video: {
+          width: { ideal: this.options.width || 640 },
+          height: { ideal: this.options.height || 480 },
+          facingMode: this.options.facingMode || 'user'
+        },
+        audio: false
+      };
+
+      // 다양한 카메라 접근 방식 시도
+      let stream: MediaStream;
+      
+      try {
+        // 1. 기본 접근 방식
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (error) {
+        console.warn('⚠️ 기본 카메라 접근 실패, 대체 방식 시도:', error);
+        
+        try {
+          // 2. 더 관대한 제약 조건
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+        } catch (fallbackError) {
+          console.warn('⚠️ 대체 카메라 접근 실패, 환경 확인:', fallbackError);
+          
+          // 3. 사용 가능한 카메라 확인
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter(device => device.kind === 'videoinput');
+          
+          if (videoDevices.length === 0) {
+            throw new Error('사용 가능한 카메라가 없습니다');
+          }
+          
+          console.log('📹 사용 가능한 카메라:', videoDevices.map(d => d.label || d.deviceId));
+          
+          // 4. 특정 카메라로 시도
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              deviceId: { exact: videoDevices[0].deviceId }
+            },
+            audio: false
+          });
+        }
+      }
+
+      this.stream = stream;
+      this.video.srcObject = stream;
+      
+      // 비디오 로드 완료 대기
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('비디오 로드 타임아웃'));
+        }, 10000);
+
+        this.video.onloadedmetadata = () => {
+          clearTimeout(timeout);
+          this.video.play().then(resolve).catch(reject);
+        };
+
+        this.video.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error('비디오 로드 실패'));
+        };
+      });
+
+      // 프레임 처리 시작
+      this.startFrameProcessing();
+      
+      console.log('✅ 카메라 스트림 시작됨');
+    } catch (error) {
+      console.error('❌ 카메라 시작 실패:', error);
+      throw error;
+    }
+  }
+
+  private startFrameProcessing(): void {
+    const processFrame = async () => {
+      if (this.video.readyState >= 2) { // HAVE_CURRENT_DATA
+        try {
+          await this.options.onFrame();
+        } catch (error) {
+          console.warn('⚠️ 프레임 처리 오류:', error);
+        }
+      }
+      this.animationId = requestAnimationFrame(processFrame);
+    };
+    
+    this.animationId = requestAnimationFrame(processFrame);
+  }
+
+  stop(): void {
+    // 애니메이션 프레임 정지
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+
+    // 스트림 정지
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+
+    // 비디오 정리
+    if (this.video.srcObject) {
+      this.video.srcObject = null;
+    }
+
+    console.log('📹 카메라 스트림 정지됨');
+  }
+}
 
 interface UseMediaPipeHolisticOptions {
   onLandmarks?: (landmarks: LandmarksData) => void;
@@ -369,7 +515,7 @@ export const useMediaPipeHolistic = (
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const holisticRef = useRef<Holistic | null>(null);
-  const cameraRef = useRef<Camera | null>(null);
+  const cameraRef = useRef<MediaPipeCamera | null>(null);
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -795,14 +941,30 @@ export const useMediaPipeHolistic = (
     try {
       console.log('📹 카메라 시작 중...');
       
-      const camera = new Camera(videoRef.current, {
+      // 카메라 권한 확인
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('카메라 API가 지원되지 않습니다');
+      }
+
+      // 기존 카메라 정리
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+        cameraRef.current = null;
+      }
+      
+      const camera = new MediaPipeCamera(videoRef.current, {
         onFrame: async () => {
-          if (holisticRef.current && videoRef.current) {
-            await holisticRef.current.send({ image: videoRef.current });
+          if (holisticRef.current && videoRef.current && videoRef.current.readyState >= 2) {
+            try {
+              await holisticRef.current.send({ image: videoRef.current });
+            } catch (error) {
+              console.warn('⚠️ MediaPipe 프레임 처리 오류:', error);
+            }
           }
         },
         width: 640,
-        height: 480
+        height: 480,
+        facingMode: 'user'
       });
 
       await camera.start();
@@ -812,6 +974,20 @@ export const useMediaPipeHolistic = (
       return true;
     } catch (error) {
       console.error('[useMediaPipeHolistic] ❌ 카메라 시작 실패:', error);
+      
+      // 더 자세한 오류 정보 제공
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          setError('카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
+        } else if (error.name === 'NotFoundError') {
+          setError('카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.');
+        } else if (error.name === 'NotReadableError') {
+          setError('카메라가 다른 애플리케이션에서 사용 중입니다.');
+        } else {
+          setError(`카메라 오류: ${error.message}`);
+        }
+      }
+      
       return false;
     }
   }, [isInitialized]);
@@ -819,9 +995,13 @@ export const useMediaPipeHolistic = (
   // 카메라 정지
   const stopCamera = useCallback(() => {
     if (cameraRef.current) {
-      cameraRef.current.stop();
-      cameraRef.current = null;
-      console.log('📹 카메라 정지됨');
+      try {
+        cameraRef.current.stop();
+        cameraRef.current = null;
+        console.log('📹 카메라 정지됨');
+      } catch (error) {
+        console.warn('⚠️ 카메라 정지 중 오류:', error);
+      }
     }
   }, []);
 
@@ -838,12 +1018,16 @@ export const useMediaPipeHolistic = (
 
     // 컴포넌트 언마운트 시 정리
     return () => {
-      stopCamera();
-      if (holisticRef.current) {
-        holisticRef.current.close();
-        holisticRef.current = null;
+      try {
+        stopCamera();
+        if (holisticRef.current) {
+          holisticRef.current.close();
+          holisticRef.current = null;
+        }
+        setIsInitialized(false);
+      } catch (error) {
+        console.warn('⚠️ 컴포넌트 정리 중 오류:', error);
       }
-      setIsInitialized(false);
     };
   }, [initializeMediaPipe, stopCamera]);
 
