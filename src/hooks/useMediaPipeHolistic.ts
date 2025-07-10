@@ -33,11 +33,46 @@ interface UseMediaPipeHolisticReturn {
 // MediaPipe 모듈 로딩 상태 추적
 let mediaPipeLoadPromise: Promise<boolean> | null = null;
 let mediaPipeLoadAttempts = 0;
-const MAX_GLOBAL_RETRIES = 3;
+const MAX_GLOBAL_RETRIES = 5; // 증가
+
+
+// CDN URL 목록 (대체 CDN 포함)
+const CDN_URLS = [
+  'https://cdn.jsdelivr.net/npm/@mediapipe/holistic',
+  'https://unpkg.com/@mediapipe/holistic',
+  'https://cdnjs.cloudflare.com/ajax/libs/mediapipe-holistic'
+];
+
+// CDN 접근성 확인
+const checkCDNAccessibility = async (): Promise<string | null> => {
+  for (const cdnUrl of CDN_URLS) {
+    try {
+      const response = await fetch(`${cdnUrl}/holistic_solution_simd_wasm_bin.js`, {
+        method: 'HEAD',
+        mode: 'cors',
+        cache: 'no-cache'
+      });
+      
+      if (response.ok) {
+        console.log(`✅ CDN 접근 가능: ${cdnUrl}`);
+        return cdnUrl;
+      }
+    } catch (error) {
+      console.warn(`⚠️ CDN 접근 실패: ${cdnUrl}`, error);
+    }
+  }
+  
+  console.error('❌ 모든 CDN 접근 실패');
+  return null;
+};
 
 // MediaPipe 모듈 로딩 함수
 const loadMediaPipeModule = async (): Promise<boolean> => {
   try {
+    const accessibleCDN = await checkCDNAccessibility();
+    if (!accessibleCDN) {
+      throw new Error('MediaPipe CDN에 접근할 수 없습니다');
+    }
     // 동적 import로 MediaPipe 모듈 로드
     const { Holistic } = await import('@mediapipe/holistic');
     
@@ -49,7 +84,7 @@ const loadMediaPipeModule = async (): Promise<boolean> => {
     // 테스트 인스턴스 생성으로 초기화 확인
     const testHolistic = new Holistic({
       locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+        return `${accessibleCDN}/${file}`;
       }
     });
     
