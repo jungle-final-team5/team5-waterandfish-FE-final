@@ -42,8 +42,21 @@ export class SignClassifierClient {
   private maxReconnectAttempts: number = 5;
   private reconnectDelay: number = 2000; // 2초
 
-  constructor(serverUrl: string = 'ws://localhost:8765') {
-    this.serverUrl = serverUrl;
+  constructor(serverUrl: string = '') {
+    // 운영 환경에서는 wss://, 개발 환경에서는 ws:// 사용
+    if (!serverUrl) {
+      const protocol = window?.location?.protocol === 'https:' ? 'wss' : 'ws';
+      const host = window?.location?.host || 'localhost:8765';
+      // 포트는 필요에 따라 수정
+      this.serverUrl = `${protocol}://${host}/ws/9002/`;
+    } else {
+      // 만약 ws://로 시작하는 주소가 들어오면, https 환경에서는 wss://로 변환
+      if (window?.location?.protocol === 'https:' && serverUrl.startsWith('ws://')) {
+        this.serverUrl = serverUrl.replace('ws://', 'wss://');
+      } else {
+        this.serverUrl = serverUrl;
+      }
+    }
   }
 
   async connect(): Promise<boolean> {

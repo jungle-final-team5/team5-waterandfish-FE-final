@@ -120,7 +120,11 @@ const connectToWebSocket = (url: string, autoReconnect: boolean = true): WebSock
     console.log(`Connecting to WebSocket: ${url}`);
 
     try {
-        const ws = new WebSocket(url);
+        let wsUrl = url;
+        if (typeof window !== 'undefined' && window.location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
+            wsUrl = wsUrl.replace('ws://', 'wss://');
+        }
+        const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
             console.log(`WebSocket connected: ${url}`);

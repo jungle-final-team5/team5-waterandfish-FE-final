@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useRef, useState } from 'react';
 import { Hands } from '@mediapipe/hands';
 import { Camera } from '@mediapipe/camera_utils';
-import { drawLandmarks, drawOverlayMessage } from '../components/draw/draw';
+import { drawLandmarks, drawOverlayMessage, drawWarningMessage } from '../components/draw/draw';
 import { detectGesture } from '../components/draw/RightDetector';
 import API from '@/components/AxiosInstance';
 import SessionHeader from '@/components/SessionHeader';
@@ -267,10 +267,10 @@ useEffect(() => {
           (landmarks[0].y - landmarks[9].y) ** 2 +
           (landmarks[0].x - landmarks[9].x) ** 2
         );
-
+        const handedness = results.multiHandedness?.[0]?.label || "Unknown";
         if (handvc > 0.13 && handvc <= 0.5) {
           drawLandmarks(canvasCtx, landmarks, canvasElement);
-          const gesture = detectGesture(landmarks);
+          const gesture = detectGesture(landmarks,handedness);
           if (gesture) {
             resultElement.textContent = `🖐️ ${gesture}`;
             ges.current = gesture;
@@ -281,6 +281,14 @@ useEffect(() => {
             setProgressPercent(0);
             setGesture(null);
           }
+          if (gesture == 'ㄹ' &&decref.current?.textContent?.charAt(0) == 'ㅌ' ){
+            drawWarningMessage(canvasCtx, canvasElement, '검지와 약지를 붙여주세요');
+          }else if (gesture == 'ㅌ' &&decref.current?.textContent?.charAt(0) == 'ㄹ' ){
+            drawWarningMessage(canvasCtx, canvasElement, '검지와 중지를 붙여주세요');
+          }else if (gesture == 'ㅠ' && decref.current?.textContent?.charAt(0) == 'ㅅ') {
+            drawWarningMessage(canvasCtx, canvasElement, '손가락을 벌려주세요');
+          } else if (gesture == 'ㅅ' && decref.current?.textContent?.charAt(0) == 'ㅠ') {
+            drawWarningMessage(canvasCtx, canvasElement, '손가락을 벌려주세요');}
         } else {
           drawOverlayMessage(
             canvasCtx,
