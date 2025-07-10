@@ -3,7 +3,7 @@ import { Category, Chapter, Lesson } from '@/types/learning';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useVideoStreaming } from '@/hooks/useVideoStreaming';
-import { ClassificationResult } from '@/services/SignClassifierClient'; // 타입만 재사용
+import { ClassificationResult, signClassifierClient } from '@/services/SignClassifierClient'; // 타입만 재사용
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import React, { useState, useRef, useEffect, useCallback, startTransition } from 'react';
 
@@ -17,6 +17,8 @@ import StreamingControls from '@/components/StreamingControls';
 import SessionInfo from '@/components/SessionInfo';
 import SystemStatus from '@/components/SystemStatus';
 import FeatureGuide from '@/components/FeatureGuide';
+import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
+import { LandmarksData } from '@/services/SignClassifierClient';
 
 // 재시도 설정
 const RETRY_CONFIG = {
@@ -29,7 +31,7 @@ const LearnSession = () => {
   const { categoryId, chapterId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const [transmissionCount, setTransmissionCount] = useState(0);
   // URL state에서 lesson_mapper 가져오기
   const [lesson_mapper, setLessonMapper] = useState<{ [key: string]: string }>(location.state?.lesson_mapper || {});
   const [currentWsUrl, setCurrentWsUrl] = useState<string>('');
@@ -42,6 +44,23 @@ const LearnSession = () => {
   });
   const [isRetrying, setIsRetrying] = useState(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
+
+
+  // WebGL 지원 확인
+  useEffect(() => {
+    const checkWebGL = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        setWebglSupported(!!gl);
+      } catch (err) {
+        setWebglSupported(false);
+      }
+    };
+    
+    checkWebGL();
+  }, []);
 
     // lesson_mapper 재시도 함수
    const retryLessonMapper = useCallback(async () => {
@@ -171,8 +190,8 @@ const LearnSession = () => {
     streamInfo,
     streamingConfig,
     streamingStats,
-    canvasRef,
-    videoRef,
+    // canvasRef,
+    // videoRef,
     startStreaming,
     stopStreaming,
     setStreamingConfig,
@@ -184,6 +203,40 @@ const LearnSession = () => {
     sendMessage,
     connectionId: currentConnectionId,
   });
+
+    // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
+    const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
+      // 녹화 중일 때만 서버로 전송
+      if (isRecording && isConnected) {
+        const success = signClassifierClient.sendLandmarks(landmarks);
+        if (success) {
+          setTransmissionCount(prev => prev + 1);
+          console.log(`📤 랜드마크 전송됨 (${transmissionCount + 1})`);
+        }
+      }
+    }, [isRecording, isConnected, transmissionCount]);
+
+
+    // MediaPipe holistic hook 사용
+    const {
+      videoRef,
+      canvasRef,
+      isInitialized,
+      isProcessing,
+      lastLandmarks,
+      startCamera,
+      stopCamera
+    } = useMediaPipeHolistic({
+      onLandmarks: handleLandmarksDetected,
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.5,
+      enableLogging: false // MediaPipe 내부 로그 숨김
+    });
+
+    
 
   // 이전 connectionId 추적을 위한 ref
   const prevConnectionIdRef = useRef<string>('');
@@ -265,6 +318,53 @@ const LearnSession = () => {
       console.error('애니메이션 불러오는데 실패했습니다 : ', error);
     }
   };
+
+ // 카메라 및 MediaPipe 초기화
+ const initializeSession = async () => {
+  if (!isInitialized) {
+    console.log('⚠️ MediaPipe가 아직 초기화되지 않음');
+    return false;
+  }
+
+  try {
+    console.log('📹 카메라 시작 중...');
+    const cameraStarted = await startCamera();
+    
+    if (cameraStarted) {
+      console.log('✅ 세션 초기화 완료');
+      return true;
+    } else {
+      console.log('❌ 카메라 시작 실패');
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ 세션 초기화 실패:', error);
+    return false;
+  }
+};
+
+    // 컴포넌트 마운트 시 자동 초기화
+    useEffect(() => {
+      const initialize = async () => {
+        // MediaPipe 초기화 대기
+        if (isInitialized) {
+          console.log('🚀 자동 초기화 시작...');
+          // await attemptConnection();
+          await initializeSession();
+        }
+      };
+  
+      initialize();
+  
+      // 언마운트 시 정리
+      return () => {
+        signClassifierClient.disconnect();
+        stopCamera();
+        if (transmissionIntervalRef.current) {
+          clearInterval(transmissionIntervalRef.current);
+        }
+      };
+    }, [isInitialized]);
 
   const poseLength = animData && animData.pose ? animData.pose.length : 0;
 
@@ -528,12 +628,55 @@ if(sessionComplete) // 모든 내용이 완료 된 경우
             <div className="mt-8">
               <FeedbackDisplay
                 feedback={feedback}
-                prediction={currentResult.prediction}
+                // prediction={currentResult.prediction}
                 onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
               />
             </div>
           )}
       </div>
+      {/* 통계 정보 */}
+      <div className="mt-6 pt-4 border-t">
+              <h3 className="font-semibold text-gray-700 mb-2">시스템 상태:</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">WebGL 지원:</span>
+                  <span className={`ml-2 ${
+                    webglSupported === null ? 'text-gray-600' :
+                    webglSupported ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {webglSupported === null ? '확인 중' :
+                     webglSupported ? '지원됨' : '미지원'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">MediaPipe 상태:</span>
+                  <span className={`ml-2 ${isInitialized ? 'text-green-600' : 'text-yellow-600'}`}>
+                    {isInitialized ? '준비됨' : '초기화 중'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">전송된 랜드마크:</span>
+                  <span className="ml-2 font-mono">{transmissionCount}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">서버 연결:</span>
+                  <span className={`ml-2 ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+                    {isConnected ? '연결됨' : '끊김'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 마지막 랜드마크 정보 */}
+            {lastLandmarks && (
+              <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
+                <div className="font-semibold mb-1">마지막 랜드마크:</div>
+                <div>포즈: {lastLandmarks.pose ? `${lastLandmarks.pose.length}개` : '없음'}</div>
+                <div>왼손: {lastLandmarks.left_hand ? `${lastLandmarks.left_hand.length}개` : '없음'}</div>
+                <div>오른손: {lastLandmarks.right_hand ? `${lastLandmarks.right_hand.length}개` : '없음'}</div>
+              </div>
+            )}
+
       </div>
   );
 };
