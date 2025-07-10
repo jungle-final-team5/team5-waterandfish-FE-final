@@ -12,9 +12,37 @@ const MediaPipeSession = () => {
   const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null);
   const [transmissionCount, setTransmissionCount] = useState(0);
   const [showDebugCanvas, setShowDebugCanvas] = useState(true);
+  const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
 
   // MediaPipe 랜드마크 전송 간격 관리
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // WebGL 지원 확인
+  useEffect(() => {
+    const checkWebGL = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        setWebglSupported(!!gl);
+      } catch (err) {
+        setWebglSupported(false);
+      }
+    };
+    
+    checkWebGL();
+  }, []);
+
+  // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
+  const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
+    // 녹화 중일 때만 서버로 전송
+    if (isRecording && isConnected) {
+      const success = signClassifierClient.sendLandmarks(landmarks);
+      if (success) {
+        setTransmissionCount(prev => prev + 1);
+        console.log(`📤 랜드마크 전송됨 (${transmissionCount + 1})`);
+      }
+    }
+  }, [isRecording, isConnected, transmissionCount]);
 
   // MediaPipe holistic hook 사용
   const {
@@ -31,20 +59,9 @@ const MediaPipeSession = () => {
     smoothLandmarks: true,
     enableSegmentation: false,
     minDetectionConfidence: 0.7,
-    minTrackingConfidence: 0.5
+    minTrackingConfidence: 0.5,
+    enableLogging: false // MediaPipe 내부 로그 숨김
   });
-
-  // 랜드마크 감지 시 호출되는 콜백
-  function handleLandmarksDetected(landmarks: LandmarksData) {
-    // 녹화 중일 때만 서버로 전송
-    if (isRecording && isConnected) {
-      const success = signClassifierClient.sendLandmarks(landmarks);
-      if (success) {
-        setTransmissionCount(prev => prev + 1);
-        console.log(`📤 랜드마크 전송됨 (${transmissionCount + 1})`);
-      }
-    }
-  }
 
   // 서버 연결 시도
   const attemptConnection = async (): Promise<boolean> => {
@@ -140,7 +157,7 @@ const MediaPipeSession = () => {
       // MediaPipe 초기화 대기
       if (isInitialized) {
         console.log('🚀 자동 초기화 시작...');
-        await attemptConnection();
+        // await attemptConnection();
         await initializeSession();
       }
     };
@@ -199,6 +216,14 @@ const MediaPipeSession = () => {
               
               {/* 상태 오버레이 */}
               <div className="absolute top-2 left-2 space-y-2">
+                <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  webglSupported === null ? 'bg-gray-100 text-gray-800' :
+                  webglSupported ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {webglSupported === null ? '⏳ WebGL 확인 중...' :
+                   webglSupported ? '✅ WebGL 지원됨' : '❌ WebGL 미지원'}
+                </div>
+                
                 <div className={`px-3 py-1 rounded-full text-sm font-medium ${
                   isInitialized ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                 }`}>
@@ -319,16 +344,32 @@ const MediaPipeSession = () => {
 
             {/* 통계 정보 */}
             <div className="mt-6 pt-4 border-t">
-              <h3 className="font-semibold text-gray-700 mb-2">전송 통계:</h3>
+              <h3 className="font-semibold text-gray-700 mb-2">시스템 상태:</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-600">전송된 랜드마크:</span>
-                  <span className="ml-2 font-mono">{transmissionCount}</span>
+                  <span className="text-gray-600">WebGL 지원:</span>
+                  <span className={`ml-2 ${
+                    webglSupported === null ? 'text-gray-600' :
+                    webglSupported ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {webglSupported === null ? '확인 중' :
+                     webglSupported ? '지원됨' : '미지원'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-600">MediaPipe 상태:</span>
                   <span className={`ml-2 ${isInitialized ? 'text-green-600' : 'text-yellow-600'}`}>
                     {isInitialized ? '준비됨' : '초기화 중'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">전송된 랜드마크:</span>
+                  <span className="ml-2 font-mono">{transmissionCount}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">서버 연결:</span>
+                  <span className={`ml-2 ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+                    {isConnected ? '연결됨' : '끊김'}
                   </span>
                 </div>
               </div>
@@ -352,6 +393,7 @@ const MediaPipeSession = () => {
             📋 사용 방법
           </h2>
           <ol className="list-decimal list-inside space-y-2 text-gray-700">
+            <li>WebGL 지원 상태를 확인합니다 (브라우저 호환성)</li>
             <li>MediaPipe 초기화가 완료될 때까지 기다립니다</li>
             <li>"서버 연결" 버튼을 클릭하여 분류 서버에 연결합니다</li>
             <li>"세션 초기화" 버튼을 클릭하여 카메라를 시작합니다</li>
@@ -359,6 +401,16 @@ const MediaPipeSession = () => {
             <li>수어를 하면 실시간으로 랜드마크가 추출되어 서버로 전송됩니다</li>
             <li>분류 결과가 오른쪽 패널에 표시됩니다</li>
           </ol>
+          
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <h3 className="font-semibold text-blue-800 mb-2">💡 참고사항</h3>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• WebGL이 지원되지 않는 브라우저에서는 MediaPipe가 작동하지 않습니다</li>
+              <li>• Chrome, Firefox, Safari 최신 버전을 권장합니다</li>
+              <li>• 카메라 권한을 허용해야 합니다</li>
+              <li>• MediaPipe 초기화 중 콘솔에 WebGL 관련 로그가 나타날 수 있지만 정상입니다</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
