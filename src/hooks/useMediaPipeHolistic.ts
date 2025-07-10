@@ -811,7 +811,7 @@ export const useMediaPipeHolistic = (
       console.log('✅ 카메라 시작됨');
       return true;
     } catch (error) {
-      console.error('❌ 카메라 시작 실패:', error);
+      console.error('[useMediaPipeHolistic] ❌ 카메라 시작 실패:', error);
       return false;
     }
   }, [isInitialized]);

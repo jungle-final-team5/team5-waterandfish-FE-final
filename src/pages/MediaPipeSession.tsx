@@ -107,7 +107,7 @@ const MediaPipeSession = () => {
         console.log('✅ 세션 초기화 완료');
         return true;
       } else {
-        console.log('❌ 카메라 시작 실패');
+        console.log('[MediaPipeSession] ❌ 카메라 시작 실패');
         return false;
       }
     } catch (error) {
