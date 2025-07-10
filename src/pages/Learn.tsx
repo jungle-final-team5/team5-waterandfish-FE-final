@@ -36,7 +36,9 @@ const Learn = () => {
   const [displayConfidence, setDisplayConfidence] = useState<string>('');
   const [transmissionCount, setTransmissionCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
+  const [incorrectCount, setIncorrectCount] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isWaitingForReset, setIsWaitingForReset] = useState(false);
 
   const navigate = useNavigate();
   const { lessonId } = useParams();
@@ -118,11 +120,11 @@ const Learn = () => {
 
   // MediaPipe + WebSocket 연동
   const handleLandmarksDetected = useCallback((landmarks: any) => {
-    if (isRecording && wsUrl) {
+    if (wsUrl) {
       sendMessage(JSON.stringify({ type: 'landmarks', data: landmarks }));
       setTransmissionCount(prev => prev + 1);
     }
-  }, [isRecording, sendMessage, wsUrl]);
+  }, [sendMessage, wsUrl]);
 
   // useMediaPipeHolistic 훅
   const {
@@ -150,7 +152,10 @@ const Learn = () => {
     if (isInitialized) {
       startCamera();
     }
-  }, [isInitialized]);
+    return () => {
+      stopCamera();
+    };
+  }, [isInitialized, startCamera, stopCamera]);
 
   // landmarks가 들어오면 바로 분류
   useEffect(() => {
@@ -176,6 +181,7 @@ const Learn = () => {
         const fn = (event: MessageEvent) => {
           try {
             const msg = JSON.parse(event.data);
+            if (feedback !== null) return; // 모달 떠 있으면 결과 무시
             if (msg.type === 'classification_result') {
               setCurrentResult(msg.data);
               const { prediction, confidence, probabilities } = msg.data;
@@ -189,12 +195,16 @@ const Learn = () => {
               if (percent != null) {
                 setDisplayConfidence(`${percent.toFixed(1)}%`);
               }
-              // 정답 시 분류 멈춤(모달 띄우기)
-              if (percent != null && percent >= 80.0 && feedback !== 'correct') {
+              // 정답 시
+              if (percent != null && percent >= 80.0 && prediction === target && feedback !== 'correct') {
                 setFeedback('correct');
                 setIsRecording(false); // 분류 멈춤, 캠은 계속
-              } else if (percent != null && percent < 80.0 && feedback !== 'incorrect') {
+              } else if (
+                prediction && prediction !== target && prediction !== 'None' && percent != null && percent >= 80.0 && feedback !== 'incorrect'
+              ) {
+                // None이 아니고, 정답도 아니고, 신뢰도 80% 이상일 때만 오답
                 setFeedback('incorrect');
+                setIsRecording(false);
               }
             }
           } catch (e) {}
@@ -208,49 +218,54 @@ const Learn = () => {
     }
   }, [wsList, wsUrl, lesson, feedback]);
 
-  // 정답 피드백이 닫힐 때 처리 (모든 상태 전이 담당)
+  // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당)
   const handleFeedbackComplete = useCallback(() => {
     setCorrectCount(prev => {
-      const next = prev + 1;
-      if (next >= CORRECT_TARGET) {
-        setIsCompleted(true);
-        // setIsRecording(false); // 캠 멈추지 않음
-      } else {
-        setIsRecording(true); // 3회 미만이면 분류 재시작
-      }
+      let next = prev;
+      if (feedback === 'correct') next = prev + 1;
       return next;
     });
     setFeedback(null);
     setCurrentResult(null);
-  }, []);
-
-  // 정답 모달이 뜨면 3초 뒤 자동으로 닫힘
-  useEffect(() => {
     if (feedback === 'correct') {
+      setIsWaitingForReset(true); // 정답 후에는 리셋 대기
+    }
+  }, [feedback]);
+
+  // 정답/오답 모달이 뜨면 3초(정답) 또는 2초(오답) 뒤 자동으로 닫힘
+  useEffect(() => {
+    if (feedback === 'correct' || feedback === 'incorrect') {
       const timer = setTimeout(() => {
         handleFeedbackComplete();
-      }, 3000);
+      }, feedback === 'correct' ? 3000 : 2000);
       return () => clearTimeout(timer);
     }
   }, [feedback, handleFeedbackComplete]);
 
-  // 캠/분류/모달 등은 isCompleted가 true면 모두 중단
+  // 정답 3회 시 완료 처리
   useEffect(() => {
-    if (isCompleted) {
+    if (correctCount >= CORRECT_TARGET) {
+      setIsCompleted(true);
       setIsRecording(false);
       setFeedback(null);
       setCurrentResult(null);
+      setIsWaitingForReset(false);
+    } else if (!isCompleted && feedback === null && !isWaitingForReset) {
+      // 3회 미만이고 모달이 닫혔으며, 리셋 대기가 아닐 때만 분류 재시작
+      setIsRecording(true);
     }
-  }, [isCompleted]);
+  }, [correctCount, isCompleted, feedback, isWaitingForReset]);
 
-  // isRecording 상태에 따라 캠을 제어 (startCamera/stopCamera)
+  // landmarks가 들어올 때마다, 정답 후 리셋 대기 중이면 prediction이 None(또는 정답이 아닌 상태)일 때만 분류 재시작
   useEffect(() => {
-    if (isRecording && isInitialized) {
-      startCamera();
-    } else if (!isRecording) {
-      stopCamera();
+    if (isWaitingForReset && lastLandmarks && currentResult) {
+      const prediction = currentResult?.prediction;
+      if (prediction === 'None' || prediction !== lesson?.sign_text) {
+        setIsWaitingForReset(false);
+        setIsRecording(true);
+      }
     }
-  }, [isRecording, isInitialized, startCamera, stopCamera]);
+  }, [isWaitingForReset, lastLandmarks, currentResult, lesson]);
 
   // 다시하기 핸들러
   const handleRetry = () => {
@@ -259,6 +274,7 @@ const Learn = () => {
     setFeedback(null);
     setCurrentResult(null);
     setIsRecording(true);
+    setIsWaitingForReset(false);
   };
 
   // 데이터 로딩/에러 처리
@@ -401,7 +417,7 @@ const Learn = () => {
               <FeedbackModalForLearn
                 feedback={feedback}
                 prediction={currentResult?.prediction ?? "none"}
-                onComplete={feedback === 'correct' ? undefined : handleFeedbackComplete}
+                onComplete={undefined}
               />
             </div>
           )}
