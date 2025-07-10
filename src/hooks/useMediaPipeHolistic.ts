@@ -35,13 +35,41 @@ let mediaPipeLoadPromise: Promise<boolean> | null = null;
 let mediaPipeLoadAttempts = 0;
 const MAX_GLOBAL_RETRIES = 5; // 증가
 
-
 // CDN URL 목록 (대체 CDN 포함)
 const CDN_URLS = [
   'https://cdn.jsdelivr.net/npm/@mediapipe/holistic',
   'https://unpkg.com/@mediapipe/holistic',
   'https://cdnjs.cloudflare.com/ajax/libs/mediapipe-holistic'
 ];
+
+// 전역 MediaPipe 객체 확인
+const checkGlobalMediaPipe = (): boolean => {
+  try {
+    // window 객체에 MediaPipe가 있는지 확인
+    if (typeof window !== 'undefined' && (window as any).MediaPipe) {
+      console.log('✅ 전역 MediaPipe 객체 발견');
+      return true;
+    }
+    
+    // require나 import로 로드된 모듈 확인
+    if (typeof require !== 'undefined') {
+      try {
+        const mediapipe = require('@mediapipe/holistic');
+        if (mediapipe && mediapipe.Holistic) {
+          console.log('✅ require로 MediaPipe 모듈 발견');
+          return true;
+        }
+      } catch (e) {
+        // require 실패는 정상
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.warn('⚠️ 전역 MediaPipe 확인 실패:', error);
+    return false;
+  }
+};
 
 // CDN 접근성 확인
 const checkCDNAccessibility = async (): Promise<string | null> => {
@@ -69,19 +97,45 @@ const checkCDNAccessibility = async (): Promise<string | null> => {
 // MediaPipe 모듈 로딩 함수
 const loadMediaPipeModule = async (): Promise<boolean> => {
   try {
+    console.log('📦 MediaPipe 모듈 로딩 시작...');
+    
+    // 전역 MediaPipe 확인
+    if (checkGlobalMediaPipe()) {
+      console.log('✅ 전역 MediaPipe 사용 가능');
+      return true;
+    }
+    
+    // CDN 접근성 확인
     const accessibleCDN = await checkCDNAccessibility();
     if (!accessibleCDN) {
       throw new Error('MediaPipe CDN에 접근할 수 없습니다');
     }
+
     // 동적 import로 MediaPipe 모듈 로드
-    const { Holistic } = await import('@mediapipe/holistic');
+    console.log('📥 MediaPipe 모듈 동적 import 시도...');
+    const mediapipeModule = await import('@mediapipe/holistic');
     
-    // 모듈이 제대로 로드되었는지 확인
-    if (typeof Holistic !== 'function') {
-      throw new Error('Holistic constructor not found');
+    // 모듈 구조 확인
+    console.log('🔍 MediaPipe 모듈 구조 확인:', Object.keys(mediapipeModule));
+    
+    // Holistic 생성자 확인
+    const { Holistic } = mediapipeModule;
+    
+    if (!Holistic) {
+      console.error('❌ Holistic 생성자를 찾을 수 없습니다');
+      console.log('사용 가능한 exports:', Object.keys(mediapipeModule));
+      throw new Error('Holistic constructor not found in module');
     }
     
+    if (typeof Holistic !== 'function') {
+      console.error('❌ Holistic이 함수가 아닙니다:', typeof Holistic);
+      throw new Error('Holistic is not a constructor function');
+    }
+    
+    console.log('✅ Holistic 생성자 확인됨');
+    
     // 테스트 인스턴스 생성으로 초기화 확인
+    console.log('🧪 MediaPipe 테스트 인스턴스 생성...');
     const testHolistic = new Holistic({
       locateFile: (file) => {
         return `${accessibleCDN}/${file}`;
@@ -106,6 +160,13 @@ const loadMediaPipeModule = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error('❌ MediaPipe 모듈 로드 실패:', error);
+    
+    // 더 자세한 오류 정보 출력
+    if (error instanceof Error) {
+      console.error('오류 메시지:', error.message);
+      console.error('오류 스택:', error.stack);
+    }
+    
     return false;
   }
 };
@@ -117,11 +178,18 @@ const checkWasmAccessibility = async (): Promise<boolean> => {
     'holistic_solution_simd_wasm_bin.wasm'
   ];
   
+  // CDN 접근성 확인
+  const accessibleCDN = await checkCDNAccessibility();
+  if (!accessibleCDN) {
+    return false;
+  }
+  
   try {
     for (const file of wasmFiles) {
-      const response = await fetch(`https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`, {
+      const response = await fetch(`${accessibleCDN}/${file}`, {
         method: 'HEAD',
-        mode: 'cors'
+        mode: 'cors',
+        cache: 'no-cache'
       });
       
       if (!response.ok) {
