@@ -31,6 +31,7 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
   const form = useForm({
     defaultValues: {
       title: chapter?.title || '',
+      description: chapter?.description || '',
       type: chapter?.type || 'word' as 'word' | 'sentence'
     }
   });
@@ -55,19 +56,21 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
     if (chapter) {
       form.reset({
         title: chapter.title,
+        description: chapter.description || '',
         type: chapter.type
       });
       setSelectedSigns(chapter.lessons);
     } else {
       form.reset({
         title: '',
+        description: '',
         type: 'word'
       });
       setSelectedSigns([]);
     }
   }, [chapter, form]);
 
-  const handleSubmit = (data: { title: string; type: 'word' | 'sentence' }) => {
+  const handleSubmit = (data: { title: string; description: string; type: 'word' | 'sentence' }) => {
     onSave({
       ...data,
       signs: selectedSigns
@@ -95,6 +98,19 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
                   <FormLabel>챕터명</FormLabel>
                   <FormControl>
                     <Input placeholder="예: 기본 인사" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>설명</FormLabel>
+                  <FormControl>
+                    <Input placeholder="챕터에 대한 설명을 입력하세요" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

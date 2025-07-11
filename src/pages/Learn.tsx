@@ -18,6 +18,7 @@ import VideoInput from '@/components/VideoInput';
 import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
+import LearningDisplay from '@/components/LearningDisplay';
 
 interface Lesson extends LessonBase {
   sign_text?: string;
@@ -56,7 +57,12 @@ const Learn = () => {
     setLessonError(null);
     API.get<{ success: boolean; data: Lesson; message?: string }>(`/lessons/${lessonId}`)
       .then(res => {
-        setLesson(res.data.data);
+        const data = res.data.data;
+        // word가 없고 sign_text가 있으면 word에 sign_text를 할당
+        if (!data.word && data.sign_text) {
+          data.word = data.sign_text;
+        }
+        setLesson(data);
         setLessonLoading(false);
       })
       .catch((err) => {
@@ -360,28 +366,22 @@ const Learn = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12">
+        <div className="max-w-[1400px] mx-auto overflow-x-auto">
+          <div className="grid grid-cols-2 gap-12 items-start justify-center">
             {/* 애니메이션 영역 */}
-            <div className="flex flex-col items-center justify-center">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">수어 예시</h3>
-              {/* animData 상태 임시 출력 */}
-              <div className="text-xs text-gray-500 mb-2">
-                animData: {animData ? 'O' : 'X'} | pose: {animData?.pose ? animData.pose.length : 0}
-              </div>
-              {animData && animData.pose && animData.pose.length > 0 ? (
-                <div style={{ minHeight: 360, minWidth: 320, width: '100%' }}>
-                  <ExampleAnim data={animData} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
-                </div>
-              ) : (
-                <div className="text-gray-400 mt-8">애니메이션 데이터를 불러오는 중이거나 데이터가 없습니다.</div>
-              )}
+            <div className="w-[680px] min-h-[600px] mx-auto mt-32">
+              <LearningDisplay
+                data={animData}
+                currentFrame={currentFrame}
+                totalFrame={animData?.pose ? animData.pose.length : 150}
+              />
             </div>
             {/* 캠 영역 */}
-            <div className="mt-4 p-6 bg-gray-100 rounded-md flex flex-col items-center">
+            <div className="mt-4 p-0 bg-gray-100 rounded-md flex flex-col items-center w-[480px] min-h-[360px] mx-auto">
               <h3 className="text-lg font-semibold text-gray-800 mb-2">실시간 따라하기</h3>
               <p className="text-gray-600 mb-4">웹캠을 보며 수어를 따라해보세요. 3회 성공 시 학습이 완료됩니다.</p>
-              <div className="relative w-full max-w-lg mx-auto">
+              {/* MediaPipe용 비디오/캔버스만 숨김 */}
+              <div className="hidden relative w-full max-w-lg mx-auto">
                 <video
                   ref={videoRef}
                   width={640}
@@ -407,6 +407,18 @@ const Learn = () => {
                 {feedback === 'incorrect' && (
                   <span className="text-red-600 font-bold">다시 시도해보세요</span>
                 )}
+              </div>
+              {/* VideoInput은 그대로 노출 */}
+              <div className="space-y-4">
+                <VideoInput
+                  width={480}
+                  height={360}
+                  autoStart={true}
+                  showControls={true}
+                  className="h-full"
+                  currentSign={lesson ?? undefined}
+                  currentResult={displayConfidence}
+                />
               </div>
             </div>
           </div>
