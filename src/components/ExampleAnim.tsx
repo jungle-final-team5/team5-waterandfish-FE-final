@@ -287,13 +287,98 @@ const LandmarkViewerTSX = ({
       if (connection[0] < landmarks.length && connection[1] < landmarks.length) {
         const start = landmarks[connection[0]];
         const end = landmarks[connection[1]];
+        let IsPipFinger = false;
+        let IsRight = false;
+
+        if(color == 0xd63031)
+                        IsRight = true;
+                    else
+                        IsRight = false;
+                    
+                    if(connection[0] === 3 && connection[1] === 4
+                        || connection[0] === 7 && connection[1] === 8
+                        || connection[0] === 11 && connection[1] === 12
+                        || connection[0] === 15 && connection[1] === 16
+                        || connection[0] === 19 && connection[1] === 20
+                    )
+                        {
+                            IsPipFinger = true;
+                        }
         const startVec = new THREE.Vector3(start[0], start[1], start[2]);
         const endVec = new THREE.Vector3(end[0], end[1], end[2]);
         const distance = startVec.distanceTo(endVec);
 
         // 메인 원기둥 (더 진한 색상)
         const geometry = new THREE.CylinderGeometry(0.008, 0.008, distance, 12);
-        const material = new THREE.MeshLambertMaterial({ 
+         if(IsPipFinger)
+                    {
+                     if(IsRight)
+                    {
+const material = new THREE.MeshLambertMaterial({ 
+          color: 0xffc4c4, 
+          transparent: true, 
+          opacity: 0.9,
+          emissive: color,
+          emissiveIntensity: 0.1
+        });
+        const cylinder: ThreeMesh = new THREE.Mesh(geometry, material);
+        cylinder.position.copy(startVec).add(endVec).multiplyScalar(0.5);
+        const up = new THREE.Vector3(0, 1, 0);
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, new THREE.Vector3().subVectors(endVec, startVec).normalize());
+        cylinder.quaternion.copy(quaternion);
+        sceneRef.current!.add(cylinder);
+        lineArray.push(cylinder);
+
+        // 외곽선 원기둥 (더 큰 반지름, 어두운 색상)
+        const outlineGeometry = new THREE.CylinderGeometry(0.012, 0.012, distance, 12);
+        const outlineMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0xffffff, 
+          transparent: true, 
+          opacity: 0.6,
+          side: THREE.BackSide
+        });
+        const outlineCylinder: ThreeMesh = new THREE.Mesh(outlineGeometry, outlineMaterial);
+        outlineCylinder.position.copy(cylinder.position);
+        outlineCylinder.quaternion.copy(cylinder.quaternion);
+        sceneRef.current!.add(outlineCylinder);
+        lineArray.push(outlineCylinder);
+                    }   
+                    else
+                    {
+const material = new THREE.MeshLambertMaterial({ 
+          color: 0xcffffc, 
+          transparent: true, 
+          opacity: 0.9,
+          emissive: color,
+          emissiveIntensity: 0.1
+        });
+        const cylinder: ThreeMesh = new THREE.Mesh(geometry, material);
+        cylinder.position.copy(startVec).add(endVec).multiplyScalar(0.5);
+        const up = new THREE.Vector3(0, 1, 0);
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, new THREE.Vector3().subVectors(endVec, startVec).normalize());
+        cylinder.quaternion.copy(quaternion);
+        sceneRef.current!.add(cylinder);
+        lineArray.push(cylinder);
+
+        // 외곽선 원기둥 (더 큰 반지름, 어두운 색상)
+        const outlineGeometry = new THREE.CylinderGeometry(0.012, 0.012, distance, 12);
+        const outlineMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0xffffff, 
+          transparent: true, 
+          opacity: 0.6,
+          side: THREE.BackSide
+        });
+        const outlineCylinder: ThreeMesh = new THREE.Mesh(outlineGeometry, outlineMaterial);
+        outlineCylinder.position.copy(cylinder.position);
+        outlineCylinder.quaternion.copy(cylinder.quaternion);
+        sceneRef.current!.add(outlineCylinder);
+        lineArray.push(outlineCylinder);
+                    }
+                        
+                    }
+                    else
+                    {
+const material = new THREE.MeshLambertMaterial({ 
           color: color, 
           transparent: true, 
           opacity: 0.9,
@@ -311,7 +396,7 @@ const LandmarkViewerTSX = ({
         // 외곽선 원기둥 (더 큰 반지름, 어두운 색상)
         const outlineGeometry = new THREE.CylinderGeometry(0.012, 0.012, distance, 12);
         const outlineMaterial = new THREE.MeshBasicMaterial({ 
-          color: 0x000000, 
+          color: 0xffffff, 
           transparent: true, 
           opacity: 0.6,
           side: THREE.BackSide
@@ -321,8 +406,11 @@ const LandmarkViewerTSX = ({
         outlineCylinder.quaternion.copy(cylinder.quaternion);
         sceneRef.current!.add(outlineCylinder);
         lineArray.push(outlineCylinder);
-      }
-    });
+                    }
+
+
+                }
+            });
   };
 
   const loadFrame = (frameIndex: number): void => {
