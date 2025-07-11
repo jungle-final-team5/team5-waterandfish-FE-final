@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 const ReviewSession = () => {
     const { categoryId, chapterId, sessionType } = useParams();
     const [readyToQuiz, setReadyToQuiz] = useState(false);
+    const [sessionComplete, setSessionComplete] = useState(false);
     
   // L Q L Q
   // 예를 들어 퀴즈 수행에서 오답이 두 개 있었다고 해보자.
@@ -49,8 +50,15 @@ const ReviewSession = () => {
     setReadyToQuiz(true);
   };
 
-  const setNextLesson = () => {
+  const handleNextSign = async () => {
     setReadyToQuiz(false);
+
+    if (lessons && currentSignIndex < lessons.length - 1) {
+    setCurrentSignIndex(currentSignIndex + 1);
+    setFeedback(null);
+    } else {
+      setSessionComplete(true);
+    }
 
     // 전 단어의 기록을 reviewed로 변경하기
     // 다음 단어 준비하기
@@ -65,6 +73,11 @@ const ReviewSession = () => {
       console.log(res.data);
     });
   }, []);
+
+  if(sessionComplete)
+    return (
+      <div>기깔나게 복습을 끝내셨습니다.</div>
+    );
 
 
   
