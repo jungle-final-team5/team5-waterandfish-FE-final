@@ -148,7 +148,7 @@ const LetterSession = () => {
       
       
       // 약간의 지연을 두어 정리가 완료되도록 함
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 10000));
 
            console.log('MediaPipe Hands dynamic load via hands.js');
       // ESM entrypoint인 hands.js를 직접 불러와 실제 클래스 가져오기 (CDN)
