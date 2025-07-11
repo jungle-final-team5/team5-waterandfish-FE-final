@@ -13,18 +13,19 @@ const Review = () => {
   const [reviewSigns, setReviewSigns] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const username = "zxcv";
   useEffect(() => {
-    if (!username) return;
+    
+
 
     async function fetchFailedLessons() {
       setLoading(true);
       setError(null);
 
       try {
-        const res = await API.get(`/progress/lessons/failures/${username}`);
+        const res = await API.get("/progress/failures/me",);
         console.log("응답 데이터:", res.data);
-        setReviewSigns(res.data as Lesson[]);
+        setReviewSigns(res.data.data as Lesson[]);
+        console.log("오답 저장 완료");
       } catch (err: unknown) {
         setError("데이터를 불러오는 중 오류가 발생했습니다.");
         if (err instanceof Error) {
@@ -38,7 +39,8 @@ const Review = () => {
     }
 
     fetchFailedLessons();
-  }, [username]);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
