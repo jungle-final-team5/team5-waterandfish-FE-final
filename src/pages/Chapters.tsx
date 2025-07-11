@@ -235,6 +235,46 @@ const Chapters = () => {
                         </>
                       )}
                     </Button>
+                     <Button
+                      onClick={() => {
+                        handleStartChapter( chapter.id, lessonIds)
+
+                      }}
+                      disabled={connectingChapter === chapter.id}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {connectingChapter === chapter.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          연결 중...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          퀴즈를 풀기
+                        </>
+                      )}
+                    </Button>
+                     <Button
+                      onClick={() => {
+                        handleStartChapter( chapter.id, lessonIds)
+
+                      }}
+                      disabled={connectingChapter === chapter.id}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {connectingChapter === chapter.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          연결 중...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          야무진 복습
+                        </>
+                      )}
+                    </Button>
                     {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
                       <Button
                         variant="outline"
