@@ -46,6 +46,7 @@ const LearnSession = () => {
   const [isRetrying, setIsRetrying] = useState(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
+  const studyListRef = useRef<string[]>([]);
 
 
   // WebGL 지원 확인
@@ -181,6 +182,8 @@ const LearnSession = () => {
   useEffect(() => {
     if (sessionComplete) {
       disconnectWebSockets();
+      API.post(`/progress/chapters/${chapterId}/lessons`, 
+        {lesson_ids: studyListRef.current, status: "study"})
     }
   }, [sessionComplete]);
 
@@ -502,6 +505,7 @@ useEffect(() => {
                 setCurrentResult(msg.data);
                 if (percent >= 80.0) {
                   setFeedback("correct");
+                  studyListRef.current.push(currentSign.id);
                   console.log("PASSED");
                 }
                 break;
