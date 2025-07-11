@@ -267,3 +267,5 @@ const Chapters = () => {
       </main>
     </div>
   );
+};
+export default Chapters;
