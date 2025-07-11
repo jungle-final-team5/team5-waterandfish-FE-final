@@ -2,18 +2,20 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useRef, useState } from 'react';
-import { Camera } from '@mediapipe/camera_utils';
+
 import { drawLandmarks, drawOverlayMessage, drawWarningMessage } from '../components/draw/draw';
 import { detectGesture } from '../components/draw/RightDetector';
 import API from '@/components/AxiosInstance';
 import SessionHeader from '@/components/SessionHeader';
 import LetterDisplay from '@/components/LetterDisplay';
+import { Hands } from '@mediapipe/hands';
 
 const LetterSession = () => {
   const [gesture, setGesture] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraInitializing, setIsCameraInitializing] = useState(true);
   const navigate = useNavigate();
+  
   const { setType,qOrs } = useParams();
   const [sets] = useState(() => {
     if (setType === 'consonant') {
@@ -74,8 +76,20 @@ const LetterSession = () => {
   const maxRetries = 3;
   const isInitializingRef = useRef(false);
 
+  const loadScript = (src: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    // public 폴더의 파일을 가리키도록 수정 (앞에 / 를 붙여 절대 경로로 지정)
+    script.src = `/${src}`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`${src} 로드 실패`));
+    document.body.appendChild(script);
+  });
+};
+
   // 카메라 초기화 함수
   const initializeCamera = async () => {
+    
     // 이미 초기화 중이면 중복 실행 방지
     if (isInitializingRef.current) {
       console.log('카메라 초기화가 이미 진행 중입니다.');
@@ -83,6 +97,11 @@ const LetterSession = () => {
     }
     
     try {
+      await Promise.all([
+        loadScript('hands.js'),
+        loadScript('camera_utils.js')
+      ]);
+
       isInitializingRef.current = true;
       setIsCameraInitializing(true);
       setCameraError(null);
@@ -145,32 +164,83 @@ const LetterSession = () => {
       
       
       // 약간의 지연을 두어 정리가 완료되도록 함
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Hands 인스턴스 생성 - 동적 import 사용
-      console.log('MediaPipe Hands 동적 로드 시작');
+           console.log('MediaPipe Hands dynamic load via hands.js');
+      // ESM entrypoint인 hands.js를 직접 불러와 실제 클래스 가져오기 (CDN)
+// 전역으로 로드된 Hands 생성자 사용
+const HandsConstructor = (window as any).Hands;
+if (typeof HandsConstructor !== 'function') {
+  console.error('window.Hands is not a constructor:', (window as any).Hands);
+  throw new Error('MediaPipe Hands 생성자를 찾을 수 없습니다 (global)');
+}
+const hands = new HandsConstructor({
+  locateFile: (file: string) =>
+  {
+    return `/${file}`;
+  },
+   
+});
+console.log('MediaPipe Hands instance created via global script');
+    //   // Hands 인스턴스 생성 - 동적 import 사용
+    //   console.log('MediaPipe Hands 동적 로드 시작');
       
-      let HandsConstructor;
-      try {
-        const { Hands } = await import('@mediapipe/hands');
-        HandsConstructor = Hands;
-        console.log('MediaPipe Hands 로드 성공:', typeof HandsConstructor);
-      } catch (error) {
-        console.error('MediaPipe Hands 로드 실패:', error);
-        throw new Error('MediaPipe Hands를 로드할 수 없습니다. 페이지를 새로고침해주세요.');
-      }
       
-      if (typeof HandsConstructor !== 'function') {
-        throw new Error('MediaPipe Hands 생성자가 유효하지 않습니다.');
-      }
+        
+    //     const mpHandModule = await import('@mediapipe/hands');
+    //     console.log('MediaPipe Hands 로드 성공:', mpHandModule);
+
+    //   console.log('🔍 MediaPipe 모듈 구조 확인:', Object.keys(mpHandModule));
+    // console.log('🔍 default export 타입:', typeof mpHandModule.default);
+
+    //   let handSave: any = null;
       
-      const hands = new HandsConstructor({
-        locateFile: (file) => {
-          // CDN URL을 더 안정적으로 설정
-          const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
-          return `${baseUrl}/${file}`;
-        },
-      });
+    //   if(mpHandModule.Hands)
+    //   {
+    //     handSave = mpHandModule.Hands;
+    //     console.log("handSave가 hands로");
+    //   }
+    //   else if(mpHandModule.default)
+    //   {
+    //     if (typeof mpHandModule.default === 'object' && mpHandModule.default !== null) {
+    //     console.log('default export 객체의 키들:', Object.keys(mpHandModule.default));
+        
+    //     // 다양한 가능한 키 이름 확인
+    //     const possibleKeys = ['Hands', 'hands', 'HandsSolution', 'handsSolution'];
+    //     for (const key of possibleKeys) {
+    //       if (mpHandModule.default[key]) {
+    //         handSave = mpHandModule.default[key];
+    //         console.log(`✅ default export 객체에서 ${key} 발견`);
+    //         break;
+    //       }
+    //     }
+        
+    //     // 모든 속성을 순회하며 함수 타입 찾기
+    //     if (!handSave) {
+    //       for (const [key, value] of Object.entries(mpHandModule.default)) {
+    //         if (typeof value === 'function' && key.toLowerCase().includes('holistic')) {
+    //           handSave = value;
+    //           console.log(`✅ default export에서 함수 발견: ${key}`);
+    //           break;
+    //         }
+    //       }
+    //     }
+    //   }
+    //   // default가 함수인 경우 (생성자일 수 있음)
+    //   else if (typeof mpHandModule.default === 'function') {
+    //     handSave = mpHandModule.default;
+    //     console.log('✅ default export가 Holistic 생성자인 것으로 추정');
+    //   }
+    // }
+      
+      
+    //   const hands = new handSave({
+    //     locateFile: (file) => {
+    //       // CDN URL을 더 안정적으로 설정
+    //       const baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915';
+    //       return `${baseUrl}/${file}`;
+    //     },
+    //   });
 
       console.log("complete loaded ");
 
@@ -232,8 +302,10 @@ const LetterSession = () => {
         canvasCtx.restore();
       });
 
+      const CameraConstructor = (window as any).Camera;
       // Camera 인스턴스 생성
-      const camera = new Camera(videoElement, {
+      console.log(CameraConstructor);
+      const camera = new CameraConstructor(videoElement, {
         onFrame: async () => {
           try {
             // hands 인스턴스가 유효한지 확인

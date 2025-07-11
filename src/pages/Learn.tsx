@@ -1,16 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   ArrowLeft, 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Camera, 
-  CheckCircle, 
-  XCircle,
+  CheckCircle,
   BookOpen
 } from 'lucide-react';
 import WebcamView from '@/components/WebcamView';
@@ -20,23 +15,30 @@ import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
 import { Lesson as LessonBase } from '@/types/learning';
 import VideoInput from '@/components/VideoInput';
+import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
+import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
+import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
 
 interface Lesson extends LessonBase {
   sign_text?: string;
+  media_url?: string;
+  chapter_id?: string;
 }
 
-interface LessonApiResponse {
-  success: boolean;
-  data: Lesson;
-  message?: string;
-}
-
-type ApiSign = Lesson & { sign_text: string };
+const CORRECT_TARGET = 3;
 
 const Learn = () => {
-
   const [animData, setAnimData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
+  const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
+  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const [currentResult, setCurrentResult] = useState<any>(null);
+  const [displayConfidence, setDisplayConfidence] = useState<string>('');
+  const [transmissionCount, setTransmissionCount] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [incorrectCount, setIncorrectCount] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isWaitingForReset, setIsWaitingForReset] = useState(false);
 
   const navigate = useNavigate();
   const { lessonId } = useParams();
@@ -44,17 +46,10 @@ const Learn = () => {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [lessonLoading, setLessonLoading] = useState(true);
   const [lessonError, setLessonError] = useState<string | null>(null);
+  const [wsUrl, setWsUrl] = useState<string | null>(null);
+  const [wsUrlLoading, setWsUrlLoading] = useState(false);
 
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
-  const [progress, setProgress] = useState(0);
-
-  const [isPlaying, setIsPlaying] = useState(true); // 자동 재생 활성화
-  const [animationSpeed, setAnimationSpeed] = useState(30);
-  const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // lessonId로 단일 lesson fetch
+  // lesson fetch (chapter_id 포함)
   useEffect(() => {
     if (!lessonId) return;
     setLessonLoading(true);
@@ -71,127 +66,265 @@ const Learn = () => {
       });
   }, [lessonId]);
 
-  const loadAnim = async () => {
-    try {
-      const response = await API.get(`/anim/${lessonId}`);
-      setAnimData(response.data);
-    } catch (error) {
-      console.error('애니메이션 불러오는데 실패했습니다 : ', error);
-    }
-  };
-
+  // 단일 레슨용 wsUrl fetch
   useEffect(() => {
-    loadAnim();
-  }, []);
+    if (!lessonId) return;
+    setWsUrlLoading(true);
+    API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`)
+      .then(res => {
+        setWsUrl(res.data.data.ws_url);
+        setWsUrlLoading(false);
+      })
+      .catch(() => {
+        setWsUrl(null);
+        setWsUrlLoading(false);
+      });
+  }, [lessonId]);
 
-  // 애니메이션 재생/정지 처리
+  // wsUrl이 준비된 후에만 웹소켓 연결
   useEffect(() => {
-    if (isPlaying && animData) {
-      animationIntervalRef.current = setInterval(() => {
-        if (currentFrame < animData.pose.length - 1) {
-          setCurrentFrame(prev => prev + 1);
-        } else {
-          setCurrentFrame(0);
-        }
-      }, 1000 / animationSpeed);
-    } else {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current);
-        animationIntervalRef.current = null;
-      }
+    if (wsUrl) {
+      connectToWebSockets([wsUrl]);
     }
+  }, [wsUrl]);
+  const { connectionStatus, wsList, sendMessage } = useWebsocket();
 
-    return () => {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current);
+  // 애니메이션 데이터 로딩
+  useEffect(() => {
+    const loadAnim = async () => {
+      try {
+        const response = await API.get(`/anim/${lessonId}`);
+        const data: any = response.data;
+        setAnimData(data.data || data);
+      } catch (error) {
+        console.error('애니메이션 불러오는데 실패했습니다 : ', error);
       }
     };
-  }, [isPlaying, animationSpeed, animData, currentFrame]);
+    if (lessonId) loadAnim();
+  }, [lessonId]);
 
+  // 애니메이션 자동 재생
   useEffect(() => {
-    console.log('lessonId:', lessonId);
-    console.log('lesson:', lesson);
-  }, [lessonId, lesson]);
+    let interval = null;
+    if (animData && animData.pose && animData.pose.length > 0) {
+      interval = setInterval(() => {
+        setCurrentFrame(prev =>
+          prev < animData.pose.length - 1 ? prev + 1 : 0
+        );
+      }, 1000 / 30);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [animData]);
 
-  // 샘플 학습 데이터
-  const learningData = {
-    keyword: lesson?.sign_text ?? lessonId,
-    steps: [
-      {
-        title: '예시 보기',
-        description: '정확한 수어 동작을 확인해보세요',
-        type: 'example'
-      },
-      {
-        title: '따라하기',
-        description: '웹캠을 보며 수어를 따라해보세요',
-        type: 'practice'
-      },
-      {
-        title: '완료',
-        description: '학습을 완료했습니다!',
-        type: 'complete'
-      }
-    ]
-  };
+  // MediaPipe + WebSocket 연동
+  const handleLandmarksDetected = useCallback((landmarks: any) => {
+    if (wsUrl) {
+      sendMessage(JSON.stringify({ type: 'landmarks', data: landmarks }));
+      setTransmissionCount(prev => prev + 1);
+    }
+  }, [sendMessage, wsUrl]);
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
+  // useMediaPipeHolistic 훅
+  const {
+    videoRef,
+    canvasRef,
+    isInitialized,
+    isProcessing,
+    lastLandmarks,
+    startCamera,
+    stopCamera,
+    retryInitialization,
+    error: mediaPipeError
+  } = useMediaPipeHolistic({
+    onLandmarks: handleLandmarksDetected,
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.5,
+    enableLogging: false
+  });
+
+  // 캠(비디오)은 항상 켜지도록 (페이지 진입 시 바로 startCamera, 언마운트 시 stopCamera)
+  useEffect(() => {
+    if (isInitialized) {
+      startCamera();
+    }
+    return () => {
+      stopCamera();
+    };
+  }, [isInitialized, startCamera, stopCamera]);
+
+  // landmarks가 들어오면 바로 분류
+  useEffect(() => {
+    if (lastLandmarks && isRecording && wsUrl) {
+      const landmarksData = {
+        type: 'landmarks',
+        data: {
+          pose: lastLandmarks.pose,
+          left_hand: lastLandmarks.left_hand,
+          right_hand: lastLandmarks.right_hand
+        }
+      };
+      sendMessage(JSON.stringify(landmarksData));
+      setTransmissionCount(prev => prev + 1);
+    }
+  }, [lastLandmarks, isRecording, wsUrl, sendMessage]);
+
+  // 분류 결과 처리: 정답이면 카운트 증가, 3회 이상이면 완료
+  useEffect(() => {
+    if (!wsUrl) return;
+    if (wsList && wsList.length > 0) {
+      const handlers = wsList.map(ws => {
+        const fn = (event: MessageEvent) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (feedback !== null) return; // 모달 떠 있으면 결과 무시
+            if (msg.type === 'classification_result') {
+              setCurrentResult(msg.data);
+              const { prediction, confidence, probabilities } = msg.data;
+              const target = lesson?.sign_text;
+              let percent: number | undefined = undefined;
+              if (prediction === target) {
+                percent = confidence * 100;
+              } else if (probabilities && target && probabilities[target] != null) {
+                percent = probabilities[target] * 100;
+              }
+              if (percent != null) {
+                setDisplayConfidence(`${percent.toFixed(1)}%`);
+              }
+              // 정답 시
+              if (percent != null && percent >= 80.0 && prediction === target && feedback !== 'correct') {
+                setFeedback('correct');
+                setIsRecording(false); // 분류 멈춤, 캠은 계속
+              } else if (
+                prediction && prediction !== target && prediction !== 'None' && percent != null && percent >= 80.0 && feedback !== 'incorrect'
+              ) {
+                // None이 아니고, 정답도 아니고, 신뢰도 80% 이상일 때만 오답
+                setFeedback('incorrect');
+                setIsRecording(false);
+              }
+            }
+          } catch (e) {}
+        };
+        ws.addEventListener('message', fn);
+        return { ws, fn };
+      });
+      return () => {
+        handlers.forEach(({ ws, fn }) => ws.removeEventListener('message', fn));
+      };
+    }
+  }, [wsList, wsUrl, lesson, feedback]);
+
+  // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당)
+  const handleFeedbackComplete = useCallback(() => {
+    setCorrectCount(prev => {
+      let next = prev;
+      if (feedback === 'correct') next = prev + 1;
+      return next;
+    });
     setFeedback(null);
-    
-    // 3초 후 랜덤 피드백 (실제로는 ML 모델 결과)
-    setTimeout(() => {
-      const isCorrect = Math.random() > 0.3;
-      setFeedback(isCorrect ? 'correct' : 'incorrect');
+    setCurrentResult(null);
+    if (feedback === 'correct') {
+      setIsWaitingForReset(true); // 정답 후에는 리셋 대기
+    }
+  }, [feedback]);
+
+  // 정답/오답 모달이 뜨면 3초(정답) 또는 2초(오답) 뒤 자동으로 닫힘
+  useEffect(() => {
+    if (feedback === 'correct' || feedback === 'incorrect') {
+      const timer = setTimeout(() => {
+        handleFeedbackComplete();
+      }, feedback === 'correct' ? 3000 : 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback, handleFeedbackComplete]);
+
+  // 정답 3회 시 완료 처리
+  useEffect(() => {
+    if (correctCount >= CORRECT_TARGET) {
+      setIsCompleted(true);
       setIsRecording(false);
-      
-      if (isCorrect && currentStep < learningData.steps.length - 1) {
-        setTimeout(() => {
-          setCurrentStep(currentStep + 1);
-          setProgress(((currentStep + 1) / learningData.steps.length) * 100);
-        }, 2000);
-      }
-    }, 3000);
-  };
-
-  const handleNextStep = () => {
-    if (currentStep < learningData.steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-      setProgress(((currentStep + 1) / learningData.steps.length) * 100);
       setFeedback(null);
+      setCurrentResult(null);
+      setIsWaitingForReset(false);
+    } else if (!isCompleted && feedback === null && !isWaitingForReset) {
+      // 3회 미만이고 모달이 닫혔으며, 리셋 대기가 아닐 때만 분류 재시작
+      setIsRecording(true);
     }
-  };
+  }, [correctCount, isCompleted, feedback, isWaitingForReset]);
 
-  const DEBUG_FEEDBACK_OFF = () => {
-       setFeedback(null);
-  };
-
-  const handleRetry = () => {
-    setFeedback(null);
-    setIsRecording(false);
-  };
-
-  const currentStepData = learningData.steps[currentStep];
-
+  // landmarks가 들어올 때마다, 정답 후 리셋 대기 중이면 prediction이 None(또는 정답이 아닌 상태)일 때만 분류 재시작
   useEffect(() => {
-    if (currentStepData.type === 'complete') {
-      API.post('/user/daily-activity/complete')
-        .then(() => {
-          console.log("오늘 활동 기록 완료!");
-        })
-        .catch((err) => {
-          console.error("오늘 활동 기록 실패:", err);
-        });
+    if (isWaitingForReset && lastLandmarks && currentResult) {
+      const prediction = currentResult?.prediction;
+      if (prediction === 'None' || prediction !== lesson?.sign_text) {
+        setIsWaitingForReset(false);
+        setIsRecording(true);
+      }
     }
-    // eslint-disable-next-line
-  }, [currentStepData.type]);
+  }, [isWaitingForReset, lastLandmarks, currentResult, lesson]);
+
+  // 다시하기 핸들러
+  const handleRetry = () => {
+    setCorrectCount(0);
+    setIsCompleted(false);
+    setFeedback(null);
+    setCurrentResult(null);
+    setIsRecording(true);
+    setIsWaitingForReset(false);
+  };
 
   // 데이터 로딩/에러 처리
-  if (lessonLoading) {
+  if (lessonLoading || wsUrlLoading) {
     return <div className="text-center mt-10">수어 정보를 불러오는 중입니다...</div>;
   }
   if (lessonError) {
     return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
+  }
+
+  // 완료 화면
+  if (isCompleted) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate('/home')}
+                  className="hover:bg-blue-50"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  홈으로
+                </Button>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-800">{lesson?.sign_text ?? lessonId ?? ''}</h1>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto text-center py-12">
+            <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
+            <p className="text-gray-600 mb-6">'{lesson?.sign_text ?? lessonId}' 수어를 성공적으로 3회 따라했습니다.</p>
+            <div className="flex justify-center space-x-4">
+              <Button onClick={handleRetry} variant="outline">
+                다시하기
+              </Button>
+              <Button onClick={() => navigate('/home')} className="bg-blue-600 hover:bg-blue-700">
+                홈으로 돌아가기
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -211,15 +344,14 @@ const Learn = () => {
               </Button>
               <div>
                 <h1 className="text-xl font-bold text-gray-800">{lesson?.sign_text ?? lessonId ?? ''}</h1>
-                {/* <p className="text-sm text-gray-600">{category}</p> */}
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-600">
-                {currentStep + 1} / {learningData.steps.length}
+                {correctCount} / {CORRECT_TARGET} 회 성공
               </div>
               <div className="w-32">
-                <Progress value={progress} className="h-2" />
+                <Progress value={(correctCount / CORRECT_TARGET) * 100} className="h-2" />
               </div>
             </div>
           </div>
@@ -229,136 +361,64 @@ const Learn = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Step Indicator */}
-          <div className="flex justify-center mb-8">
-            <div className="flex items-center space-x-4">
-              {learningData.steps.map((step, index) => (
-                <div key={index} className="flex items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    index === currentStep ? 'bg-blue-600 text-white' :
-                    index < currentStep ? 'bg-green-600 text-white' :
-                    'bg-gray-200 text-gray-600'
-                  }`}>
-                    {index < currentStep ? (
-                      <CheckCircle className="h-6 w-6" />
-                    ) : (
-                      <span>{index + 1}</span>
-                    )}
-                  </div>
-                  {index < learningData.steps.length - 1 && (
-                    <div className={`w-16 h-1 ${
-                      index < currentStep ? 'bg-green-600' : 'bg-gray-200'
-                    }`} />
-                  )}
+          <div className="grid lg:grid-cols-2 gap-12">
+            {/* 애니메이션 영역 */}
+            <div className="flex flex-col items-center justify-center">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">수어 예시</h3>
+              {/* animData 상태 임시 출력 */}
+              <div className="text-xs text-gray-500 mb-2">
+                animData: {animData ? 'O' : 'X'} | pose: {animData?.pose ? animData.pose.length : 0}
+              </div>
+              {animData && animData.pose && animData.pose.length > 0 ? (
+                <div style={{ minHeight: 360, minWidth: 320, width: '100%' }}>
+                  <ExampleAnim data={animData} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Current Step Content */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BookOpen className="h-5 w-5 text-blue-600" />
-                <span>{currentStepData.title}</span>
-              </CardTitle>
-              <p className="text-gray-600">{currentStepData.description}</p>
-            </CardHeader>
-          </Card>
-
-          {/* Learning Interface */}
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Example Video Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">수어 예시</h3>
-                <ExampleAnim data={animData} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
-              {currentStepData.type === 'example' && (
-                <div className="flex justify-center">
-                  <Button onClick={handleNextStep} className="bg-blue-600 hover:bg-blue-700">
-                    이해했어요, 다음 단계로
-                  </Button>
-                </div>
+              ) : (
+                <div className="text-gray-400 mt-8">애니메이션 데이터를 불러오는 중이거나 데이터가 없습니다.</div>
               )}
             </div>
-
-            {/* Practice Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                {currentStepData.type === 'practice' ? '따라하기' : '웹캠 미리보기'}
-              </h3>
-              
-             <VideoInput
-              width={640}
-              height={480}
-              autoStart={false}
-              showControls={true}
-              onStreamReady={null}
-              onStreamError={null}
-              className="h-full"
-              currentSign={null}
-              currentResult={null}
-            />
-              
-              {currentStepData.type === 'practice' && (
-                <div className="flex justify-center space-x-4">
-                  {!isRecording && !feedback && (
-                    <Button 
-                      onClick={handleStartRecording}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Camera className="h-4 w-4 mr-2" />
-                      시작하기
-                    </Button>
-                  )}
-                  
-                  {isRecording && (
-                    <Button disabled className="bg-red-600">
-                      <div className="animate-pulse flex items-center">
-                        <div className="w-3 h-3 bg-white rounded-full mr-2" />
-                        인식 중...
-                      </div>
-                    </Button>
-                  )}
-                  
-                  {feedback && (
-                    <div className="flex space-x-2">
-                      <Button onClick={handleRetry} variant="outline">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        다시 시도
-                      </Button>
-                      {feedback === 'correct' && currentStep < learningData.steps.length - 1 && (
-                        <Button onClick={handleNextStep} className="bg-blue-600 hover:bg-blue-700">
-                          다음 단계
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+            {/* 캠 영역 */}
+            <div className="mt-4 p-6 bg-gray-100 rounded-md flex flex-col items-center">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">실시간 따라하기</h3>
+              <p className="text-gray-600 mb-4">웹캠을 보며 수어를 따라해보세요. 3회 성공 시 학습이 완료됩니다.</p>
+              <div className="relative w-full max-w-lg mx-auto">
+                <video
+                  ref={videoRef}
+                  width={640}
+                  height={480}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="rounded-lg bg-black w-full h-auto object-cover"
+                  style={{ aspectRatio: '4/3' }}
+                />
+                <canvas
+                  ref={canvasRef}
+                  width={640}
+                  height={480}
+                  className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                  style={{ aspectRatio: '4/3' }}
+                />
+              </div>
+              <div className="flex justify-center mt-4">
+                {feedback === 'correct' && (
+                  <span className="text-green-600 font-bold">정답!</span>
+                )}
+                {feedback === 'incorrect' && (
+                  <span className="text-red-600 font-bold">다시 시도해보세요</span>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Feedback Display */}
-          {feedback && (
+          {!isCompleted && feedback && (
             <div className="mt-8">
-              <FeedbackDisplay feedback={feedback} prediction={"none"} onComplete={DEBUG_FEEDBACK_OFF} />
-            </div>
-          )}
-
-          {/* Completion */}
-          {currentStepData.type === 'complete' && (
-            <div className="text-center py-12">
-              <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
-              <p className="text-gray-600 mb-6">'{lesson?.sign_text ?? lessonId}' 수어를 성공적으로 학습했습니다.</p>
-              <div className="flex justify-center space-x-4">
-                <Button onClick={() => navigate('/home')} variant="outline">
-                  홈으로 돌아가기
-                </Button>
-                <Button onClick={() => navigate('/category')} className="bg-blue-600 hover:bg-blue-700">
-                  다른 학습하기
-                </Button>
-              </div>
+              <FeedbackModalForLearn
+                feedback={feedback}
+                prediction={currentResult?.prediction ?? "none"}
+                onComplete={undefined}
+              />
             </div>
           )}
         </div>
