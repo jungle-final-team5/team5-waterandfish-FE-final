@@ -26,6 +26,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { GlobalWebSocketProvider } from "@/contexts/GlobalWebSocketContext";
 import ReviewSession from "./pages/ReviewSession";
 import MediaPipeSession from "./pages/MediaPipeSession";
+import SessionBegin from "./pages/SessionBegin";
 
 const queryClient = new QueryClient();
 
@@ -50,7 +51,7 @@ const App = () => (
               <Route path="/category" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
               <Route path="/category/:categoryId/chapters" element={<ProtectedRoute><Chapters /></ProtectedRoute>} />
               <Route path="/learn/:lessonId" element={<Learn />} />
-              <Route path="/learn/chapter/:chapterId/guide" element={<ProtectedRoute><LearningGuide /></ProtectedRoute>} />
+              <Route path="/learn/chapter/:chapterId/guide/:modeNum" element={<ProtectedRoute><SessionBegin /></ProtectedRoute>} />
               <Route path="/learn/chapter/:chapterId" element={<ProtectedRoute><LearnSession /></ProtectedRoute>} />
               <Route path="/quiz/chapter/:chapterId" element={<ProtectedRoute><QuizSession /></ProtectedRoute>} />
               <Route path="/review/chapter/:chapterId" element={<ProtectedRoute><ReviewSession /></ProtectedRoute>} />
