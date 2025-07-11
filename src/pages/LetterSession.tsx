@@ -2,7 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useRef, useState } from 'react';
-import { Camera } from '@mediapipe/camera_utils';
+
 import { drawLandmarks, drawOverlayMessage, drawWarningMessage } from '../components/draw/draw';
 import { detectGesture } from '../components/draw/RightDetector';
 import API from '@/components/AxiosInstance';
@@ -302,9 +302,10 @@ console.log('MediaPipe Hands instance created via global script');
         canvasCtx.restore();
       });
 
+      const CameraConstructor = (window as any).Camera;
       // Camera 인스턴스 생성
-      console.log(Camera);
-      const camera = new Camera(videoElement, {
+      console.log(CameraConstructor);
+      const camera = new CameraConstructor(videoElement, {
         onFrame: async () => {
           try {
             // hands 인스턴스가 유효한지 확인
