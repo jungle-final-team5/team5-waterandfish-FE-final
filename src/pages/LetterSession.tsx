@@ -76,6 +76,17 @@ const LetterSession = () => {
   const maxRetries = 3;
   const isInitializingRef = useRef(false);
 
+  const loadScript = (src: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    // public 폴더의 파일을 가리키도록 수정 (앞에 / 를 붙여 절대 경로로 지정)
+    script.src = `/${src}`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`${src} 로드 실패`));
+    document.body.appendChild(script);
+  });
+};
+
   // 카메라 초기화 함수
   const initializeCamera = async () => {
     
@@ -86,6 +97,11 @@ const LetterSession = () => {
     }
     
     try {
+      await Promise.all([
+        loadScript('hands.js'),
+        loadScript('camera_utils.js')
+      ]);
+
       isInitializingRef.current = true;
       setIsCameraInitializing(true);
       setCameraError(null);
@@ -148,7 +164,7 @@ const LetterSession = () => {
       
       
       // 약간의 지연을 두어 정리가 완료되도록 함
-      await new Promise(resolve => setTimeout(resolve, 10000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
            console.log('MediaPipe Hands dynamic load via hands.js');
       // ESM entrypoint인 hands.js를 직접 불러와 실제 클래스 가져오기 (CDN)
@@ -160,7 +176,10 @@ if (typeof HandsConstructor !== 'function') {
 }
 const hands = new HandsConstructor({
   locateFile: (file: string) =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`,
+  {
+    return `/${file}`;
+  },
+   
 });
 console.log('MediaPipe Hands instance created via global script');
     //   // Hands 인스턴스 생성 - 동적 import 사용
@@ -284,6 +303,7 @@ console.log('MediaPipe Hands instance created via global script');
       });
 
       // Camera 인스턴스 생성
+      console.log(Camera);
       const camera = new Camera(videoElement, {
         onFrame: async () => {
           try {
