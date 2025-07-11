@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   ArrowLeft, 
   CheckCircle,
@@ -61,24 +60,26 @@ const ReviewSession = () => {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [wsUrlLoading, setWsUrlLoading] = useState(false);
 
+    // 복습하기 대상 챕터의 진행 상태를 불러온다.
+    // TODO : 백엔드에서 review를 해야하는 단어로 필터링을 변경해야 함. 현재는 특별히 필터링이 없는 것으로 추정
+    // TODO? : 복습하기 진입 전 복습해야 할 대상 단어들 목록을 조회 할텐데, 그 조회 결과를 그대로 쓸 수 있을지에 대한 고민
     useEffect(() => {
-    // 우선 해야 할 내용들을 받아옴
     const chapterId = "686fd17b6069f6eb235d1df8"; // 샘플 챕터 데이터
     const response = API.get(`/progress/chapters/${chapterId}/lessons`);
-    // chapter에서 방금 선택한 사람 대상의 진도 상태 확인
+    // 백엔드에서 처리 태그에 상관하지 않고 가져오게 처리가 되어있긴 하지만, Learn/Quiz에서 처리된 내용이 반영이 아직 안되는걸로 추정
 
     response.then((res) => {
       setLessons(res.data.data);
       console.log(res.data.data[lessonIdx]);
+
       setLessonId(res.data.data[lessonIdx].id);
-      console.log("챕터 내 내용을 잘 불러 왔습니다!");
     });
   }, []);
 
-  // 단일 레슨용 wsUrl fetch
+  // 레슨 하나가 바뀔 때마다 해당하는 모델 준비하는 코드.
+  // TODO : 기존 학습/퀴즈와 동일하게 챕터 단위의 모델을 가져오도록 개선해야함
   useEffect(() => {
-    // lessons에서 lessonId가 바뀔때마다 이걸 해야해?
-    console.log("나는 모델을 부르겠다.");
+  
     if (!lessonId) return;
     setWsUrlLoading(true);
     API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`)
@@ -92,7 +93,7 @@ const ReviewSession = () => {
       });
   }, [lessonId]);
 
-  // wsUrl이 준비된 후에만 웹소켓 연결
+  // wsUrl이 준비된 후에만 웹소켓 연결 [완료]
   useEffect(() => {
     if (wsUrl) {
       connectToWebSockets([wsUrl]);
@@ -100,7 +101,7 @@ const ReviewSession = () => {
   }, [wsUrl]);
   const { connectionStatus, wsList, sendMessage } = useWebsocket();
 
-  // 애니메이션 데이터 로딩
+  // 애니메이션 데이터 로딩 [완료]
   useEffect(() => {
     const loadAnim = async () => {
       try {
@@ -114,7 +115,7 @@ const ReviewSession = () => {
     if (lessonId) loadAnim();
   }, [lessonId]);
 
-  // 애니메이션 자동 재생
+  // 애니메이션 자동 재생 [완료]
   useEffect(() => {
     let interval = null;
     if (animData && animData.pose && animData.pose.length > 0) {
@@ -137,7 +138,7 @@ const ReviewSession = () => {
     }
   }, [sendMessage, wsUrl]);
 
-  const DEBUG_MAKECORRECT = () => {
+  const DEBUG_MAKECORRECT = () => { // 디버깅용
     setFeedback('correct');
   };
 
@@ -188,7 +189,7 @@ const ReviewSession = () => {
     }
   }, [lastLandmarks, isRecording, wsUrl, sendMessage]);
 
-  // 분류 결과 처리: 정답이면 카운트 증가, 3회 이상이면 완료
+  // WebSocket 통해서 분류 결과 처리: 정답이면 카운트 증가
   useEffect(() => {
     if (!wsUrl) return;
     if (wsList && wsList.length > 0) {
@@ -233,19 +234,17 @@ const ReviewSession = () => {
     }
   }, [wsList, wsUrl, lesson, feedback]);
 
-  // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당)
+  // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당) [Review 전용 로직 반영 완료]
+  // TODO : 구조는 동일하되 내용 개선 필요
   const handleFeedbackComplete = useCallback(() => {
-    console.log("호출됨");
     setCorrectCount(prev => {
       let next = prev;
       if (feedback === 'correct') next = prev + 1;
 
-      
       if(next === 2)
       {
         setIsQuizMode(false);
-        setLessonIdx(prev_value => prev_value + 1); // 함수형 업데이트 사용
-        
+        setLessonIdx(prev_value => prev_value + 1);
       }
       if(next === 1)
       {
@@ -257,8 +256,6 @@ const ReviewSession = () => {
       }
       return next;
     });
-
-    
     setFeedback(null);
     setCurrentResult(null);
     if (feedback === 'correct') {
@@ -284,13 +281,13 @@ useEffect(() => {
   }
 }, [lessonIdx, lessons]);
 
-  
+  // 수행 중 카운트 변동 시 자동 실행 
+  // TODO : 결과가 DB에 반영되도록 하는 내용 추가 필요
   useEffect(() => {
     if (correctCount >= CORRECT_CNT_SINGLE_LESSON) {
-      // TODO : 다음 단어로 넘어가는 내용 필요
-      console.log(lessonIdx + "vs" + (lessons.length - 1));
       if(lessonIdx > lessons.length - 1)
       {
+        // 다룰 단어가 더 이상 없다면 내용 종료
         setIsCompleted(true);
         setIsRecording(false);
         setFeedback(null);
@@ -298,13 +295,17 @@ useEffect(() => {
         setIsWaitingForReset(false);
         console.log("레슨들에 대한 내용을 모두 마쳤다.");
       }
-       setCorrectCount(0);
+      else
+      {
+        setCorrectCount(0);
       // setIsRecording(true);
        setCurrentResult(null);
        setFeedback(null);
        
        setIsQuizMode(false);
       console.log("다음 레슨으로 넘어가겠다!!");
+      }
+
     } else if (!isCompleted && feedback === null && !isWaitingForReset) {
       // 3회 미만이고 모달이 닫혔으며, 리셋 대기가 아닐 때만 분류 재시작
       setIsRecording(true);
@@ -367,7 +368,7 @@ useEffect(() => {
           <div className="max-w-2xl mx-auto text-center py-12">
             <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
-            <p className="text-gray-600 mb-6">'{lesson?.sign_text ?? lessonId}' 수어를 성공적으로 3회 따라했습니다.</p>
+            <p className="text-gray-600 mb-6">'{lesson?.sign_text ?? lessonId}' </p>
             <div className="flex justify-center space-x-4">
               <Button onClick={handleRetry} variant="outline">
                 다시하기
@@ -421,9 +422,6 @@ useEffect(() => {
             {!isQuizMode  && <div className="flex flex-col items-center justify-center">
               <h3 className="text-lg font-semibold text-gray-800 mb-2">수어 예시</h3>
               {/* animData 상태 임시 출력 */}
-              <div className="text-xs text-gray-500 mb-2">
-                animData: {animData ? 'O' : 'X'} | pose: {animData?.pose ? animData.pose.length : 0}
-              </div>
               {animData && animData.pose && animData.pose.length > 0 ? (
                 <div style={{ minHeight: 360, minWidth: 320, width: '100%' }}>
                   <ExampleAnim data={animData} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
@@ -447,8 +445,8 @@ useEffect(() => {
             {/* 캠 영역 */}
             <div className="mt-4 p-6 bg-gray-100 rounded-md flex flex-col items-center">
               <Button onClick={DEBUG_MAKECORRECT}>일단 정답 처리</Button>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">실시간 따라하기</h3>
-              <p className="text-gray-600 mb-4">웹캠을 보며 수어를 따라해보세요. 3회 성공 시 학습이 완료됩니다.</p>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">따라하기</h3>
+              <p className="text-gray-600 mb-4">웹캠을 보며 수어를 따라해보세요.</p>
               <div className="relative w-full max-w-lg mx-auto">
                 <video
                   ref={videoRef}
