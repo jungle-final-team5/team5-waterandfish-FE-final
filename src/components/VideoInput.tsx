@@ -135,14 +135,14 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
           {showControls && (
             <div className="flex items-center space-x-2">
               {/* 카메라 장치 선택 */}
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={startVideo}
                 disabled={isLoading}
               >
                 <Camera className="h-4 w-4 mr-1" /> 시작
-              </Button>
+              </Button> */}
             </div>
           )}
         </CardTitle>
@@ -151,7 +151,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
       <CardContent>
 
         {/* 비디오 영역 */}
-        <div className="relative">
+        <div className="relative w-[640px] h-[480px] mx-auto">
           <video
             ref={videoRef}
             autoPlay
@@ -159,7 +159,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
             muted
             width={width}
             height={height}
-            className={`w-full h-auto bg-gray-900 rounded-lg object-cover ${
+            className={`w-full h-full bg-gray-900 rounded-lg object-cover ${
               isStreaming ? '' : 'opacity-50'
             }`}
             style={{ aspectRatio: `${width}/${height}`, transform: 'scaleX(-1)' }}
@@ -167,7 +167,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
           
           {/* 상태 오버레이 */}
           {!isStreaming && !isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 rounded-lg">
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 rounded-lg w-[640px] h-[480px]">
               <div className="text-center text-white">
                 <Camera className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p className="text-lg font-medium">카메라가 비활성화됨</p>
