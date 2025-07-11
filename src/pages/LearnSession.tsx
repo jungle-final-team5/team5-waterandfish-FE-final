@@ -176,11 +176,11 @@ const LearnSession = () => {
 
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
-
   // sessionComplete 시 소켓 연결 해제
   useEffect(() => {
     if (sessionComplete) {
       disconnectWebSockets();
+      API.post(`/progress/chapters/${chapterId}/lessons`, {lesson_ids: studyListRef.current, status: "study"})
     }
   }, [sessionComplete]);
 
@@ -188,7 +188,7 @@ const LearnSession = () => {
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
-
+  const studyListRef = useRef<string[]>([]);
 
   // 비디오 스트리밍 훅
   const {
@@ -501,6 +501,7 @@ useEffect(() => {
                 setCurrentResult(msg.data);
                 if (percent >= 80.0 && feedback !== "correct") {
                   setFeedback("correct");
+                  studyListRef.current.push(currentSign.id);
                   console.log("PASSED");
                 }
                 break;
@@ -621,7 +622,7 @@ useEffect(() => {
                 width={640}
                 height={480}
                 className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                style={{ aspectRatio: '4/3' }}
+                style={{ aspectRatio: '4/3', transform: 'scaleX(-1)' }}
               />
             </div>
             <StreamingControls
