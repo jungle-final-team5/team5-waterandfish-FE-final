@@ -47,7 +47,7 @@ const Chapters = () => {
           console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
           await connectToWebSockets(response.data.data.ws_urls);
           showStatus(); // 전역 상태 표시 활성화
-          
+          await API.post(`/progress/chapters/${chapterId}`);
           // lesson_mapper를 URL state로 전달
           navigate(path, { 
             state: { 
@@ -65,7 +65,6 @@ const Chapters = () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const userId = user._id;
       await API.post('/progress/lessons/events', { user_id: userId, lesson_ids: lessonIds });
-      
       setConnectingChapter(null);
       navigate(path);
     } catch (err) {

@@ -94,7 +94,15 @@ const Categories = () => {
                     {/* {category.total_chapters}개 챕터 */}
                   </span>
                   <Button
-                    onClick={() => navigate(`/category/${category.id}/chapters`)}
+                    onClick={() => {
+                      try{
+                        API.post(`/progress/categories/${category.id}`);
+                        navigate(`/category/${category.id}/chapters`);
+                      }catch (error) {
+                        console.error('카테고리 시작 실패:', error);
+                        alert('진행도 초기화 불가');
+                      }
+                    }}
                     size="sm"
                     className="..."
                   >
