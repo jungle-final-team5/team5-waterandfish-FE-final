@@ -162,7 +162,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
             className={`w-full h-auto bg-gray-900 rounded-lg object-cover ${
               isStreaming ? '' : 'opacity-50'
             }`}
-            style={{ aspectRatio: `${width}/${height}` }}
+            style={{ aspectRatio: `${width}/${height}`, transform: 'scaleX(-1)' }}
           />
           
           {/* 상태 오버레이 */}

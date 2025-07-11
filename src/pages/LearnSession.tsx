@@ -46,6 +46,7 @@ const LearnSession = () => {
   const [isRetrying, setIsRetrying] = useState(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
+  const studyListRef = useRef<string[]>([]);
 
 
   // WebGL 지원 확인
@@ -154,7 +155,7 @@ const LearnSession = () => {
 
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const [isTransmitting, setIsTransmitting] = useState(false);
-  const [currentResult, setCurrentResult] = useState<any>(null); // 분류 결과 객체로 세팅
+  const [currentResult, setCurrentResult] = useState<string | null>(null); // 이 경우는 포인터 변수
   const [isConnecting, setIsConnecting] = useState(false);
   const [maxConfidence, setMaxConfidence] = useState(0.0);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -176,11 +177,13 @@ const LearnSession = () => {
 
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
+
   // sessionComplete 시 소켓 연결 해제
   useEffect(() => {
     if (sessionComplete) {
       disconnectWebSockets();
-      API.post(`/progress/chapters/${chapterId}/lessons`, {lesson_ids: studyListRef.current, status: "study"})
+      API.post(`/progress/chapters/${chapterId}/lessons`, 
+        {lesson_ids: studyListRef.current, status: "study"})
     }
   }, [sessionComplete]);
 
@@ -188,7 +191,7 @@ const LearnSession = () => {
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
-  const studyListRef = useRef<string[]>([]);
+
 
   // 비디오 스트리밍 훅
   const {
@@ -323,8 +326,9 @@ useEffect(() => {
 
   // FeedbackDisplay 완료 콜백 함수. Feedback 복구 시 해당 메서드 실행하게끔 조치
   const handleFeedbackComplete = () => {
-    // setFeedback("correct"); // 중복 호출 제거
+    setFeedback("correct");
     console.log('🎉 FeedbackDisplay 완료, 다음 수어로 이동');
+
     handleNextSign();
   };
 
@@ -499,7 +503,7 @@ useEffect(() => {
                   setDisplayConfidence(`${percent.toFixed(1)}%`);
                 }
                 setCurrentResult(msg.data);
-                if (percent >= 80.0 && feedback !== "correct") {
+                if (percent >= 80.0) {
                   setFeedback("correct");
                   studyListRef.current.push(currentSign.id);
                   console.log("PASSED");
@@ -605,26 +609,18 @@ useEffect(() => {
 
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">
-            {/* VideoInput 제거, 직접 video/canvas 렌더링 */}
-            <div className="relative w-full max-w-lg mx-auto">
-              <video
-                ref={videoRef}
-                width={640}
-                height={480}
-                autoPlay
-                muted
-                playsInline
-                className="rounded-lg bg-black w-full h-auto object-cover"
-                style={{ aspectRatio: '4/3' }}
-              />
-              <canvas
-                ref={canvasRef}
-                width={640}
-                height={480}
-                className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                style={{ aspectRatio: '4/3', transform: 'scaleX(-1)' }}
-              />
-            </div>
+            <VideoInput
+              width={640}
+              height={480}
+              autoStart={false}
+              showControls={true}
+              onStreamReady={handleStreamReady}
+              onStreamError={handleStreamError}
+              className="h-full"
+              currentSign={currentSign}
+              currentResult={displayConfidence}
+            />
+
             <StreamingControls
               isStreaming={isStreaming}
               streamingStatus={streamingStatus}
@@ -636,6 +632,19 @@ useEffect(() => {
               onConfigChange={setStreamingConfig}
               transitionSign={handleNextSign}
             />
+
+
+            {/* 숨겨진 비디오 요소들 */}
+            <div className="hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <canvas ref={canvasRef} />
+            </div>
           </div>
 
         </div>
@@ -644,7 +653,7 @@ useEffect(() => {
           <div className="mt-8">
             <FeedbackDisplay
               feedback={feedback}
-              prediction={currentResult?.prediction ?? ''}
+              prediction={currentResult.prediction}
               onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
             />
           </div>
