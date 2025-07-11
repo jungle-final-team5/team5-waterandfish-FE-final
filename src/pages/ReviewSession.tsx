@@ -26,11 +26,7 @@ interface Lesson extends LessonBase {
 }
 
 const CORRECT_CNT_SINGLE_LESSON = 2;
-
-
 // 7월 11일, 기존 검색-수어 Based Review System 구축
-// 목표 : 한 수어에 대해 세 번 반복하는 내용을 여러 수어에 대해 두 번 반복하는 시스템으로 수정
-// 첫번째 시도는 Anim과 함께, 두번째 시도는 Anim이 없는 상태로 진행 됨
 
 // caution : 백엔드 api에 오타 수정 해야 이거 작동함. pr 잊지말고 해야 작동 보장함
 const ReviewSession = () => {
@@ -73,6 +69,7 @@ const ReviewSession = () => {
       console.log(res.data.data[lessonIdx]);
 
       setLessonId(res.data.data[lessonIdx].id);
+      setLesson(res.data.data[lessonIdx]);
     });
   }, []);
 
@@ -278,6 +275,7 @@ useEffect(() => {
   if(lessonIdx === 0) return;
   if (lessons.length > 0 && lessonIdx < lessons.length) {
     setLessonId(lessons[lessonIdx].id);
+    setLesson(lessons[lessonIdx]);
   }
 }, [lessonIdx, lessons]);
 
