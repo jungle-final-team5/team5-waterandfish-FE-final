@@ -612,7 +612,7 @@ useEffect(() => {
             <VideoInput
               width={640}
               height={480}
-              autoStart={false}
+              autoStart={true}
               showControls={true}
               onStreamReady={handleStreamReady}
               onStreamError={handleStreamError}
