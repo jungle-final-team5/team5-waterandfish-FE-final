@@ -1,25 +1,13 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 interface FeedbackModalForLearnProps {
   feedback: 'correct' | 'incorrect';
   prediction: string;
-  onComplete: () => void;
+  onComplete?: () => void; // optional로 변경
 }
 
 const FeedbackModalForLearn: React.FC<FeedbackModalForLearnProps> = ({ feedback, prediction, onComplete }) => {
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (feedback === 'correct') {
-      timer = setTimeout(() => {
-        onComplete();
-      }, 3000);
-    } else if (feedback === 'incorrect') {
-      timer = setTimeout(() => {
-        onComplete();
-      }, 2000);
-    }
-    return () => clearTimeout(timer);
-  }, [feedback, onComplete]);
+  // 타이머 로직 제거 - Learn.tsx에서 이미 처리됨
 
   // 진짜 모달 구조로 변경 (FeedbackDisplay.tsx 참고)
   return (
