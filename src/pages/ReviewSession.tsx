@@ -18,6 +18,7 @@ import VideoInput from '@/components/VideoInput';
 import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
+import QuizTimer from '@/components/QuizTimer';
 
 interface Lesson extends LessonBase {
   sign_text?: string;
@@ -26,6 +27,7 @@ interface Lesson extends LessonBase {
 }
 
 const CORRECT_CNT_SINGLE_LESSON = 2;
+const QUIZ_TIME_LIMIT = 15;
 // 7월 11일, 기존 검색-수어 Based Review System 구축
 
 // caution : 백엔드 api에 오타 수정 해야 이거 작동함. pr 잊지말고 해야 작동 보장함
@@ -55,6 +57,11 @@ const ReviewSession = () => {
   const [lessonError, setLessonError] = useState<string | null>(null);
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [wsUrlLoading, setWsUrlLoading] = useState(false);
+
+  const [timerActive, setTimerActive] = useState(false);
+  const [quizResults, setQuizResults] = useState<{ signId: string, correct: boolean, timeSpent: number }[]>([]);
+  const [isQuizReady, setIsQuizReady] = useState(false); // 퀴즈 준비 상태 추가
+  const [timeSpent, setTimeSpent] = useState(0); // 실제 사용한 시간 추적
 
     // 복습하기 대상 챕터의 진행 상태를 불러온다.
     // TODO : 백엔드에서 review를 해야하는 단어로 필터링을 변경해야 함. 현재는 특별히 필터링이 없는 것으로 추정
@@ -264,6 +271,62 @@ const ReviewSession = () => {
     }
   }, [feedback]);
 
+  const handleNextSign = useCallback(async () => {
+    console.log('🔄 다음 수어로 이동:', lessonIdx + 1);
+    //setIsMovingNextSign(false);
+    
+    // 타이머 상태 초기화
+    setTimerActive(false);
+    
+    setIsRecording(false);
+    setIsQuizReady(false);
+    
+    if (lessons && lessonIdx < lessons.length - 1) {
+      setLessonIdx(lessonIdx + 1);
+      setFeedback(null);
+    } else {
+      setIsCompleted(true);
+    }
+  }, [lessonIdx, lessons]);
+
+  // 시간 초과 시 호출
+  const handleTimeUp = useCallback(() => {
+    console.log('⏰ 시간 초과! 오답 처리');
+    setIsRecording(false);
+    setTimerActive(false);
+    setFeedback('incorrect');
+
+    if (lesson) {
+      setQuizResults(prev => [...prev, {
+        signId: lesson.id,
+        correct: false,
+        timeSpent: QUIZ_TIME_LIMIT
+      }]);
+    }
+
+    // 3초 후 다음 문제로 이동
+    setTimeout(() => {
+      handleNextSign();
+    }, 3000);
+  }, [lesson, handleNextSign]);
+
+  // 퀴즈 시작 함수
+  const handleStartQuiz = () => {
+    if (lesson) {
+      console.log('🎯 퀴즈 시작:', lesson.word);
+      setIsQuizReady(true);
+      setIsRecording(true);
+      setTimeSpent(0); // 시간 리셋
+      
+      // 타이머 시작을 약간 지연시켜 상태 업데이트가 완료된 후 시작
+      setTimeout(() => {
+        setTimerActive(true);
+        console.log('⏰ 타이머 활성화됨');
+      }, 100);
+    }
+  };
+
+
   // 정답/오답 모달이 뜨면 3초(정답) 또는 2초(오답) 뒤 자동으로 닫힘
   useEffect(() => {
     if (feedback === 'correct' || feedback === 'incorrect') {
@@ -384,7 +447,7 @@ useEffect(() => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12">
             {/* 애니메이션 영역 */}
             {!isQuizMode  && <div className="flex flex-col items-center justify-center">
@@ -399,15 +462,19 @@ useEffect(() => {
               )}
             </div>
             }
-              {isQuizMode  && <div className="flex flex-col items-center justify-center">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">수어 예시</h3>
-              {/* animData 상태 임시 출력 */}
-                <div style={{ minHeight: 360, minWidth: 320, width: '100%' }}>
-                  퀴즈 타이머 뚜구다까 뚜구다까
-                </div>
+              {isQuizMode  && (
+            <div className="mb-6">
+              <QuizTimer
+                duration={QUIZ_TIME_LIMIT}
+                onTimeUp={handleTimeUp}
+                isActive={timerActive}
+                onTimeChange={setTimeSpent}
+              />
+            </div>
+          )
 
               
-            </div>
+
             }
             
             {/* 캠 영역 */}
