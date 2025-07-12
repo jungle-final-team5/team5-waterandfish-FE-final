@@ -178,7 +178,7 @@ const LearnSession = () => {
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
 
-  // sessionComplete 시 소켓 연결 해제
+  // sessionComplete 시 소켓 연결 해제, 동시에 챕터 단위 진행도 업데이트
   useEffect(() => {
     if (sessionComplete) {
       disconnectWebSockets();
