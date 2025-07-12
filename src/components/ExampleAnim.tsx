@@ -185,8 +185,8 @@ function initPools() {
   // 프레임이 변경될 때마다 랜드마크 업데이트
   useEffect(() => {
     if (data && sceneRef.current) {
-      //loadFramePast(currentFrame);
-      loadFrame(currentFrame);
+      loadFramePast(currentFrame);
+      //loadFrame(currentFrame);
     }
   }, [data, currentFrame, showCylinders, showLeftHand, showRightHand]);
 
@@ -483,7 +483,6 @@ const material = new THREE.MeshLambertMaterial({
   };
 
   const loadFrame = (frameIndex: number): void => {
-    console.log("LOAD FRAME IS CALLED.");
     poseCylinderPool.current.forEach(mesh => mesh.visible = false);
     leftHandCylinderPool.current.forEach(mesh => mesh.visible = false);
     rightHandCylinderPool.current.forEach(mesh => mesh.visible = false);
@@ -495,7 +494,6 @@ const material = new THREE.MeshLambertMaterial({
 
     if(data.left_hand && data.left_hand[frameIndex])
     {
-      console.log("Left hand 그리는 중..");
       const rotatedLeftHand = data.left_hand[frameIndex].map(rotateLandmark);
       HAND_CONNECTIONS.forEach((conn, i) => {
         if(conn[0] < rotatedLeftHand.length && conn[1] < rotatedLeftHand.length)
@@ -520,8 +518,8 @@ const material = new THREE.MeshLambertMaterial({
           // outlineMesh.position.copy(start).add(end).multiplyScalar(0.5);
 
           // outlineMesh.quaternion.copy(mainMesh.quaternion);
-          // outlineMesh.material.opacity(0.5);
-          // outlineMesh.material.color.set(0.000000);
+          // outlineMesh.material.opacity(0.9);
+          // outlineMesh.material.color.set(0xffffff);
           // outlineMesh.visiable = true;
 
           // 여기서 IsPipFinger라면 이제 색 바꾸는 내용 고려하면 됨
@@ -531,7 +529,6 @@ const material = new THREE.MeshLambertMaterial({
 
     if(data.right_hand && data.right_hand[frameIndex])
     {
-      console.log("Right hand 그리는 중..");
       const rotatedRightHand = data.right_hand[frameIndex].map(rotateLandmark);
       HAND_CONNECTIONS.forEach((conn, i) => {
         if(conn[0] < rotatedRightHand.length && conn[1] < rotatedRightHand.length)
@@ -556,30 +553,14 @@ const material = new THREE.MeshLambertMaterial({
           // outlineMesh.position.copy(start).add(end).multiplyScalar(0.5);
 
           // outlineMesh.quaternion.copy(mainMesh.quaternion);
-          // outlineMesh.material.opacity(0.5);
-          // outlineMesh.material.color.set(0.000000);
+          // outlineMesh.material.opacity(0.9);
+          // outlineMesh.material.color.set(0xffffff);
           // outlineMesh.visiable = true;
 
           // 여기서 IsPipFinger라면 이제 색 바꾸는 내용 고려하면 됨
         }
       })
     }
-
-    // // Left Hand
-    // if (data.left_hand && data.left_hand[frameIndex] && showLeftHand) {
-    //   const rotatedLeftHand = data.left_hand[frameIndex].map(rotateLandmark);
-    //   if (showCylinders) {
-    //     drawConnectionsCylinder(rotatedLeftHand, HAND_CONNECTIONS, LEFT_COLOR, leftHandLinesRef.current);
-    //   }
-    // }
-
-    // // Right Hand
-    // if (data.right_hand && data.right_hand[frameIndex] && showRightHand) {
-    //   const rotatedRightHand = data.right_hand[frameIndex].map(rotateLandmark);
-    //   if (showCylinders) {
-    //     drawConnectionsCylinder(rotatedRightHand, HAND_CONNECTIONS, RIGHT_COLOR, rightHandLinesRef.current);
-    //   }
-    // }
   };
 
   return (
