@@ -3,7 +3,7 @@ import { Category, Chapter, Lesson } from '@/types/learning';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useVideoStreaming } from '@/hooks/useVideoStreaming';
-import { ClassificationResult, signClassifierClient } from '@/services/SignClassifierClient'; // 타입만 재사용
+import { ClassificationResult, signClassifierClient, LandmarksData } from '@/services/SignClassifierClient';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import React, { useState, useRef, useEffect, useCallback, startTransition } from 'react';
 
@@ -18,7 +18,6 @@ import SessionInfo from '@/components/SessionInfo';
 import SystemStatus from '@/components/SystemStatus';
 import FeatureGuide from '@/components/FeatureGuide';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
-import { LandmarksData } from '@/services/SignClassifierClient';
 
 // 재시도 설정
 const RETRY_CONFIG = {
@@ -103,6 +102,7 @@ const LearnSession = () => {
     if (retryAttempts.wsConnection >= RETRY_CONFIG.maxAttempts) {
       console.error('[LearnSession] WebSocket 연결 재시도 횟수 초과');
       alert('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      navigate("/");
       setIsRetrying(false);
       return;
     }
@@ -147,6 +147,14 @@ const LearnSession = () => {
   // WebSocket 훅
   const { connectionStatus, wsList, broadcastMessage, sendMessage } = useWebsocket();
 
+  // WebSocket 연결 상태 모니터링
+  useEffect(() => {
+    // connectionStatus가 변경될 때마다 isConnected 업데이트
+    const isWsConnected = connectionStatus === 'connected' && wsList.length > 0;
+    setIsConnected(isWsConnected);
+    console.log(`🔌 WebSocket 연결 상태: ${connectionStatus}, 연결된 소켓: ${wsList.length}개, isConnected: ${isWsConnected}`);
+  }, [connectionStatus, wsList.length]);
+
   // 분류 로그 및 결과 수신 처리
   const [logs, setLogs] = useState<any[]>([]);
   const [displayConfidence, setDisplayConfidence] = useState<string>('');
@@ -155,7 +163,7 @@ const LearnSession = () => {
 
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const [isTransmitting, setIsTransmitting] = useState(false);
-  const [currentResult, setCurrentResult] = useState<string | null>(null); // 이 경우는 포인터 변수
+  const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [maxConfidence, setMaxConfidence] = useState(0.0);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -177,6 +185,11 @@ const LearnSession = () => {
 
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
+
+  // 랜드마크 버퍼링 관련 상태
+  const [landmarksBuffer, setLandmarksBuffer] = useState<LandmarksData[]>([]);
+  const bufferIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const BUFFER_DURATION = 2000; // 2초
 
   // sessionComplete 시 소켓 연결 해제
   useEffect(() => {
@@ -217,15 +230,19 @@ const LearnSession = () => {
 
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
-    // 녹화 중일 때만 서버로 전송
+    console.log(`🎯 랜드마크 감지됨 - 녹화: ${isRecording}, 연결: ${isConnected}`);
+    
+    // 녹화 중일 때만 버퍼에 추가
     if (isRecording && isConnected) {
-      const success = signClassifierClient.sendLandmarks(landmarks);
-      if (success) {
-        setTransmissionCount(prev => prev + 1);
-        console.log(`📤 랜드마크 전송됨 (${transmissionCount + 1})`);
-      }
+      setLandmarksBuffer(prev => {
+        const newBuffer = [...prev, landmarks];
+        console.log(`📥 랜드마크 버퍼에 추가됨 (총 ${newBuffer.length}개)`);
+        return newBuffer;
+      });
+    } else {
+      console.log(`⚠️ 랜드마크 버퍼링 건너뜀 - 녹화: ${isRecording}, 연결: ${isConnected}`);
     }
-  }, [isRecording, isConnected, transmissionCount]);
+  }, [isRecording, isConnected]);
 
 
   // MediaPipe holistic hook 사용
@@ -249,19 +266,256 @@ const LearnSession = () => {
     enableLogging: false // MediaPipe 내부 로그 숨김
   });
 
-useEffect(() => {
-  if (lastLandmarks) {
-    const landmarksData = {
-      type: 'landmarks',
-      data: { pose: lastLandmarks.pose, left_hand: lastLandmarks.left_hand, right_hand: lastLandmarks.right_hand }
+  const inspect_sequence = (sequence: any) => {
+    console.log(sequence);
+    
+    // 시퀀스 데이터 추출
+    const landmarksSequence = sequence.data.sequence as LandmarksData[];
+    if (!landmarksSequence || landmarksSequence.length < 3) {
+      return; // 최소 3개 프레임이 필요
+    }
+
+    // 가속도 계산을 위한 임계값 설정
+    const ACCELERATION_THRESHOLD = 2.0; // 가속도 임계값 (조정 가능) - 더 높게 설정
+    const FRAME_RATE = 30; // 예상 프레임 레이트
+    const FRAME_INTERVAL = 1 / FRAME_RATE; // 프레임 간격 (초)
+    
+    // 노이즈 필터링을 위한 설정
+    const MIN_MOVEMENT_THRESHOLD = 0.02; // 최소 이동 거리 임계값 (더 높게 설정)
+    const CONSECUTIVE_DETECTIONS_REQUIRED = 2; // 연속 감지 횟수 요구사항
+    const TOTAL_MOVEMENT_THRESHOLD = 0.05; // 전체 이동 거리 임계값 (3프레임 동안의 총 이동 거리)
+    
+    // 각 랜드마크 포인트의 가속도 계산 (손만 감지)
+    const checkAcceleration = () => {
+      let fastMovementCount = 0; // 빠른 동작 감지 횟수
+      
+      for (let i = 1; i < landmarksSequence.length - 1; i++) {
+        const prev = landmarksSequence[i - 1];
+        const current = landmarksSequence[i];
+        const next = landmarksSequence[i + 1];
+
+        // 손 랜드마크 가속도 계산 (왼손)
+        if (prev.left_hand && current.left_hand && next.left_hand) {
+          for (let j = 0; j < Math.min(prev.left_hand.length, current.left_hand.length, next.left_hand.length); j++) {
+            const prevPos = prev.left_hand[j];
+            const currentPos = current.left_hand[j];
+            const nextPos = next.left_hand[j];
+
+            if (prevPos && currentPos && nextPos && prevPos.length >= 3 && currentPos.length >= 3 && nextPos.length >= 3) {
+              // 개별 프레임 간 이동 거리 계산
+              const movement1 = Math.sqrt(
+                Math.pow(currentPos[0] - prevPos[0], 2) +
+                Math.pow(currentPos[1] - prevPos[1], 2) +
+                Math.pow(currentPos[2] - prevPos[2], 2)
+              );
+              
+              const movement2 = Math.sqrt(
+                Math.pow(nextPos[0] - currentPos[0], 2) +
+                Math.pow(nextPos[1] - currentPos[1], 2) +
+                Math.pow(nextPos[2] - currentPos[2], 2)
+              );
+
+              // 전체 이동 거리 계산 (시작점에서 끝점까지의 직선 거리)
+              const totalMovement = Math.sqrt(
+                Math.pow(nextPos[0] - prevPos[0], 2) +
+                Math.pow(nextPos[1] - prevPos[1], 2) +
+                Math.pow(nextPos[2] - prevPos[2], 2)
+              );
+
+              // 최소 이동 거리와 전체 이동 거리 모두 확인
+              if (movement1 < MIN_MOVEMENT_THRESHOLD && movement2 < MIN_MOVEMENT_THRESHOLD) {
+                continue; // 개별 프레임 간 이동이 너무 작음
+              }
+
+              if (totalMovement < TOTAL_MOVEMENT_THRESHOLD) {
+                continue; // 전체 이동 거리가 너무 작음 (미세한 움직임 무시)
+              }
+
+              const velocity1 = {
+                x: (currentPos[0] - prevPos[0]) / FRAME_INTERVAL,
+                y: (currentPos[1] - prevPos[1]) / FRAME_INTERVAL,
+                z: (currentPos[2] - prevPos[2]) / FRAME_INTERVAL
+              };
+
+              const velocity2 = {
+                x: (nextPos[0] - currentPos[0]) / FRAME_INTERVAL,
+                y: (nextPos[1] - currentPos[1]) / FRAME_INTERVAL,
+                z: (nextPos[2] - currentPos[2]) / FRAME_INTERVAL
+              };
+
+              const acceleration = {
+                x: (velocity2.x - velocity1.x) / FRAME_INTERVAL,
+                y: (velocity2.y - velocity1.y) / FRAME_INTERVAL,
+                z: (velocity2.z - velocity1.z) / FRAME_INTERVAL
+              };
+
+              const accelerationMagnitude = Math.sqrt(
+                acceleration.x * acceleration.x + 
+                acceleration.y * acceleration.y + 
+                acceleration.z * acceleration.z
+              );
+
+              if (accelerationMagnitude > ACCELERATION_THRESHOLD) {
+                fastMovementCount++;
+                console.warn(`🚨 빠른 동작 감지! 왼손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)} (${fastMovementCount}/${CONSECUTIVE_DETECTIONS_REQUIRED})`);
+                
+                if (fastMovementCount >= CONSECUTIVE_DETECTIONS_REQUIRED) {
+                  alert(`너무 빠른 동작이 감지되었습니다!\n왼손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)}\n천천히 동작해주세요.`);
+                  return true;
+                }
+              } else {
+                fastMovementCount = 0;
+              }
+            }
+          }
+        }
+
+        // 손 랜드마크 가속도 계산 (오른손)
+        if (prev.right_hand && current.right_hand && next.right_hand) {
+          for (let j = 0; j < Math.min(prev.right_hand.length, current.right_hand.length, next.right_hand.length); j++) {
+            const prevPos = prev.right_hand[j];
+            const currentPos = current.right_hand[j];
+            const nextPos = next.right_hand[j];
+
+            if (prevPos && currentPos && nextPos && prevPos.length >= 3 && currentPos.length >= 3 && nextPos.length >= 3) {
+              // 개별 프레임 간 이동 거리 계산
+              const movement1 = Math.sqrt(
+                Math.pow(currentPos[0] - prevPos[0], 2) +
+                Math.pow(currentPos[1] - prevPos[1], 2) +
+                Math.pow(currentPos[2] - prevPos[2], 2)
+              );
+              
+              const movement2 = Math.sqrt(
+                Math.pow(nextPos[0] - currentPos[0], 2) +
+                Math.pow(nextPos[1] - currentPos[1], 2) +
+                Math.pow(nextPos[2] - currentPos[2], 2)
+              );
+
+              // 전체 이동 거리 계산 (시작점에서 끝점까지의 직선 거리)
+              const totalMovement = Math.sqrt(
+                Math.pow(nextPos[0] - prevPos[0], 2) +
+                Math.pow(nextPos[1] - prevPos[1], 2) +
+                Math.pow(nextPos[2] - prevPos[2], 2)
+              );
+
+              // 최소 이동 거리와 전체 이동 거리 모두 확인
+              if (movement1 < MIN_MOVEMENT_THRESHOLD && movement2 < MIN_MOVEMENT_THRESHOLD) {
+                continue; // 개별 프레임 간 이동이 너무 작음
+              }
+
+              if (totalMovement < TOTAL_MOVEMENT_THRESHOLD) {
+                continue; // 전체 이동 거리가 너무 작음 (미세한 움직임 무시)
+              }
+
+              const velocity1 = {
+                x: (currentPos[0] - prevPos[0]) / FRAME_INTERVAL,
+                y: (currentPos[1] - prevPos[1]) / FRAME_INTERVAL,
+                z: (currentPos[2] - prevPos[2]) / FRAME_INTERVAL
+              };
+
+              const velocity2 = {
+                x: (nextPos[0] - currentPos[0]) / FRAME_INTERVAL,
+                y: (nextPos[1] - currentPos[1]) / FRAME_INTERVAL,
+                z: (nextPos[2] - currentPos[2]) / FRAME_INTERVAL
+              };
+
+              const acceleration = {
+                x: (velocity2.x - velocity1.x) / FRAME_INTERVAL,
+                y: (velocity2.y - velocity1.y) / FRAME_INTERVAL,
+                z: (velocity2.z - velocity1.z) / FRAME_INTERVAL
+              };
+
+              const accelerationMagnitude = Math.sqrt(
+                acceleration.x * acceleration.x + 
+                acceleration.y * acceleration.y + 
+                acceleration.z * acceleration.z
+              );
+
+              if (accelerationMagnitude > ACCELERATION_THRESHOLD) {
+                fastMovementCount++;
+                console.warn(`🚨 빠른 동작 감지! 오른손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)} (${fastMovementCount}/${CONSECUTIVE_DETECTIONS_REQUIRED})`);
+                
+                if (fastMovementCount >= CONSECUTIVE_DETECTIONS_REQUIRED) {
+                  alert(`너무 빠른 동작이 감지되었습니다!\n오른손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)}\n천천히 동작해주세요.`);
+                  return true;
+                }
+              } else {
+                fastMovementCount = 0;
+              }
+            }
+          }
+        }
+      }
+      return false;
     };
-    sendMessage(JSON.stringify(landmarksData), currentConnectionId);
+
+    // 가속도 검사 실행
+    const hasFastMovement = checkAcceleration();
+    
+    if (!hasFastMovement) {
+      console.log('✅ 동작 속도 정상');
+    }
   }
-}, [lastLandmarks, sendMessage, currentConnectionId]);
+
+  // 랜드마크 버퍼링 및 전송 처리
+  useEffect(() => {
+    // 녹화 중이고 연결된 상태일 때만 버퍼링 시작
+    if (isRecording && isConnected) {
+      // 기존 타이머 정리
+      if (bufferIntervalRef.current) {
+        clearInterval(bufferIntervalRef.current);
+      }
+
+      // 2초마다 버퍼 전송
+      bufferIntervalRef.current = setInterval(() => {
+        setLandmarksBuffer(prevBuffer => {
+          if (prevBuffer.length > 0) {
+            // 버퍼의 모든 랜드마크를 시퀀스로 전송
+            const landmarksSequence = {
+              type: 'landmarks_sequence',
+              data: {
+                sequence: prevBuffer,
+                timestamp: Date.now(),
+                frame_count: prevBuffer.length
+              }
+            };
+            inspect_sequence(landmarksSequence)
+            
+            sendMessage(JSON.stringify(landmarksSequence), currentConnectionId);
+            setTransmissionCount(prev => prev + prevBuffer.length);
+            console.log(`📤 랜드마크 시퀀스 전송됨 (${prevBuffer.length}개 프레임)`);
+            
+            // 버퍼 비우기
+            return [];
+          }
+          return prevBuffer;
+        });
+      }, BUFFER_DURATION);
+
+      console.log('🔄 랜드마크 버퍼링 시작 (1초 간격)');
+    } else {
+      // 녹화 중이 아니거나 연결이 끊어진 경우 타이머 정리
+      if (bufferIntervalRef.current) {
+        clearInterval(bufferIntervalRef.current);
+        bufferIntervalRef.current = null;
+      }
+      
+      // 버퍼 비우기
+      setLandmarksBuffer([]);
+    }
+
+    // 컴포넌트 언마운트 시 타이머 정리
+    return () => {
+      if (bufferIntervalRef.current) {
+        clearInterval(bufferIntervalRef.current);
+        bufferIntervalRef.current = null;
+      }
+    };
+  }, [isRecording, isConnected, currentConnectionId, sendMessage]);
 
   // 이전 connectionId 추적을 위한 ref
   const prevConnectionIdRef = useRef<string>('');
-  
+
   // connectionId 변경 시 비디오 스트리밍 갱신
   useEffect(() => {
     // 실제로 connectionId가 변경되었을 때만 처리
@@ -295,16 +549,24 @@ useEffect(() => {
       prevConnectionIdRef.current = currentConnectionId;
     }
   }, [currentConnectionId, startStreaming, stopStreaming]);
-  
+
   // 이벤트 핸들러
   const handleBack = () => {
     window.history.back();
   };
+
   useEffect(() => {
+    setIsRecording(true);
     return () => { 
       disconnectWebSockets();
+      // 버퍼링 타이머 정리
+      if (bufferIntervalRef.current) {
+        clearInterval(bufferIntervalRef.current);
+        bufferIntervalRef.current = null;
+      }
     }
   }, []);
+
   // 이 함수로, 실질적인 컨텐츠 타이머 시작
   const handleStartRecording = () => {
     setIsRecording(true);
@@ -445,7 +707,7 @@ useEffect(() => {
       }
     };
   }, [animData, currentFrame]);
-  
+
   // 현재 수어에 대한 ws url 출력
   useEffect(() => {
     if (currentSignId) {
@@ -681,6 +943,10 @@ useEffect(() => {
           <div>
             <span className="text-gray-600">전송된 랜드마크:</span>
             <span className="ml-2 font-mono">{transmissionCount}</span>
+          </div>
+          <div>
+            <span className="text-gray-600">버퍼 크기:</span>
+            <span className="ml-2 font-mono">{landmarksBuffer.length}</span>
           </div>
           <div>
             <span className="text-gray-600">서버 연결:</span>
