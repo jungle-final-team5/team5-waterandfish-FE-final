@@ -341,44 +341,7 @@ useEffect(() => {
 
   // 완료 화면
   if (isCompleted) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate('/home')}
-                  className="hover:bg-blue-50"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  홈으로
-                </Button>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-800">{lesson?.sign_text ?? lessonId ?? ''}</h1>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto text-center py-12">
-            <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
-            <p className="text-gray-600 mb-6">'{lesson?.sign_text ?? lessonId}' </p>
-            <div className="flex justify-center space-x-4">
-              <Button onClick={handleRetry} variant="outline">
-                다시하기
-              </Button>
-              <Button onClick={() => navigate('/home')} className="bg-blue-600 hover:bg-blue-700">
-                홈으로 돌아가기
-              </Button>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
+    navigate(`/complete/chapter/${chapterId}/${3}`);
   }
 
   return (
