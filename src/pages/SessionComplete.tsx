@@ -39,12 +39,17 @@ return (
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto text-center py-12">
             <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
+                            {modeNum === 1 && <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>}
+                            {modeNum === 1 && <h2 className="text-2xl font-bold text-gray-800 mb-2">퀴즈 완료!</h2>}
+                            {modeNum === 1 && <h2 className="text-2xl font-bold text-gray-800 mb-2">복습 완료!</h2>}
             <p className="text-gray-600 mb-6">기깔난 것 </p>
             <div className="flex justify-center space-x-4">
-                {modeNum === 1 && <h1>학습 완료 </h1>}
-                {modeNum === 2 && <h1>퀴즈 완료 </h1>}
-                {modeNum === 3 && <h1>복습 완료 </h1>}
+                {modeNum === 1 &&               <Button onClick={() => navigate('/home')} className="bg-blue-600 hover:bg-blue-700">
+                연이어 퀴즈하기
+              </Button>}
+                {modeNum === 2 &&               <Button onClick={() => navigate('/home')} className="bg-blue-600 hover:bg-blue-700">
+                연이어 복습하기 - 복습 대상 아이템이 있는 경우에 안함
+              </Button>}
               <Button onClick={() => navigate('/home')} className="bg-blue-600 hover:bg-blue-700">
                 홈으로 돌아가기
               </Button>
