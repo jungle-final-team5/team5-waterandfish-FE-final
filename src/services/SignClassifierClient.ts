@@ -120,7 +120,7 @@ export class SignClassifierClient {
   }
 
   sendLandmarks(landmarksData: LandmarksData): boolean {
-    if (!this.isConnected || !this.websocket) {
+    if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
       console.warn('⚠️ 서버에 연결되지 않음');
       return false;
     }
@@ -141,7 +141,7 @@ export class SignClassifierClient {
   }
 
   sendPing(): boolean {
-    if (!this.isConnected || !this.websocket) {
+    if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
       return false;
     }
 
@@ -163,7 +163,7 @@ export class SignClassifierClient {
   }
 
   getConnectionStatus(): boolean {
-    return this.isConnected;
+    return this.websocket?.readyState === WebSocket.OPEN;
   }
 
   disconnect(): void {

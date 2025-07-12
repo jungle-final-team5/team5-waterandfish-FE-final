@@ -36,10 +36,10 @@ const SessionHeader = ({
             </Button>
             <div>
               <h1 className="text-xl font-bold text-gray-800">
-                {isQuizMode ? '퀴즈' : '학습'}: {currentSign.word}
+                {isQuizMode ? '퀴즈' : '학습'}: {currentSign?.word || '로딩 중...'}
               </h1>
               <p className="text-sm text-gray-600">
-                {/* {chapter.title} • {currentSignIndex + 1}/{chapter.signs.length} */}
+                {chapter?.title} • {currentSignIndex + 1}/{chapter?.lessons?.length || 0}
               </p>
             </div>
           </div>
