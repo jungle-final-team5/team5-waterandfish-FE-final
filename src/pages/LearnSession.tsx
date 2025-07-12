@@ -47,7 +47,6 @@ const LearnSession = () => {
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
   const studyListRef = useRef<string[]>([]);
   const [isBufferingPaused, setIsBufferingPaused] = useState(false);
-  const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // WebGL 지원 확인
   useEffect(() => {
@@ -277,7 +276,7 @@ const LearnSession = () => {
     }
 
     // 가속도 계산을 위한 임계값 설정
-    const ACCELERATION_THRESHOLD = 200.0; // 가속도 임계값 (더 낮게 조정)
+    const ACCELERATION_THRESHOLD = 300.0; // 가속도 임계값 (더 낮게 조정)
     const FRAME_RATE = 30; // 예상 프레임 레이트
     const FRAME_INTERVAL = 1 / FRAME_RATE; // 프레임 간격 (초)
     
