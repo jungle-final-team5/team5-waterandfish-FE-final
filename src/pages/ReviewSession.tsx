@@ -60,18 +60,22 @@ const ReviewSession = () => {
     // TODO : 백엔드에서 review를 해야하는 단어로 필터링을 변경해야 함. 현재는 특별히 필터링이 없는 것으로 추정
     // TODO? : 복습하기 진입 전 복습해야 할 대상 단어들 목록을 조회 할텐데, 그 조회 결과를 그대로 쓸 수 있을지에 대한 고민
     useEffect(() => {
-    const chapterId = "686fd17b6069f6eb235d1df8"; // 샘플 챕터 데이터
-    const response = API.get(`/progress/chapters/${chapterId}/lessons`);
-    // 백엔드에서 처리 태그에 상관하지 않고 가져오게 처리가 되어있긴 하지만, Learn/Quiz에서 처리된 내용이 반영이 아직 안되는걸로 추정
-
-    response.then((res) => {
-      setLessons(res.data.data);
-      console.log(res.data.data[lessonIdx]);
-
-      setLessonId(res.data.data[lessonIdx].id);
-      setLesson(res.data.data[lessonIdx]);
-    });
-  }, []);
+    setLessonLoading(true);
+    API.get(`/progress/chapters/${chapterId}/failures`)
+      .then(res => {
+        const wrongLessons = res.data.data;
+        setLessons(wrongLessons);
+        if (wrongLessons.length > 0) {
+          setLessonId(wrongLessons[0].id);
+          setLesson(wrongLessons[0]);
+        }
+        setLessonLoading(false);
+      })
+      .catch(() => {
+        setLessonError('레슨을 불러오는데 실패했습니다.');
+        setLessonLoading(false);
+      });
+  }, [chapterId]);
 
   // 레슨 하나가 바뀔 때마다 해당하는 모델 준비하는 코드.
   // TODO : 기존 학습/퀴즈와 동일하게 챕터 단위의 모델을 가져오도록 개선해야함
@@ -337,6 +341,9 @@ useEffect(() => {
   }
   if (lessonError) {
     return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
+  }
+  if (lessons.length === 0) {
+    return <div className="text-center mt-10 text-gray-600">복습할 틀린 문제가 없습니다!</div>;
   }
 
   // 완료 화면

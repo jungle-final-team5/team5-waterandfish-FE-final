@@ -403,7 +403,7 @@ const Chapters = () => {
                         className="bg-green-600 hover:bg-green-700"
                         onClick={async () => {
                           // await updateRecentLearning(lessonIds);
-                          navigate(`/learn/guide/${categoryId}/${chapter.id}/learning`);
+                          navigate(`/learn/chapter/${chapter.id}/guide/3`);
                         }}
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
