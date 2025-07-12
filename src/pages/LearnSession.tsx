@@ -46,7 +46,8 @@ const LearnSession = () => {
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
   const studyListRef = useRef<string[]>([]);
-
+  const [isBufferingPaused, setIsBufferingPaused] = useState(false);
+  const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // WebGL 지원 확인
   useEffect(() => {
@@ -189,7 +190,7 @@ const LearnSession = () => {
   // 랜드마크 버퍼링 관련 상태
   const [landmarksBuffer, setLandmarksBuffer] = useState<LandmarksData[]>([]);
   const bufferIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const BUFFER_DURATION = 2000; // 2초
+  const BUFFER_DURATION = 1000; // 2초
 
   // sessionComplete 시 소켓 연결 해제
   useEffect(() => {
@@ -267,7 +268,7 @@ const LearnSession = () => {
   });
 
   const inspect_sequence = (sequence: any) => {
-    console.log(sequence);
+    console.log('🔍 시퀀스 검사 시작:', sequence.data.sequence?.length || 0, '프레임');
     
     // 시퀀스 데이터 추출
     const landmarksSequence = sequence.data.sequence as LandmarksData[];
@@ -276,14 +277,14 @@ const LearnSession = () => {
     }
 
     // 가속도 계산을 위한 임계값 설정
-    const ACCELERATION_THRESHOLD = 2.0; // 가속도 임계값 (조정 가능) - 더 높게 설정
+    const ACCELERATION_THRESHOLD = 200.0; // 가속도 임계값 (더 낮게 조정)
     const FRAME_RATE = 30; // 예상 프레임 레이트
     const FRAME_INTERVAL = 1 / FRAME_RATE; // 프레임 간격 (초)
     
     // 노이즈 필터링을 위한 설정
-    const MIN_MOVEMENT_THRESHOLD = 0.02; // 최소 이동 거리 임계값 (더 높게 설정)
-    const CONSECUTIVE_DETECTIONS_REQUIRED = 2; // 연속 감지 횟수 요구사항
-    const TOTAL_MOVEMENT_THRESHOLD = 0.05; // 전체 이동 거리 임계값 (3프레임 동안의 총 이동 거리)
+    const MIN_MOVEMENT_THRESHOLD = 0.01; // 최소 이동 거리 임계값 (낮게 조정)
+    const CONSECUTIVE_DETECTIONS_REQUIRED = 1; // 연속 감지 횟수 요구사항 (1로 줄임)
+    const TOTAL_MOVEMENT_THRESHOLD = 0.03; // 전체 이동 거리 임계값 (낮게 조정)
     
     // 각 랜드마크 포인트의 가속도 계산 (손만 감지)
     const checkAcceleration = () => {
@@ -358,9 +359,9 @@ const LearnSession = () => {
               if (accelerationMagnitude > ACCELERATION_THRESHOLD) {
                 fastMovementCount++;
                 console.warn(`🚨 빠른 동작 감지! 왼손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)} (${fastMovementCount}/${CONSECUTIVE_DETECTIONS_REQUIRED})`);
-                
                 if (fastMovementCount >= CONSECUTIVE_DETECTIONS_REQUIRED) {
-                  alert(`너무 빠른 동작이 감지되었습니다!\n왼손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)}\n천천히 동작해주세요.`);
+                  // alert(`너무 빠른 동작이 감지되었습니다!\n왼손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)}\n천천히 동작해주세요.`);
+                  setIsBufferingPaused(true);
                   return true;
                 }
               } else {
@@ -436,7 +437,8 @@ const LearnSession = () => {
                 console.warn(`🚨 빠른 동작 감지! 오른손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)} (${fastMovementCount}/${CONSECUTIVE_DETECTIONS_REQUIRED})`);
                 
                 if (fastMovementCount >= CONSECUTIVE_DETECTIONS_REQUIRED) {
-                  alert(`너무 빠른 동작이 감지되었습니다!\n오른손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)}\n천천히 동작해주세요.`);
+                  // alert(`너무 빠른 동작이 감지되었습니다!\n오른손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)}\n천천히 동작해주세요.`);
+                  setIsBufferingPaused(true);
                   return true;
                 }
               } else {
@@ -455,6 +457,7 @@ const LearnSession = () => {
     if (!hasFastMovement) {
       console.log('✅ 동작 속도 정상');
     }
+    return hasFastMovement; // 실제 감지 결과 반환
   }
 
   // 랜드마크 버퍼링 및 전송 처리
@@ -479,9 +482,20 @@ const LearnSession = () => {
                 frame_count: prevBuffer.length
               }
             };
-            inspect_sequence(landmarksSequence)
-            
-            sendMessage(JSON.stringify(landmarksSequence), currentConnectionId);
+            const is_fast = inspect_sequence(landmarksSequence);
+            if (!is_fast) {
+              console.log('✅ 동작 속도 정상');
+              if(isBufferingPaused) {
+                setIsBufferingPaused(false);
+              }
+              sendMessage(JSON.stringify(landmarksSequence), currentConnectionId);
+            }
+            else {
+              console.log('❌ 동작 속도 빠름. 시퀸스 전송 건너뜀');
+              setDisplayConfidence("빠른 동작 감지");
+              setIsBufferingPaused(true);
+              setLandmarksBuffer([]);
+            }
             setTransmissionCount(prev => prev + prevBuffer.length);
             console.log(`📤 랜드마크 시퀀스 전송됨 (${prevBuffer.length}개 프레임)`);
             
@@ -511,7 +525,7 @@ const LearnSession = () => {
         bufferIntervalRef.current = null;
       }
     };
-  }, [isRecording, isConnected, currentConnectionId, sendMessage]);
+  }, [isRecording, isConnected, currentConnectionId, sendMessage, isBufferingPaused, currentResult]);
 
   // 이전 connectionId 추적을 위한 ref
   const prevConnectionIdRef = useRef<string>('');
@@ -748,6 +762,17 @@ const LearnSession = () => {
             const msg = JSON.parse(event.data);
             switch (msg.type) {
               case 'classification_result': {
+                
+                // 버퍼링 일시정지 중에 None 감지 시 버퍼링 재개
+                if(isBufferingPaused && msg.data && msg.data.prediction !== "None") {
+                  setDisplayConfidence("빠른 동작 감지");
+                  return;
+                } else if(isBufferingPaused && msg.data && msg.data.prediction === "None") {
+                  setIsBufferingPaused(false);
+                  return;
+                }
+
+
                 console.log('받은 분류 결과:', msg.data);
                 if (feedback && msg.data.prediction === "None") {
                   setCurrentResult(msg.data);
@@ -790,7 +815,7 @@ const LearnSession = () => {
         });
       };
     }
-  }, [wsList]);
+  }, [wsList, isBufferingPaused]);
 
 
   // 챕터 아이디를 통해 챕터 첫 준비 [완료]
