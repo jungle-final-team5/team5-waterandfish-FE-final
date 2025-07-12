@@ -194,42 +194,53 @@ useEffect(() => {
     );
   }
 
-  // 오답일 때는 기존 스타일 유지
+  // 오답일 때는 모달 형태로 표시
   return (
-/*     <Card className="border-2 border-red-500 bg-red-50">
-      <CardContent className="pt-6">
-        <div className="flex items-start space-x-4">
-          <div className="p-2 rounded-full bg-red-500">
-            <XCircle className="h-6 w-6 text-white" />
-          </div>
-          
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold mb-2 text-red-800">
-              아쉬워요, 다시 해보세요
-            </h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-in fade-in duration-500">
+      <Card className="border-4 border-red-500 bg-red-50 max-w-md w-full mx-4 animate-in zoom-in-95 duration-700">
+        <CardContent className="pt-8 pb-8">
+          <div className="text-center space-y-6">
+            {/* 큰 실패 아이콘 */}
+            <div className="flex justify-center">
+              <div className="p-4 rounded-full bg-red-500 animate-bounce">
+                <XCircle className="h-16 w-16 text-white" />
+              </div>
+            </div>
             
-            <p className="mb-4 text-red-700">
-              손 모양이나 동작이 조금 다른 것 같아요.
-            </p>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-start space-x-2">
-                <Lightbulb className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-yellow-800 mb-1">개선 힌트</h4>
-                  <ul className="text-sm text-yellow-700 space-y-1">
-                    <li>• 손가락 모양을 다시 확인해보세요</li>
-                    <li>• 손목의 각도를 조정해보세요</li>
-                    <li>• 예시 영상을 다시 천천히 관찰해보세요</li>
-                  </ul>
+            {/* 실패 메시지 */}
+            <div>
+              <h2 className="text-3xl font-bold text-red-800 mb-3">
+                시간 초과! ⏰
+              </h2>
+              <p className="text-lg text-red-700 mb-4">
+                15초 내에 수어를 완성하지 못했습니다.
+              </p>
+              
+              {/* 개선 힌트 */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start space-x-2">
+                  <Lightbulb className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-yellow-800 mb-1">개선 힌트</h4>
+                    <ul className="text-sm text-yellow-700 space-y-1">
+                      <li>• 손가락 모양을 다시 확인해보세요</li>
+                      <li>• 손목의 각도를 조정해보세요</li>
+                      <li>• 예시 영상을 다시 천천히 관찰해보세요</li>
+                    </ul>
+                  </div>
                 </div>
+              </div>
+              
+              {/* 다음 문제로 이동 중 메시지 */}
+              <div className="text-sm text-red-600 mt-4">
+                <div className="animate-spin inline-block w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full mr-2"></div>
+                다음 문제로 이동 중...
               </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card> */
-    <div></div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
