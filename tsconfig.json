@@ -15,6 +15,10 @@
     "allowJs": true,
     "noUnusedLocals": false,
     "strictNullChecks": false,
-    "jsx": "react-jsx"   // <-- 이 줄 추가!
-  }
+    "jsx": "react-jsx",
+    "types": ["cypress"]
+  },
+  "include": [
+    "cypress/**/*.ts"
+  ]
 }
