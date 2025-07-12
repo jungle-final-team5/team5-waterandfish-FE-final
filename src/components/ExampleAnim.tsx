@@ -85,6 +85,11 @@ const LandmarkViewerTSX = ({
   const rightHandLinesRef = useRef([]);
   const animationIdRef = useRef(null);
 
+
+  const poseCylinderPool = useRef([]);
+  const leftHandCylinderPool = useRef([]);
+  const rightHandCylinderPool = useRef([]);
+
   // 색상 상수
   const POSE_COLOR: number = 0x00b894;
   const LEFT_COLOR: number = 0x0984e3;
@@ -104,6 +109,9 @@ const LandmarkViewerTSX = ({
     [0,17],[17,18],[18,19],[19,20],
     [5,9],[9,13],[13,17],[5,17]
   ];
+
+
+
 
   // 카메라에 대한 초기 위치 값 지정
   // A) 좌우반전 전 지정 값
@@ -126,10 +134,40 @@ const LandmarkViewerTSX = ({
   const pitchRef = useRef(192.5 * Math.PI / 180);
   const rollRef = useRef(0 * Math.PI / 180);
 
+function initPools() {
+  // 포즈 연결용 풀
+  for (let i = 0; i < POSE_CONNECTIONS.length * 2; i++) {
+    const geometry = new THREE.CylinderGeometry(0.008, 0.008, 1, 12);
+    const material = new THREE.MeshLambertMaterial({ color: POSE_COLOR });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = false;
+    sceneRef.current.add(mesh);
+    poseCylinderPool.current.push(mesh);
+  }
+  // 왼손, 오른손도 동일하게
+  for (let i = 0; i < HAND_CONNECTIONS.length * 2; i++) {
+    // left hand
+    const geometry = new THREE.CylinderGeometry(0.008, 0.008, 1, 12);
+    const material = new THREE.MeshLambertMaterial({ color: LEFT_COLOR });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = false;
+    sceneRef.current.add(mesh);
+    leftHandCylinderPool.current.push(mesh);
+  }
+  for (let i = 0; i < HAND_CONNECTIONS.length * 2; i++) {
+    // right hand
+    const geometry = new THREE.CylinderGeometry(0.008, 0.008, 1, 12);
+    const material = new THREE.MeshLambertMaterial({ color: RIGHT_COLOR });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = false;
+    sceneRef.current.add(mesh);
+    rightHandCylinderPool.current.push(mesh);
+  }
+}
   // 초기화
   useEffect(() => {
     initLandmarkViewer();
-    
+    initPools();
     // 전역 함수로 카메라 리셋 함수 등록
     (window as { resetLandmarkCamera?: () => void }).resetLandmarkCamera = resetCamera;
 
@@ -147,6 +185,7 @@ const LandmarkViewerTSX = ({
   // 프레임이 변경될 때마다 랜드마크 업데이트
   useEffect(() => {
     if (data && sceneRef.current) {
+      //loadFramePast(currentFrame);
       loadFrame(currentFrame);
     }
   }, [data, currentFrame, showCylinders, showLeftHand, showRightHand]);
@@ -175,7 +214,7 @@ const LandmarkViewerTSX = ({
     updateCameraDirection();
 
     // 렌더러 생성
-    rendererRef.current = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    rendererRef.current = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
 
     // 디바이스 픽셀 비율 고려하여 해상도 설정
     const pixelRatio = Math.min(window.devicePixelRatio, 2);
@@ -207,8 +246,12 @@ const LandmarkViewerTSX = ({
     animate();
   };
 
+  let lastTime = performance.now();
   const animate = (): void => {
     animationIdRef.current = requestAnimationFrame(animate);
+    const currentTime = performance.now();
+    const delta = (currentTime - lastTime) / 1000;
+    lastTime = currentTime;
     if (rendererRef.current && sceneRef.current && cameraRef.current) {
       rendererRef.current.render(sceneRef.current, cameraRef.current);
     }
@@ -413,7 +456,7 @@ const material = new THREE.MeshLambertMaterial({
             });
   };
 
-  const loadFrame = (frameIndex: number): void => {
+    const loadFramePast = (frameIndex: number): void => {
     if (!data || !sceneRef.current) return;
     clearScene();
 
@@ -437,6 +480,106 @@ const material = new THREE.MeshLambertMaterial({
         drawConnectionsCylinder(rotatedRightHand, HAND_CONNECTIONS, RIGHT_COLOR, rightHandLinesRef.current);
       }
     }
+  };
+
+  const loadFrame = (frameIndex: number): void => {
+    console.log("LOAD FRAME IS CALLED.");
+    poseCylinderPool.current.forEach(mesh => mesh.visible = false);
+    leftHandCylinderPool.current.forEach(mesh => mesh.visible = false);
+    rightHandCylinderPool.current.forEach(mesh => mesh.visible = false);
+
+    // 랜드마크 회전 함수 (Y축 중심 시계방향 180도)
+    const rotateLandmark = (lm: number[]): number[] => {
+      return [-lm[0], lm[1], -lm[2]]; // x와 z 좌표 반전
+    };
+
+    if(data.left_hand && data.left_hand[frameIndex])
+    {
+      console.log("Left hand 그리는 중..");
+      const rotatedLeftHand = data.left_hand[frameIndex].map(rotateLandmark);
+      HAND_CONNECTIONS.forEach((conn, i) => {
+        if(conn[0] < rotatedLeftHand.length && conn[1] < rotatedLeftHand.length)
+        {
+          const start = new THREE.Vector3(...rotatedLeftHand[conn[0]]);
+          const end = new THREE.Vector3(...rotatedLeftHand[conn[1]]);
+          const distance = start.distanceTo(end);
+
+          const mainMesh = leftHandCylinderPool.current[i * 2];
+          mainMesh.geometry.dispose();
+          mainMesh.geometry = new THREE.CylinderGeometry(0.008, 0.008, distance, 12);
+          mainMesh.position.copy(start).add(end).multiplyScalar(0.5);
+          mainMesh.quaternion.setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            new THREE.Vector3().subVectors(end, start).normalize()
+          );
+          mainMesh.visible = true;
+
+          // const outlineMesh = leftHandCylinderPool.current[i * 2 + 1];
+          // outlineMesh.geometry.dispose();
+          // outlineMesh.geometry = new THREE.CylinderGeometry(0.01, 0.01, distance, 12);
+          // outlineMesh.position.copy(start).add(end).multiplyScalar(0.5);
+
+          // outlineMesh.quaternion.copy(mainMesh.quaternion);
+          // outlineMesh.material.opacity(0.5);
+          // outlineMesh.material.color.set(0.000000);
+          // outlineMesh.visiable = true;
+
+          // 여기서 IsPipFinger라면 이제 색 바꾸는 내용 고려하면 됨
+        }
+      })
+    }
+
+    if(data.right_hand && data.right_hand[frameIndex])
+    {
+      console.log("Right hand 그리는 중..");
+      const rotatedRightHand = data.right_hand[frameIndex].map(rotateLandmark);
+      HAND_CONNECTIONS.forEach((conn, i) => {
+        if(conn[0] < rotatedRightHand.length && conn[1] < rotatedRightHand.length)
+        {
+          const start = new THREE.Vector3(...rotatedRightHand[conn[0]]);
+          const end = new THREE.Vector3(...rotatedRightHand[conn[1]]);
+          const distance = start.distanceTo(end);
+
+          const mainMesh = rightHandCylinderPool.current[i * 2];
+          mainMesh.geometry.dispose();
+          mainMesh.geometry = new THREE.CylinderGeometry(0.008, 0.008, distance, 12);
+          mainMesh.position.copy(start).add(end).multiplyScalar(0.5);
+          mainMesh.quaternion.setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            new THREE.Vector3().subVectors(end, start).normalize()
+          );
+          mainMesh.visible = true;
+
+          // const outlineMesh = rightHandCylinderPool.current[i * 2 + 1];
+          // outlineMesh.geometry.dispose();
+          // outlineMesh.geometry = new THREE.CylinderGeometry(0.01, 0.01, distance, 12);
+          // outlineMesh.position.copy(start).add(end).multiplyScalar(0.5);
+
+          // outlineMesh.quaternion.copy(mainMesh.quaternion);
+          // outlineMesh.material.opacity(0.5);
+          // outlineMesh.material.color.set(0.000000);
+          // outlineMesh.visiable = true;
+
+          // 여기서 IsPipFinger라면 이제 색 바꾸는 내용 고려하면 됨
+        }
+      })
+    }
+
+    // // Left Hand
+    // if (data.left_hand && data.left_hand[frameIndex] && showLeftHand) {
+    //   const rotatedLeftHand = data.left_hand[frameIndex].map(rotateLandmark);
+    //   if (showCylinders) {
+    //     drawConnectionsCylinder(rotatedLeftHand, HAND_CONNECTIONS, LEFT_COLOR, leftHandLinesRef.current);
+    //   }
+    // }
+
+    // // Right Hand
+    // if (data.right_hand && data.right_hand[frameIndex] && showRightHand) {
+    //   const rotatedRightHand = data.right_hand[frameIndex].map(rotateLandmark);
+    //   if (showCylinders) {
+    //     drawConnectionsCylinder(rotatedRightHand, HAND_CONNECTIONS, RIGHT_COLOR, rightHandLinesRef.current);
+    //   }
+    // }
   };
 
   return (
