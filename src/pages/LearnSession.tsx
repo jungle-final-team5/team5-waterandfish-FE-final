@@ -192,6 +192,7 @@ const LearnSession = () => {
   const BUFFER_DURATION = 1000; // 2초
 
   // sessionComplete 시 소켓 연결 해제
+  // sessionComplete 시 소켓 연결 해제, 동시에 챕터 단위 진행도 업데이트
   useEffect(() => {
     if (sessionComplete) {
       disconnectWebSockets();
@@ -858,15 +859,7 @@ const LearnSession = () => {
 
   if (sessionComplete) // 모든 내용이 완료 된 경우
   {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-xl font-bold text-gray-800 mb-2">끝내준다!!</h1>
-          <Button onClick={() => navigate('/home')}>돌아가기</Button>
-        </div>
-      </div>
-
-    );
+    navigate(`/complete/chapter/${chapterId}/${1}`);
   }
 
 

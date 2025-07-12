@@ -23,9 +23,9 @@ const Index = () => {
       }
       setLoading(true);
       try {
-        const { data } = await API.get('/search', { params: { q: query, k: 5 } });
-        if (Array.isArray(data)) {
-          setSearchResults((data as { sign_text: string }[]).map(item => item.sign_text));
+        const { data } = await API.get<{ success: boolean; data: { lessons: { word: string }[] } }>('/search', { params: { q: query, k: 5 } });
+        if (Array.isArray(data?.data?.lessons)) {
+          setSearchResults(data.data.lessons.map((item) => item.word));
         } else {
           setSearchResults([]);
         }

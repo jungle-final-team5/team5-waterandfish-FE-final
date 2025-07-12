@@ -2,6 +2,7 @@ export interface Lesson {
   id: string;
   word: string;
   category: string;
+  chapter_title?: string; // 챕터명 추가
   type: 'letter' | 'word' | 'sentence';
   difficulty?: 'easy' | 'medium' | 'hard';
   videoUrl?: string;

@@ -8,31 +8,47 @@ interface QuizTimerProps {
   onTimeUp: () => void;
   isActive: boolean;
   onReset?: () => void;
+  onTimeChange?: (timeLeft: number) => void; // 시간 변경 콜백 추가
 }
 
-const QuizTimer = ({ duration, onTimeUp, isActive, onReset }: QuizTimerProps) => {
+const QuizTimer = ({ duration, onTimeUp, isActive, onReset, onTimeChange }: QuizTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(duration);
 
+  // isActive가 true가 될 때만 타이머 초기화 및 시작
   useEffect(() => {
-    if (onReset) {
+    if (isActive) {
+      console.log('⏰ 타이머 시작:', duration, '초');
       setTimeLeft(duration);
+    } else {
+      console.log('⏸️ 타이머 정지');
+      // 타이머가 정지될 때는 timeLeft를 리셋하지 않음
     }
-  }, [onReset, duration]);
+  }, [isActive, duration]);
 
   useEffect(() => {
     if (!isActive) return;
 
+    console.log('🔄 타이머 카운트다운 시작');
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
+        console.log('⏱️ 타이머:', prev, '초 남음');
         if (prev <= 1) {
+          console.log('⏰ 시간 초과!');
           onTimeUp();
           return 0;
         }
-        return prev - 1;
+        const newTimeLeft = prev - 1;
+        if (onTimeChange) {
+          onTimeChange(newTimeLeft);
+        }
+        return newTimeLeft;
       });
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log('🛑 타이머 정리');
+      clearInterval(interval);
+    };
   }, [isActive, onTimeUp]);
 
   const progress = ((duration - timeLeft) / duration) * 100;
