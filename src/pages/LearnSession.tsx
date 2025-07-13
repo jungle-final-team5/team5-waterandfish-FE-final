@@ -692,9 +692,6 @@ const LearnSession = () => {
         />}
         <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
-
-
-
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">
             <VideoInput
@@ -721,7 +718,6 @@ const LearnSession = () => {
               transitionSign={handleNextSign}
             />
 
-
             {/* 숨겨진 비디오 요소들 */}
             <div className="hidden">
               <video
@@ -747,59 +743,6 @@ const LearnSession = () => {
           </div>
         )}
       </div>
-      {/* 통계 정보 */}
-      <div className="mt-6 pt-4 border-t">
-        <h3 className="font-semibold text-gray-700 mb-2">시스템 상태:</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">WebGL 지원:</span>
-            <span className={`ml-2 ${webglSupported === null ? 'text-gray-600' :
-              webglSupported ? 'text-green-600' : 'text-red-600'
-              }`}>
-              {webglSupported === null ? '확인 중' :
-                webglSupported ? '지원됨' : '미지원'}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-600">MediaPipe 상태:</span>
-            <span className={`ml-2 ${isInitialized ? 'text-green-600' : 'text-yellow-600'}`}>
-              {isInitialized ? '준비됨' : '초기화 중'}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-600">전송된 랜드마크:</span>
-            <span className="ml-2 font-mono">{transmissionCount}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">버퍼 크기:</span>
-            <span className="ml-2 font-mono">{landmarksBuffer.length}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">서버 연결:</span>
-            <span className={`ml-2 ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
-              {isConnected ? '연결됨' : '끊김'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 마지막 랜드마크 정보 */}
-      {lastLandmarks && (
-        <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
-          <div className="font-semibold mb-1">마지막 랜드마크:</div>
-          <div>포즈: {lastLandmarks.pose ? `${lastLandmarks.pose.length}개` : '없음'}</div>
-          <div>왼손: {lastLandmarks.left_hand ? `${lastLandmarks.left_hand.length}개` : '없음'}</div>
-          <div>오른손: {lastLandmarks.right_hand ? `${lastLandmarks.right_hand.length}개` : '없음'}</div>
-        </div>
-      )}
-      {/* 미디어 파이프 홀리스틱 수동 초기화 */}
-      <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
-        <div className="font-semibold mb-1">미디어 파이프 홀리스틱 수동 초기화:</div>
-        <div>
-          <Button onClick={retryInitialization}>초기화 재시도</Button>
-        </div>
-      </div>
-
     </div>
   );
 };
