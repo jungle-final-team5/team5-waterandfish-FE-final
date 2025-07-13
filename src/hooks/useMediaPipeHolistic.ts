@@ -174,6 +174,7 @@ interface UseMediaPipeHolisticReturn {
   stopCamera: () => void;
   processFrame: () => void;
   retryInitialization: () => Promise<boolean>;
+  inspect_sequence: (sequence: any) => boolean;
 }
 
 // MediaPipe 모듈 로딩 상태 추적
@@ -521,6 +522,7 @@ export const useMediaPipeHolistic = (
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastLandmarks, setLastLandmarks] = useState<LandmarksData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isBufferingPaused, setIsBufferingPaused] = useState(false);
 
   const {
     onLandmarks,
@@ -535,6 +537,200 @@ export const useMediaPipeHolistic = (
     maxRetries = 3,
     retryDelay = 2000
   } = options;
+
+
+  const inspect_sequence = (sequence: any) => {
+    console.log('🔍 시퀀스 검사 시작:', sequence.data.sequence?.length || 0, '프레임');
+    
+    // 시퀀스 데이터 추출
+    const landmarksSequence = sequence.data.sequence as LandmarksData[];
+    if (!landmarksSequence || landmarksSequence.length < 3) {
+      return; // 최소 3개 프레임이 필요
+    }
+
+    // 가속도 계산을 위한 임계값 설정
+    const ACCELERATION_THRESHOLD = 300.0; // 가속도 임계값 (더 낮게 조정)
+    const FRAME_RATE = 30; // 예상 프레임 레이트
+    const FRAME_INTERVAL = 1 / FRAME_RATE; // 프레임 간격 (초)
+    
+    // 노이즈 필터링을 위한 설정
+    const MIN_MOVEMENT_THRESHOLD = 0.01; // 최소 이동 거리 임계값 (낮게 조정)
+    const CONSECUTIVE_DETECTIONS_REQUIRED = 1; // 연속 감지 횟수 요구사항 (1로 줄임)
+    const TOTAL_MOVEMENT_THRESHOLD = 0.03; // 전체 이동 거리 임계값 (낮게 조정)
+    
+    // 각 랜드마크 포인트의 가속도 계산 (손만 감지)
+    const checkAcceleration = () => {
+      let fastMovementCount = 0; // 빠른 동작 감지 횟수
+      
+      for (let i = 1; i < landmarksSequence.length - 1; i++) {
+        const prev = landmarksSequence[i - 1];
+        const current = landmarksSequence[i];
+        const next = landmarksSequence[i + 1];
+
+        // 손 랜드마크 가속도 계산 (왼손)
+        if (prev.left_hand && current.left_hand && next.left_hand) {
+          for (let j = 0; j < Math.min(prev.left_hand.length, current.left_hand.length, next.left_hand.length); j++) {
+            const prevPos = prev.left_hand[j];
+            const currentPos = current.left_hand[j];
+            const nextPos = next.left_hand[j];
+
+            if (prevPos && currentPos && nextPos && prevPos.length >= 3 && currentPos.length >= 3 && nextPos.length >= 3) {
+              // 개별 프레임 간 이동 거리 계산
+              const movement1 = Math.sqrt(
+                Math.pow(currentPos[0] - prevPos[0], 2) +
+                Math.pow(currentPos[1] - prevPos[1], 2) +
+                Math.pow(currentPos[2] - prevPos[2], 2)
+              );
+              
+              const movement2 = Math.sqrt(
+                Math.pow(nextPos[0] - currentPos[0], 2) +
+                Math.pow(nextPos[1] - currentPos[1], 2) +
+                Math.pow(nextPos[2] - currentPos[2], 2)
+              );
+
+              // 전체 이동 거리 계산 (시작점에서 끝점까지의 직선 거리)
+              const totalMovement = Math.sqrt(
+                Math.pow(nextPos[0] - prevPos[0], 2) +
+                Math.pow(nextPos[1] - prevPos[1], 2) +
+                Math.pow(nextPos[2] - prevPos[2], 2)
+              );
+
+              // 최소 이동 거리와 전체 이동 거리 모두 확인
+              if (movement1 < MIN_MOVEMENT_THRESHOLD && movement2 < MIN_MOVEMENT_THRESHOLD) {
+                continue; // 개별 프레임 간 이동이 너무 작음
+              }
+
+              if (totalMovement < TOTAL_MOVEMENT_THRESHOLD) {
+                continue; // 전체 이동 거리가 너무 작음 (미세한 움직임 무시)
+              }
+
+              const velocity1 = {
+                x: (currentPos[0] - prevPos[0]) / FRAME_INTERVAL,
+                y: (currentPos[1] - prevPos[1]) / FRAME_INTERVAL,
+                z: (currentPos[2] - prevPos[2]) / FRAME_INTERVAL
+              };
+
+              const velocity2 = {
+                x: (nextPos[0] - currentPos[0]) / FRAME_INTERVAL,
+                y: (nextPos[1] - currentPos[1]) / FRAME_INTERVAL,
+                z: (nextPos[2] - currentPos[2]) / FRAME_INTERVAL
+              };
+
+              const acceleration = {
+                x: (velocity2.x - velocity1.x) / FRAME_INTERVAL,
+                y: (velocity2.y - velocity1.y) / FRAME_INTERVAL,
+                z: (velocity2.z - velocity1.z) / FRAME_INTERVAL
+              };
+
+              const accelerationMagnitude = Math.sqrt(
+                acceleration.x * acceleration.x + 
+                acceleration.y * acceleration.y + 
+                acceleration.z * acceleration.z
+              );
+
+              if (accelerationMagnitude > ACCELERATION_THRESHOLD) {
+                fastMovementCount++;
+                console.warn(`🚨 빠른 동작 감지! 왼손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)} (${fastMovementCount}/${CONSECUTIVE_DETECTIONS_REQUIRED})`);
+                if (fastMovementCount >= CONSECUTIVE_DETECTIONS_REQUIRED) {
+                  // alert(`너무 빠른 동작이 감지되었습니다!\n왼손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)}\n천천히 동작해주세요.`);
+                  setIsBufferingPaused(true);
+                  return true;
+                }
+              } else {
+                fastMovementCount = 0;
+              }
+            }
+          }
+        }
+
+        // 손 랜드마크 가속도 계산 (오른손)
+        if (prev.right_hand && current.right_hand && next.right_hand) {
+          for (let j = 0; j < Math.min(prev.right_hand.length, current.right_hand.length, next.right_hand.length); j++) {
+            const prevPos = prev.right_hand[j];
+            const currentPos = current.right_hand[j];
+            const nextPos = next.right_hand[j];
+
+            if (prevPos && currentPos && nextPos && prevPos.length >= 3 && currentPos.length >= 3 && nextPos.length >= 3) {
+              // 개별 프레임 간 이동 거리 계산
+              const movement1 = Math.sqrt(
+                Math.pow(currentPos[0] - prevPos[0], 2) +
+                Math.pow(currentPos[1] - prevPos[1], 2) +
+                Math.pow(currentPos[2] - prevPos[2], 2)
+              );
+              
+              const movement2 = Math.sqrt(
+                Math.pow(nextPos[0] - currentPos[0], 2) +
+                Math.pow(nextPos[1] - currentPos[1], 2) +
+                Math.pow(nextPos[2] - currentPos[2], 2)
+              );
+
+              // 전체 이동 거리 계산 (시작점에서 끝점까지의 직선 거리)
+              const totalMovement = Math.sqrt(
+                Math.pow(nextPos[0] - prevPos[0], 2) +
+                Math.pow(nextPos[1] - prevPos[1], 2) +
+                Math.pow(nextPos[2] - prevPos[2], 2)
+              );
+
+              // 최소 이동 거리와 전체 이동 거리 모두 확인
+              if (movement1 < MIN_MOVEMENT_THRESHOLD && movement2 < MIN_MOVEMENT_THRESHOLD) {
+                continue; // 개별 프레임 간 이동이 너무 작음
+              }
+
+              if (totalMovement < TOTAL_MOVEMENT_THRESHOLD) {
+                continue; // 전체 이동 거리가 너무 작음 (미세한 움직임 무시)
+              }
+
+              const velocity1 = {
+                x: (currentPos[0] - prevPos[0]) / FRAME_INTERVAL,
+                y: (currentPos[1] - prevPos[1]) / FRAME_INTERVAL,
+                z: (currentPos[2] - prevPos[2]) / FRAME_INTERVAL
+              };
+
+              const velocity2 = {
+                x: (nextPos[0] - currentPos[0]) / FRAME_INTERVAL,
+                y: (nextPos[1] - currentPos[1]) / FRAME_INTERVAL,
+                z: (nextPos[2] - currentPos[2]) / FRAME_INTERVAL
+              };
+
+              const acceleration = {
+                x: (velocity2.x - velocity1.x) / FRAME_INTERVAL,
+                y: (velocity2.y - velocity1.y) / FRAME_INTERVAL,
+                z: (velocity2.z - velocity1.z) / FRAME_INTERVAL
+              };
+
+              const accelerationMagnitude = Math.sqrt(
+                acceleration.x * acceleration.x + 
+                acceleration.y * acceleration.y + 
+                acceleration.z * acceleration.z
+              );
+
+              if (accelerationMagnitude > ACCELERATION_THRESHOLD) {
+                fastMovementCount++;
+                console.warn(`🚨 빠른 동작 감지! 오른손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)} (${fastMovementCount}/${CONSECUTIVE_DETECTIONS_REQUIRED})`);
+                
+                if (fastMovementCount >= CONSECUTIVE_DETECTIONS_REQUIRED) {
+                  // alert(`너무 빠른 동작이 감지되었습니다!\n오른손 포인트 ${j}의 가속도: ${accelerationMagnitude.toFixed(3)}\n천천히 동작해주세요.`);
+                  setIsBufferingPaused(true);
+                  return true;
+                }
+              } else {
+                fastMovementCount = 0;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    };
+
+    // 가속도 검사 실행
+    const hasFastMovement = checkAcceleration();
+    
+    if (!hasFastMovement) {
+      console.log('✅ 동작 속도 정상');
+    }
+    return hasFastMovement; // 실제 감지 결과 반환
+  }
 
   // 콘솔 로그 필터링 함수
   const filterConsoleLogs = useCallback(() => {
@@ -1058,6 +1254,7 @@ export const useMediaPipeHolistic = (
     startCamera,
     stopCamera,
     processFrame,
-    retryInitialization
+    retryInitialization,
+    inspect_sequence,
   };
 }; 
