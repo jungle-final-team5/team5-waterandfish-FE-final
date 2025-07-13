@@ -373,11 +373,6 @@ const LearnSession = () => {
     }
   }, [currentConnectionId, startStreaming, stopStreaming]);
 
-  // 이벤트 핸들러
-  const handleBack = () => {
-    window.history.back();
-  };
-
   useEffect(() => {
     setIsRecording(true);
     return () => {
@@ -390,15 +385,7 @@ const LearnSession = () => {
     }
   }, []);
 
-  // 이 함수로, 실질적인 컨텐츠 타이머 시작
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    setFeedback(null);
-    setCurrentResult(null); // 이전 분류 결과 초기화
-    console.log('🎬 수어 녹화 시작:', currentSign?.word);
-  };
-
-  // 다음 수어(레슨)으로 넘어가는 내용 [완료]
+  // 다음 수어(레슨)으로 넘어가는 내용
   const handleNextSign = async () => {
     setIsMovingNextSign(false);
     if (lessons && currentSignIndex < lessons.length - 1) {
@@ -662,9 +649,6 @@ const LearnSession = () => {
       }
     };
   }, []);
-
-
-
 
   if (sessionComplete) // 모든 내용이 완료 된 경우
   {
