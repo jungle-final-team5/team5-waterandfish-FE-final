@@ -68,7 +68,7 @@ const ReviewSession = () => {
     // TODO? : 복습하기 진입 전 복습해야 할 대상 단어들 목록을 조회 할텐데, 그 조회 결과를 그대로 쓸 수 있을지에 대한 고민
     useEffect(() => {
     setLessonLoading(true);
-    API.get(`/progress/failures/${chapterId}`)
+    API.get<{ success: boolean; data: Lesson[] }>(`/progress/failures/${chapterId}`)
       .then(res => {
         const wrongLessons = res.data.data;
         console.log(res);
@@ -427,6 +427,14 @@ useEffect(() => {
   if (isCompleted) {
     navigate(`/complete/chapter/${chapterId}/${3}`);
   }
+
+  // 최근 학습 반영: 세션 진입 시점에 호출
+  useEffect(() => {
+    if (lessons && lessons.length > 0) {
+      const lessonIds = lessons.map(l => l.id);
+      API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+    }
+  }, [lessons]);
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -637,6 +637,14 @@ const QuizSession = () => {
 
   // 타이머 키 리셋은 handleNextSign에서만 처리
 
+  // 최근 학습 반영: 세션 진입 시점에 호출
+  useEffect(() => {
+    if (lessons && lessons.length > 0) {
+      const lessonIds = lessons.map(l => l.id);
+      API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+    }
+  }, [lessons]);
+
   if (sessionComplete) {
     const totalQuestions = lessons.length;
     const correctCount = quizResults.filter(result => result.correct).length;
