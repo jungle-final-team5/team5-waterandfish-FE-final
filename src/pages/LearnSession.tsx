@@ -492,7 +492,7 @@ const LearnSession = () => {
             }
             else {
               console.log('❌ 동작 속도 빠름. 시퀸스 전송 건너뜀');
-              setDisplayConfidence("빠른 동작 감지");
+              setDisplayConfidence("천천히 동작해주세요");
               setIsBufferingPaused(true);
               setLandmarksBuffer([]);
             }
