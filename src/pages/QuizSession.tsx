@@ -637,51 +637,29 @@ const QuizSession = () => {
 
   // 타이머 키 리셋은 handleNextSign에서만 처리
 
+  // 최근 학습 반영: 세션 진입 시점에 호출
+  useEffect(() => {
+    if (lessons && lessons.length > 0) {
+      const lessonIds = lessons.map(l => l.id);
+      API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+    }
+  }, [lessons]);
+
   if (sessionComplete) {
     const totalQuestions = lessons.length;
     const correctCount = quizResults.filter(result => result.correct).length;
     const wrongCount = totalQuestions - correctCount;
     
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-          <h1 className="text-3xl font-bold text-blue-600 mb-4">퀴즈 완료!</h1>
-          
-          {/* 결과 통계 */}
-          <div className="mb-6">
-            <div className="text-2xl font-bold text-gray-800 mb-2">
-              {correctCount}/{totalQuestions}
-            </div>
-            <div className="text-gray-600">
-              {wrongCount > 0 ? (
-                <span className="text-red-600">틀린 문제: {wrongCount}개</span>
-              ) : (
-                <span className="text-green-600">모든 문제를 맞췄습니다! 🎉</span>
-              )}
-            </div>
-          </div>
-          
-          {/* 버튼들 */}
-          <div className="space-y-3">
-            {wrongCount > 0 && (
-              <Button 
-                onClick={() => navigate(`/learn/chapter/${chapterId}/guide/3`)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                📚 복습하기
-              </Button>
-            )}
-            <Button 
-              onClick={() => navigate('/home')}
-              className="w-full bg-gray-600 hover:bg-gray-700 text-white"
-            >
-              🏠 홈으로
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+// 퀴즈 결과 데이터와 함께 SessionComplete 페이지로 이동
+navigate(`/complete/chapter/${chapterId}/${2}`, {
+  state: {
+    totalQuestions: lessons.length,
+    correctCount: quizResults.filter(result => result.correct).length,
+    wrongCount: totalQuestions - correctCount
   }
+})
+
+}
 
   return (
     <div className="min-h-screen bg-gray-50">
