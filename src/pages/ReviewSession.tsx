@@ -372,8 +372,21 @@ useEffect(() => {
       console.log("다음 레슨으로 넘어가겠다!!");
       }
 
+      console.log("완료!");
+            const recordActivity = async () => {
+        try {
+          await API.post(`/review/mark/${lesson.id}`);
+          console.log("해당 리뷰에 대한 기록을 완료했다.");
+        } catch (err) {
+          console.error("기록을 못했어요..", err);
+        };
+    }
+    recordActivity();
+    
+      
     } else if (!isCompleted && feedback === null && !isWaitingForReset) {
       // 3회 미만이고 모달이 닫혔으며, 리셋 대기가 아닐 때만 분류 재시작
+      console.log("불리면 안되는데");
       setIsRecording(true);
     }
   }, [correctCount, isCompleted, feedback, isWaitingForReset]);
