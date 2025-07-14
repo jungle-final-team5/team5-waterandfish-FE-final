@@ -1,10 +1,11 @@
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Play } from "lucide-react";
 import { useLearningData } from "@/hooks/useLearningData";
-import { Chapter } from "@/types/learning";
+import { Chapter, Lesson } from "@/types/learning";
 import API from "@/components/AxiosInstance";
+import { connectToWebSockets } from "@/hooks/useWebsocket";
 
 
 const SessionComplete = () => {
@@ -19,7 +20,46 @@ const SessionComplete = () => {
   const [chapterName, setChapterName] = useState<string>('여기에 챕터 이름');
   const modeNum = num ? parseInt(num, 10) : undefined;
   const { totalQuestions, correctCount, wrongCount } = location.state || {};
+  const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
+  const lessonIds = (findChapterById(chapterId)?.lessons || []).map((lesson: Lesson) => lesson.id);
 
+  const handleStartQuiz = async (chapterId: string, lessonIds: string[]) => {
+    const modeNum = 2;
+    const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
+    try {
+      setConnectingChapter(chapterId);
+
+      // WebSocket 연결 시도
+      try {
+        const response = await API.get<{ success: boolean; data: { ws_urls: string[], lesson_mapper: { [key: string]: string } } }>(`/ml/deploy/${chapterId}`);
+        if (response.data.success && response.data.data.ws_urls) {
+          console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
+          await connectToWebSockets(response.data.data.ws_urls);
+
+          // 학습 진도 이벤트 기록
+          await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'review' });
+
+          // lesson_mapper를 URL state로 전달
+          navigate(path, {
+            state: {
+              lesson_mapper: response.data.data.lesson_mapper
+            }
+          });
+          return; // 성공적으로 처리되었으므로 함수 종료
+        }
+      } catch (wsError) {
+        console.warn('WebSocket 연결 실패:', wsError);
+        // WebSocket 연결 실패해도 페이지 이동은 계속 진행
+      }
+
+      setConnectingChapter(null);
+      navigate(path);
+    } catch (err) {
+      console.error('학습 시작 실패:', err);
+      setConnectingChapter(null);
+      navigate(path); // 실패해도 이동
+    }
+  };
 
   // 번호 배정이 이상하면 home으로 보내버린다
   useEffect(() => {
@@ -94,8 +134,22 @@ const SessionComplete = () => {
             )}</>}
           <div className="flex justify-center space-x-4">
             {modeNum === 1 &&
-              <Button onClick={() => navigate(`/learn/chapter/${chapterId}/guide/2`)} className="bg-blue-600 hover:bg-blue-700">
-                연이어 퀴즈하기
+              <Button
+                onClick={() => {
+                  handleStartQuiz(chapterId, lessonIds)
+                }}
+                className="bg-blue-600 hover:bg-blue-700">
+                {connectingChapter === chapterId ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    연결 중...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    퀴즈풀기
+                  </>
+                )}
               </Button>}
             {modeNum === 2 && (
               <>

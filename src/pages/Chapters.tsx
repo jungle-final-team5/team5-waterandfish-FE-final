@@ -55,6 +55,7 @@ const Chapters = () => {
     await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
     navigate(path);
   };
+
   const handleStartLearn = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 1;
     const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
@@ -162,15 +163,6 @@ const Chapters = () => {
       });
   }, [categoryId]);
 
-  const isCompleted = useRef(false); // 완료 여부 참조
-
-  // 챕터별 퀴즈 버튼 노출 조건
-  function canShowQuizButton(lessons: Lesson[]) {
-    if (!lessons || lessons.length === 0) return false;
-    // 하나라도 not_started가 아니면 true
-    return lessons.some((l) => l.status && l.status !== 'not_started');
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -213,26 +205,6 @@ const Chapters = () => {
                 </h1>
                 <p className="text-sm text-gray-600">{categoryData.description}</p>
               </div>
-
-              {/* WebSocket 연결 상태 표시 */}
-              {/* <div className="flex items-center space-x-2">
-              {connectionStatus === 'connected' ? (
-                <div className="flex items-center space-x-1 text-green-600">
-                  <Wifi className="h-4 w-4" />
-                  <span className="text-xs">연결됨 ({wsList.length})</span>
-                </div>
-              ) : connectionStatus === 'connecting' ? (
-                <div className="flex items-center space-x-1 text-yellow-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                  <span className="text-xs">연결 중...</span>
-                </div>
-              ) : wsList.length > 0 ? (
-                <div className="flex items-center space-x-1 text-red-600">
-                  <WifiOff className="h-4 w-4" />
-                  <span className="text-xs">연결 안됨</span>
-                </div>
-              ) : null}
-            </div> */}
             </div>
           </div>
         </header>
@@ -270,17 +242,6 @@ const Chapters = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {/* 진도 표시 */}
-                    {/* <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600">학습 진도</span>
-                      <span className="text-sm font-semibold text-gray-800">
-                        {chapterProgress.completed}/{chapterProgress.total} ({chapterProgress.percentage}%)
-                      </span>
-                    </div>
-                    <Progress value={chapterProgress.percentage} className="h-2" />
-                  </div> */}
-
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
                       {(chapter.lessons || []).map((lesson) => (
                         <div
@@ -297,7 +258,6 @@ const Chapters = () => {
                           handleletter(chapter, lessonIds)
 
                         }}
-                        // disabled={connectingChapter === chapter.id}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         <>
@@ -305,49 +265,11 @@ const Chapters = () => {
                           학습하기
                         </>
                       </Button>
-                      {/* <Button
-                      onClick={() => {
-                        handleStartChapter_quiz( chapter.id, lessonIds)
-
-                      }}
-                      disabled={connectingChapter === chapter.id}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {connectingChapter === chapter.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          연결 중...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          퀴즈를 풀기
-                        </>
-                      )}
-                    </Button> */}
-                      {/* <Button
-                      onClick={() => {
-                        handleStartChapter_review( chapter.id, lessonIds)
-
-                      }}
-                    >
-                      {connectingChapter === chapter.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          연결 중...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          야무진 복습
-                        </>
-                      )}
-                    </Button> */}
                       {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
                         <Button
                           className="bg-green-600 hover:bg-green-700 text-white"
                           onClick={() => {
-                            navigate(`/learn/chapter/${chapter.id}/guide/2`);
+                            handleStartQuiz(chapter.id, lessonIds);
                           }}
                         >
                           <Pencil className="h-4 w-4 mr-2" />
@@ -358,7 +280,6 @@ const Chapters = () => {
                         <Button
                           className="bg-green-600 hover:bg-green-700"
                           onClick={async () => {
-                            // await updateRecentLearning(lessonIds);
                             navigate(`/learn/chapter/${chapter.id}/guide/3`);
                           }}
                         >
