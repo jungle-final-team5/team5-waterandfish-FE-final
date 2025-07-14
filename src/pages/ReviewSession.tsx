@@ -8,8 +8,6 @@ import {
   BookOpen,
   LucidePersonStanding
 } from 'lucide-react';
-import WebcamView from '@/components/WebcamView';
-import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
@@ -35,9 +33,7 @@ const QUIZ_TIME_LIMIT = 15;
 const ReviewSession = () => {
   const { checkBadges } = useBadgeSystem();
     const [videoSrc, setVideoSrc] = useState<string | null>(null);
-  
-  const [animData, setAnimData] = useState(null);
-  const [currentFrame, setCurrentFrame] = useState(0);
+
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [currentResult, setCurrentResult] = useState<any>(null);
@@ -47,7 +43,7 @@ const ReviewSession = () => {
   const [incorrectCount, setIncorrectCount] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isWaitingForReset, setIsWaitingForReset] = useState(false);
-
+  const [isSlowMotion, setIsSlowMotion] = useState(false);
   const navigate = useNavigate();
   
   const { chapterId } = useParams();
@@ -136,20 +132,16 @@ const ReviewSession = () => {
     if (lessonId) loadAnim();
   }, [lessonId]);
 
-  // 애니메이션 자동 재생 [완료]
   useEffect(() => {
-    let interval = null;
-    if (animData && animData.pose && animData.pose.length > 0) {
-      interval = setInterval(() => {
-        setCurrentFrame(prev =>
-          prev < animData.pose.length - 1 ? prev + 1 : 0
-        );
-      }, 1000 / 10); // 우측에 나누는 숫자가 키프레임 속도이다.
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [animData]);
+  const videoElement = document.querySelector('video[src]') as HTMLVideoElement;
+  if (videoElement) {
+    videoElement.playbackRate = isSlowMotion ? 0.5 : 1.0;
+  }
+}, [isSlowMotion, videoSrc]);
+
+  const togglePlaybackSpeed = () => {
+  setIsSlowMotion(prev => !prev);
+};
 
   // MediaPipe + WebSocket 연동
   const handleLandmarksDetected = useCallback((landmarks: any) => {
@@ -262,6 +254,13 @@ const ReviewSession = () => {
       };
     }
   }, [wsList, wsUrl, lesson, feedback]);
+
+  useEffect(() => {
+  if (videoRef.current && videoSrc) {
+    videoRef.current.playbackRate = isSlowMotion ? 0.5 : 1.0;
+  }
+}, [videoSrc, isSlowMotion]);
+
 
   // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당) [Review 전용 로직 반영 완료]
   // TODO : 구조는 동일하되 내용 개선 필요
@@ -507,6 +506,7 @@ useEffect(() => {
             {/* 애니메이션 영역 */}
             {!isQuizMode  && <div className="flex flex-col items-center justify-center">
               <h3 className="text-lg font-semibold text-gray-800 mb-2">수어 예시</h3>
+
               {videoSrc ? (
                   <video
                     src={videoSrc}
@@ -516,6 +516,7 @@ useEffect(() => {
                     playsInline
                     className="w-full h-auto"
                   />
+                  
                 ) : (
                   <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
                     <p>비디오 로딩 중...</p>
@@ -541,6 +542,15 @@ useEffect(() => {
             {/* 캠 영역 */}
             <div className="mt-4 p-6 bg-gray-100 rounded-md flex flex-col items-center">
               <Button onClick={DEBUG_MAKECORRECT}>일단 정답 처리</Button>
+                                <Button 
+      onClick={togglePlaybackSpeed} 
+      variant="outline" 
+      size="sm"
+      className="flex items-center"
+    >
+      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
+      {isSlowMotion ? '(1x)' : '(0.5x)'}
+    </Button>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">따라하기</h3>
               <p className="text-gray-600 mb-4">웹캠을 보며 수어를 따라해보세요.</p>
               <div className="relative w-full max-w-lg mx-auto">
