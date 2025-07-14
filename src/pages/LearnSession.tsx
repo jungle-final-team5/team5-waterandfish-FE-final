@@ -20,6 +20,7 @@ import FeatureGuide from '@/components/FeatureGuide';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 
 // 재시도 설정
+// TODO: 웹소켓 훅으로 보내기
 const RETRY_CONFIG = {
   maxAttempts: 3,
   initialDelay: 1000, // 1초
@@ -28,7 +29,6 @@ const RETRY_CONFIG = {
 
 const LearnSession = () => {
   const { categoryId, chapterId } = useParams();
-  // ...existing code...
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
@@ -38,10 +38,12 @@ const LearnSession = () => {
   const [currentConnectionId, setCurrentConnectionId] = useState<string>('');
 
   // 재시도 관련 상태
+  // TODO: 웹소켓 훅으로 보내기
   const [retryAttempts, setRetryAttempts] = useState({
     lessonMapper: 0,
     wsConnection: 0,
   });
+
   const [isRetrying, setIsRetrying] = useState(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
@@ -64,6 +66,7 @@ const LearnSession = () => {
   }, []);
 
   // lesson_mapper 재시도 함수
+  // TODO: 웹소켓 훅으로 보내기
   const retryLessonMapper = useCallback(async () => {
     if (retryAttempts.lessonMapper >= RETRY_CONFIG.maxAttempts) {
       console.error('[LearnSession] lesson_mapper 재시도 횟수 초과');
@@ -98,6 +101,7 @@ const LearnSession = () => {
   }, [retryAttempts.lessonMapper, retryAttempts.wsConnection, location.state, currentConnectionId]);
 
   // WebSocket 연결 재시도 함수
+  // TODO: 웹소켓 훅으로 보내기
   const retryWsConnection = useCallback(async (targetUrl: string) => {
     if (retryAttempts.wsConnection >= RETRY_CONFIG.maxAttempts) {
       console.error('[LearnSession] WebSocket 연결 재시도 횟수 초과');
@@ -148,6 +152,7 @@ const LearnSession = () => {
   const { connectionStatus, wsList, broadcastMessage, sendMessage } = useWebsocket();
 
   // WebSocket 연결 상태 모니터링
+  // TODO: 웹소켓 훅으로 보내기
   useEffect(() => {
     // connectionStatus가 변경될 때마다 isConnected 업데이트
     const isWsConnected = connectionStatus === 'connected' && wsList.length > 0;
@@ -345,33 +350,13 @@ const LearnSession = () => {
     if (currentConnectionId &&
       currentConnectionId !== prevConnectionIdRef.current &&
       prevConnectionIdRef.current !== '') {
-
       console.log('[LearnSession] connectionId 변경 감지:', prevConnectionIdRef.current, '->', currentConnectionId);
-
-      // 스트리밍 중일 때만 재시작
-      if (isStreaming) {
-        console.log('[LearnSession] 스트리밍 재시작 시작');
-
-        // 기존 스트리밍 중지 후 새 connectionId로 재시작
-        stopStreaming();
-
-        // 잠시 대기 후 재시작 (연결 정리 시간 확보)
-        const restartTimeout = setTimeout(() => {
-          startStreaming();
-          console.log('[LearnSession] 스트리밍 재시작 완료');
-        }, 100);
-
-        return () => clearTimeout(restartTimeout);
-      } else {
-        console.log('[LearnSession] 스트리밍 중이 아니므로 재시작하지 않음');
-      }
     }
-
     // connectionId 업데이트
     if (currentConnectionId) {
       prevConnectionIdRef.current = currentConnectionId;
     }
-  }, [currentConnectionId, startStreaming, stopStreaming]);
+  }, [currentConnectionId]);
 
   useEffect(() => {
     setIsRecording(true);
