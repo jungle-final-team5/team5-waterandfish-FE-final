@@ -146,6 +146,7 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
                 onSelectionChange={setSelectedSigns}
                 categoryId={categoryId}
                 lessons={allSigns || []}
+                chapterTitle={form.watch('title')}
               />
             </div>
             
