@@ -82,7 +82,7 @@ const Chapters = () => {
       navigate(path); // 실패해도 이동
     }
   };
-  
+
   const handleStartQuiz = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 2;
     const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
@@ -93,7 +93,7 @@ const Chapters = () => {
       try {
         const response = await API.get<{ success: boolean; data: { ws_urls: string[], lesson_mapper: { [key: string]: string } } }>(`/ml/deploy/${chapterId}`);
         if (response.data.success && response.data.data.ws_urls) {
-        console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
+          console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
           await connectToWebSockets(response.data.data.ws_urls);
           showStatus(); // 전역 상태 표시 활성화
 
@@ -256,17 +256,6 @@ const Chapters = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* 진도 표시 */}
-                  {/* <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600">학습 진도</span>
-                      <span className="text-sm font-semibold text-gray-800">
-                        {chapterProgress.completed}/{chapterProgress.total} ({chapterProgress.percentage}%)
-                      </span>
-                    </div>
-                    <Progress value={chapterProgress.percentage} className="h-2" />
-                  </div> */}
-
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
                     {(chapter.lessons || []).map((lesson) => (
                       <div
@@ -303,9 +292,19 @@ const Chapters = () => {
                         onClick={() => {
                           handleStartQuiz(chapter.id, lessonIds)
                         }}
+                        disabled={connectingChapter === chapter.id}
                       >
-                        <Pencil className="h-4 w-4 mr-2" />
-                        퀴즈 풀기
+                         {connectingChapter === chapter.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          연결 중...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          퀴즈풀기
+                        </>
+                      )}
                       </Button>
                     )}
                     {chapterStatus === 'quiz_wrong' && (
