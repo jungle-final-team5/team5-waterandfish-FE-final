@@ -718,7 +718,7 @@ const QuizSession = () => {
   useEffect(() => {
     if (lessons && lessons.length > 0) {
       const lessonIds = lessons.map(l => l.id);
-      API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+      API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'quiz' });
     }
   }, [lessons]);
 

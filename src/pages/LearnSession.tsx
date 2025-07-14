@@ -509,6 +509,14 @@ const LearnSession = () => {
     };
   }, []);
 
+  // 학습 세션 진입 시 /progress/lessons/events 호출 (mode: 'study')
+  useEffect(() => {
+    if (lessons && lessons.length > 0) {
+      const lessonIds = lessons.map(l => l.id);
+      API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'study' });
+    }
+  }, [lessons]);
+
   if (sessionComplete) // 모든 내용이 완료 된 경우
   {
     checkBadges("");
