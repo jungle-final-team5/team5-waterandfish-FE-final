@@ -35,26 +35,11 @@ const LearnSession = () => {
   });
   const [isRetrying, setIsRetrying] = useState(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
   const studyListRef = useRef<string[]>([]);
   const [isBufferingPaused, setIsBufferingPaused] = useState(false);
   const { connectionStatus, wsList, broadcastMessage, sendMessage } = useWebsocket();
 
-  // WebGL 지원 확인
-  useEffect(() => {
-    const checkWebGL = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-        setWebglSupported(!!gl);
-      } catch (err) {
-        alert(`지원하지 않는 브라우저입니다. 크롬 브라우저를 사용해주세요.`);
-        setWebglSupported(false);
-        navigate("/");
-      }
-    };
-    checkWebGL();
-  }, []);
+
 
   // lesson_mapper 재시도 함수
   const retryLessonMapper = useCallback(async () => {
@@ -134,8 +119,6 @@ const LearnSession = () => {
   }, [connectionStatus, wsList.length]);
 
   const [displayConfidence, setDisplayConfidence] = useState<string>('');
-
-  const { showStatus } = useGlobalWebSocketStatus();
 
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null);
@@ -333,8 +316,6 @@ const LearnSession = () => {
     }
   };
 
-
-
   // 컴포넌트 마운트 시 자동 초기화
   useEffect(() => {
     const initialize = async () => {
@@ -438,7 +419,7 @@ const LearnSession = () => {
     }
   }, [currentSignId, lesson_mapper, retryWsConnection, retryLessonMapper]);
 
-  //
+  // 소켓 메시지 수신 처리
   useEffect(() => {
     if (wsList && wsList.length > 0) {
       // 각 소켓에 대해 핸들러 등록
