@@ -26,7 +26,6 @@ function getChapterStatus(lessons: Lesson[]) {
 }
 
 const Chapters = () => {
-  const { checkBadges } = useBadgeSystem();
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);

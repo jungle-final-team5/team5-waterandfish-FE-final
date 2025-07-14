@@ -1,4 +1,7 @@
 describe('챕터 목록 및 상세 진입', () => {
+  beforeEach(() => {
+    cy.login('test@user.com', 'password123');
+  });
   it('챕터 목록이 보이고, 첫 챕터 클릭 시 상세로 이동', () => {
     cy.visit('/chapters');
     cy.get('.chapter-list-item').should('have.length.greaterThan', 0);

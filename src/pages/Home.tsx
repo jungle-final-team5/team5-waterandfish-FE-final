@@ -1,8 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
+// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, Progress, Badge, Avatar, Tooltip, Input } from 'antd';
+import { 
+  UserOutlined, 
+  SettingOutlined, 
+  SearchOutlined,
+  PlayCircleOutlined,
+  TrophyOutlined,
+  CalendarOutlined,
+  BookOutlined,
+  HomeOutlined,
+  QuestionCircleOutlined,
+  ReloadOutlined
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Badge as CustomBadge } from '@/components/ui/badge';
+import { Input as CustomInput } from '@/components/ui/input';
 import { 
   BookOpen, 
   Search, 
@@ -13,24 +28,35 @@ import {
   User,
   LogOut,
   Bell,
-  ArrowRight
+  ArrowRight,
+  Medal,
+  Award,
+  Star,
+  Zap,
+  Heart,
+  Crown,
+  Flame,
+  Shield,
+  Book
 } from 'lucide-react';
 import BadgeModal from '@/components/BadgeModal';
 import StreakModal from '@/components/StreakModal';
 import ProgressModal from '@/components/ProgressModal';
-import HandPreferenceModal from '@/components/HandPreferenceModal';
-import OnboardingTour from '@/components/OnboardingTour';
-import { NotificationDrawer } from '@/components/NotificationDrawer';
 import { useToast } from '@/hooks/use-toast';
 import { useLearningData } from '@/hooks/useLearningData';
-import { useNotifications } from '@/hooks/useNotifications';
 import { useNotificationHistory } from '@/hooks/useNotificationHistory';
-import { useOnboarding } from '@/hooks/useOnboarding';
-import API from '@/components/AxiosInstance';
-import { useStreakData } from "@/hooks/useStreakData";
 import { useBadgeSystem } from '@/hooks/useBadgeSystem';
-import { useAuth } from '@/hooks/useAuth';
+import { useStreakData } from '@/hooks/useStreakData';
+import API from '@/components/AxiosInstance';
 import debounce from 'lodash.debounce';
+import { NotificationDrawer } from '@/components/NotificationDrawer';
+import HandPreferenceModal from '@/components/HandPreferenceModal';
+import OnboardingTour from '@/components/OnboardingTour';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useOnboarding } from '@/hooks/useOnboarding';
+import { useAuth } from '@/hooks/useAuth';
+
+const { Search: AntdSearch } = Input;
 
 // 최근 학습 정보 타입
 interface RecentLearning {
@@ -66,69 +92,99 @@ interface RecommendedSign {
   [key: string]: unknown;
 }
 
-const Home = () => {
+// 뱃지 타입 정의
+interface BadgeData {
+  id: number;
+  name: string;
+  icon: string;
+  unlocked: boolean;
+}
+
+interface ApiBadge {
+  id: number;
+  name: string;
+  icon_url: string;
+}
+
+interface EarnedBadge {
+  badge_id: number;
+  id?: number; // 일부 API는 id로 반환할 수 있음
+}
+
+// BadgeModal.tsx 참고: 아이콘 매핑 함수 추가
+const getIconForBadge = (iconName: string | undefined) => {
+  const iconMap: Record<string, React.ReactNode> = {
+    'trophy': <Trophy className="w-7 h-7 text-yellow-600" />,
+    'calendar': <Calendar className="w-7 h-7 text-green-600" />,
+    'target': <Target className="w-7 h-7 text-blue-600" />,
+    'medal': <Medal className="w-7 h-7 text-purple-600" />,
+    'award': <Award className="w-7 h-7 text-red-600" />,
+    'star': <Star className="w-7 h-7 text-orange-600" />,
+    'zap': <Zap className="w-7 h-7 text-yellow-500" />,
+    'book': <Book className="w-7 h-7 text-indigo-600" />,
+    'heart': <Heart className="w-7 h-7 text-pink-600" />,
+    'crown': <Crown className="w-7 h-7 text-amber-600" />,
+    'flame': <Flame className="w-7 h-7 text-red-500" />,
+    'shield': <Shield className="w-7 h-7 text-teal-600" />
+  };
+  if (!iconName) return <Trophy className="w-7 h-7 text-gray-600" />;
+  return iconMap[iconName.toLowerCase()] || <Trophy className="w-7 h-7 text-gray-600" />;
+};
+
+const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { categories, categoriesLoading } = useLearningData();
-  const { showStreakAchievement } = useNotifications();
   const { unreadCount } = useNotificationHistory();
   const { checkBadges } = useBadgeSystem();
-    const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
-  const { currentStreak } = useStreakData();
+  const { currentStreak, studyDates, loading: streakLoading } = useStreakData();
+  const { showStreakAchievement } = useNotifications();
+  const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { logout } = useAuth();
-  
+
   // 검색 기능
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
 
-  // 샘플 검색 데이터 (실제 데이터로 대체 가능)
-  const sampleSearchData = [
-    '안녕하세요', '감사합니다', '사랑해요', '미안해요', '괜찮아요',
-    '좋아해요', '싫어해요', '네/예', '아니요', '도와주세요',
-    '물', '밥', '집', '학교', '병원', '가족', '친구', '선생님'
-  ];
-  
-  // 진도율 상태 추가
+  // 진도율 상태
   const [progressOverview, setProgressOverview] = useState<ProgressOverview | null>(null);
   const [progressLoading, setProgressLoading] = useState(true);
 
-  // 추천 수어 상태 추가
+  // 추천 수어 상태
   const [recommendedSign, setRecommendedSign] = useState<RecommendedSign | null>(null);
   const [recentLearning, setRecentLearning] = useState<RecentLearning | null>(null);
   const [nickname, setNickname] = useState<string>('학습자');
-
-  // 뱃지 개수 상태 추가
   const [badgeCount, setBadgeCount] = useState<number>(0);
+  const [badgeList, setBadgeList] = useState<BadgeData[]>([]);
 
-  // 첫 방문 확인 및 손 선호도 모달 표시
+  // 모달 상태
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+
+  // 온보딩 및 손 선호도 모달 상태
   const [isHandPreferenceModalOpen, setIsHandPreferenceModalOpen] = useState(false);
-
-  // 온보딩
   const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
-  useEffect(() => {
-    const hasSetHandPreference = localStorage.getItem('hasSetHandPreference');
-    if (!hasSetHandPreference) {
-      setIsHandPreferenceModalOpen(true);
-    }
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setShouldShowOnboarding(user.handedness === null || user.handedness === undefined || user.handedness === "");
-      } catch {
-        setShouldShowOnboarding(false);
-      }
-        } else {
-      setShouldShowOnboarding(false);
-        }
-  }, [isOnboardingActive]);
 
-  // 진도율 데이터 가져오기
+  // 전체 진도율 원형 그래프 변수 선언 (JSX 바깥에서)
+  const percent = progressOverview?.overall_progress || 0;
+  const radius = 56;
+  const stroke = 8;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = 2 * Math.PI * normalizedRadius;
+  const progress = Math.max(0, Math.min(percent, 100));
+  const offset = circumference - (progress / 100) * circumference;
+
+  // 시간대별 인사 메시지
+  const getGreeting = () => {
+    const currentTime = new Date().getHours();
+    if (currentTime < 12) return '좋은 아침입니다';
+    if (currentTime < 18) return '좋은 오후입니다';
+    return '좋은 저녁입니다';
+  };
+
+  // 데이터 패칭
   useEffect(() => {
     const fetchProgressOverview = async () => {
       try {
@@ -144,13 +200,10 @@ const Home = () => {
     fetchProgressOverview();
   }, []);
 
-  // 추천 수어 가져오기
   useEffect(() => {
     const fetchDailySign = async () => {
       try {
-        const res = await API.get<{ success: boolean; data: { lessons: RecommendedSign[] } }>(
-          '/recommendations/daily-sign'
-        );
+        const res = await API.get<{ success: boolean; data: { lessons: RecommendedSign[] } }>('/recommendations/daily-sign');
         if (res.data.success && res.data.data && Array.isArray(res.data.data.lessons) && res.data.data.lessons.length > 0) {
           setRecommendedSign(res.data.data.lessons[0]);
         } else {
@@ -163,7 +216,6 @@ const Home = () => {
     fetchDailySign();
   }, []);
 
-  // 최근 학습 정보 가져오기
   useEffect(() => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
@@ -173,23 +225,57 @@ const Home = () => {
           setRecentLearning(res.data.data);
         } else {
           setRecentLearning(null);
-  }
+        }
       })
       .catch(() => setRecentLearning(null));
   }, []);
 
-  // 뱃지 개수 불러오기
   useEffect(() => {
-    const fetchBadgeCount = async () => {
+    const fetchBadges = async () => {
       try {
-        const res = await API.get('/badge/earned');
-        setBadgeCount(Array.isArray(res.data) ? res.data.length : 0);
+        // 전체 뱃지 목록
+        const allBadgesRes = await API.get<ApiBadge[]>('/badge/');
+        // 획득한 뱃지 목록
+        const earnedBadgesRes = await API.get<EarnedBadge[]>('/badge/earned');
+        const earnedIds = Array.isArray(earnedBadgesRes.data)
+          ? earnedBadgesRes.data.map((b) => b.badge_id ?? b.id)
+          : [];
+        // unlocked 필드 추가
+        const processed = Array.isArray(allBadgesRes.data)
+          ? allBadgesRes.data.map((badge) => ({
+              id: badge.id,
+              name: badge.name,
+              icon: badge.icon_url,
+              unlocked: earnedIds.includes(badge.id),
+            }))
+          : [];
+        setBadgeList(processed);
+        setBadgeCount(processed.filter(b => b.unlocked).length);
       } catch (e) {
+        setBadgeList([]);
         setBadgeCount(0);
       }
     };
-    fetchBadgeCount();
+    fetchBadges();
   }, []);
+
+  useEffect(() => {
+    const hasSetHandPreference = localStorage.getItem('hasSetHandPreference');
+    if (!hasSetHandPreference) {
+      setIsHandPreferenceModalOpen(true);
+    }
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setShouldShowOnboarding(user.handedness === null || user.handedness === undefined || user.handedness === "");
+      } catch {
+        setShouldShowOnboarding(false);
+      }
+    } else {
+      setShouldShowOnboarding(false);
+    }
+  }, [isOnboardingActive]);
 
   // 검색 디바운스 및 API 연동
   const debouncedFetch = useRef(
@@ -201,7 +287,7 @@ const Home = () => {
       }
       setSearchLoading(true);
       try {
-        const { data } = await API.get<{ data: { lessons: { word: string }[] } }>('/search', { params: { q: query, k: 5 } });
+        const { data } = await API.get<{ data: { lessons: RecommendedSign[] } }>('/search', { params: { q: query, k: 5 } });
         if (Array.isArray(data?.data?.lessons)) {
           setSearchResults(data.data.lessons.map((item) => item.word));
         } else {
@@ -213,7 +299,7 @@ const Home = () => {
         setShowResults(false);
       } finally {
         setSearchLoading(false);
-  }
+      }
     }, 300)
   ).current;
 
@@ -234,7 +320,7 @@ const Home = () => {
         if (recentLearning && recentLearning.chapter) {
           navigate(`/learn/chapter/${encodeURIComponent(recentLearning.chapter)}/guide`);
         } else {
-        navigate('/category');
+          navigate('/category');
         }
         break;
       case 'streak':
@@ -249,364 +335,355 @@ const Home = () => {
     }
   };
 
+  // 로그아웃 핸들러 보강
   const handleLogout = async () => {
     try {
       await API.post('auth/logout');
-    } catch (error) {
-      // 에러 무시: 로그아웃 실패 시에도 프론트엔드에서 로그아웃 처리
-    }
-    logout();
+    } catch (error) {}
+    if (logout) logout();
     localStorage.clear();
-    toast({
-      title: "로그아웃",
-      description: "성공적으로 로그아웃되었습니다.",
-    });
+    toast({ title: "로그아웃", description: "성공적으로 로그아웃되었습니다." });
     navigate('/');
   };
 
-  const currentTime = new Date().getHours();
-  const getGreeting = () => {
-    if (currentTime < 12) return '좋은 아침입니다';
-    if (currentTime < 18) return '좋은 오후입니다';
-    return '좋은 저녁입니다';
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-blue-100 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-xl">🐟</span>
-              </div>
-              <div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  수어지교
-                </span>
-                <div className="text-xs text-gray-500 mt-0.5">인터렉티브 수어 학습 플랫폼</div>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <style>
+        {`
+          .!rounded-button {
+            border-radius: 12px !important;
+          }
+          body {
+            min-height: 1024px;
+          }
+        `}
+      </style>
+
+      {/* 상단 로고 및 버튼만 남기고 인사 메시지는 제거 */}
+      <div className="bg-white shadow-sm px-6 py-4">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          {/* 로고 영역 */}
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-violet-200 rounded-xl flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-xl">🐟</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <NotificationDrawer>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="hover:bg-blue-50 transition-colors relative"
-                  data-tour="notification-button"
-                >
-                  <Bell className="h-4 w-4 mr-2" />
-                  알림
-                  {unreadCount > 0 && (
-                    <Badge 
-                      variant="destructive" 
-                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                    >
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-              </NotificationDrawer>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => navigate('/profile')}
-                className="hover:bg-blue-50 transition-colors"
-              >
-                <User className="h-4 w-4 mr-2" />
-                마이페이지
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleLogout}
-                className="hover:bg-red-50 text-red-600 transition-colors"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                로그아웃
-              </Button>
+            <div>
+              <span className="text-2xl font-bold bg-violet-600 bg-clip-text text-transparent">
+                수어지교
+              </span>
+              <div className="text-xs text-gray-500 mt-0.5">인터렉티브 수어 학습 플랫폼</div>
             </div>
           </div>
+          {/* 프로필/설정 버튼 */}
+          <div className="flex items-center space-x-4 mt-4 md:mt-0">
+            <NotificationDrawer>
+              <Button variant="ghost" size="icon" className="hover:bg-blue-50 transition-colors relative">
+                <Bell className="h-5 w-5 text-gray-600" />
+                {unreadCount > 0 && (
+                  <CustomBadge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </CustomBadge>
+                )}
+              </Button>
+            </NotificationDrawer>
+            <Button onClick={() => navigate('/profile')} variant="ghost" size="icon">
+              <User className="h-5 w-5 text-gray-600" />
+            </Button>
+            <Button onClick={handleLogout} variant="ghost" size="icon">
+              <LogOut className="h-5 w-5 text-gray-600" />
+            </Button>
+          </div>
         </div>
-      </header>
+      </div>
+
+      {/* 인사 메시지: 중앙 검색창 바로 위 */}
+      <div className="w-full max-w-2xl mx-auto mt-8 mb-2 text-center">
+        <h1 className="text-3xl font-bold text-violet-600 mb-2">
+          {getGreeting()}, {nickname}님! 👋
+        </h1>
+        <p className="text-gray-600 mb-2">오늘도 수어 학습을 시작해볼까요?</p>
+      </div>
+
+      {/* 중앙 검색 바 (Home.tsx 스타일) */}
+      <div className="w-full max-w-2xl mx-auto mt-8 mb-8 relative transition-all duration-200 hover:shadow-xl hover:scale-105 rounded-xl bg-white">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <CustomInput
+            type="text"
+            placeholder="배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              handleSearch(e.target.value);
+            }}
+            className="w-full pl-12 pr-4 py-4 text-lg border-2 !border-gray-200 focus:!border-transparent focus:ring-2 focus:ring-blue-400 rounded-xl h-14 transition-all"
+          />
+        </div>
+        {showResults && searchResults.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-[9999]">
+            {searchResults.map((result, index) => (
+              <button
+                key={index}
+                onClick={() => handleSearchSelect(result)}
+                className="w-full px-4 py-3 text-left hover:bg-blue-50 first:rounded-t-xl last:rounded-b-xl transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-indigo-800">{result}</span>
+                  <ArrowRight className="h-4 w-4 text-gray-400" />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-4">
-        {/* Welcome Section with Search */}
-        <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
-            {getGreeting()}, {nickname}님! 👋
-          </h1>
-          <p className="text-gray-600 mb-4">오늘도 수어 학습을 시작해볼까요?</p>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* 최근 학습 + 오늘의 추천 수어 (나란히 배치) */}
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* 최근 학습 카드 */}
+              <div className="flex-1 bg-indigo-500 rounded-lg p-6 text-white shadow-lg min-h-[240px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-blue-200 cursor-pointer">
+                <div>
+                  <h2 className="text-xl font-bold flex items-center mb-2">
+                    <BookOpen className="mr-2 text-blue-100" />최근 학습
+                  </h2>
+                  {recentLearning && recentLearning.category && recentLearning.chapter ? (
+                    <>
+                      <div className="text-3xl font-semibold mb-1">{recentLearning.category}</div>
+                      <div className="text-lg mb-4">{recentLearning.chapter}</div>
+                    </>
+                  ) : (
+                    <div className="text-base mb-4 text-blue-100">최근 학습 기록이 없습니다.</div>
+                  )}
+                </div>
+                <Button
+                  className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
+                  onClick={() => handleCardClick('recent')}
+                >
+                  이어서 학습하기
+                </Button>
+              </div>
 
-          {/* Central Search Bar */}
-          <div className="w-full max-w-2xl mx-auto mb-4 relative">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <Input
-                type="text"
-                placeholder="배우고 싶은 수어를 검색해보세요 (예: 안녕하세요, 감사합니다)"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  handleSearch(e.target.value);
-                }}
-                className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 focus:border-blue-500 rounded-xl h-14"
-                data-tour="search-button"
-              />
+              {/* 오늘의 추천 수어 카드 */}
+              <div className="flex-1 bg-violet-600 rounded-lg p-6 text-white shadow-lg min-h-[240px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 cursor-pointer">
+                <div>
+                  <h2 className="text-xl font-bold flex items-center mb-2">
+                    <Calendar className="mr-2 text-purple-100" />오늘의 추천 수어
+                  </h2>
+                  <h3 className="text-3xl font-semibold mb-3">{recommendedSign ? recommendedSign.word : '...'}</h3>
+                  <p className="text-purple-100 mb-4 text-lg">{recommendedSign?.description || '수어지교에서 추천하는 수어를 배워보세요'}</p>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <Button
+                    className="w-full bg-white text-violet-600 py-3 text-base rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+                    onClick={() => {
+                      if (recommendedSign && recommendedSign.id) {
+                        navigate(`/learn/${recommendedSign.id}`);
+                      } else if (recommendedSign && recommendedSign.word) {
+                        navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`);
+                      }
+                    }}
+                  >
+                    지금 배우기
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            {/* Search Results Dropdown */}
-            {showResults && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-10">
-                {searchResults.map((result, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSearchSelect(result)}
-                    className="w-full px-4 py-3 text-left hover:bg-blue-50 first:rounded-t-xl last:rounded-b-xl transition-colors"
+            {/* 맞춤 추천 학습 */}
+            <div className="bg-white rounded-lg p-8 shadow-lg min-h-[220px]">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-800">맞춤 추천 학습</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(progressOverview?.categories ?? []).slice(0, 3).map((category) => (
+                  <div key={category.id} className="bg-violet-50 rounded-lg p-6 shadow-lg min-h-[140px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 hover:bg-violet-100 cursor-pointer"
+                    onClick={() => navigate(`/learn/word/${encodeURIComponent(category.name)}`)}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-800">{result}</span>
-                      <ArrowRight className="h-4 w-4 text-gray-400" />
+                    <h3 className="font-semibold text-gray-800 mb-2 text-lg">{category.name}</h3>
+                    <div className="flex items-center justify-between mt-auto">
+                      <CustomBadge variant={category.status === 'completed' ? 'secondary' : 'default'} className="text-sm px-2 py-1 text-violet-600 bg-violet-100 hover:bg-violet-200">
+                        {category.status === 'completed' ? '완료' : `진도: ${category.progress}%`}
+                      </CustomBadge>
+                      <Button className="bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 cursor-pointer whitespace-nowrap px-3 py-1.5" size="sm">
+                        {category.status === 'completed' ? '복습' : '계속'}
+                      </Button>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-4 mb-6">
-          <Button
-            onClick={() => navigate('/category')}
-            variant="outline"
-            className="h-20 hover:bg-green-50 border-2 border-green-200 hover:border-green-300 flex items-center justify-center space-x-3 transform hover:scale-105 transition-all duration-300 rounded-xl shadow-sm"
-            data-tour="learn-button"
-          >
-            <BookOpen className="h-8 w-8 text-green-600" />
-            <div>
-              <span className="text-lg font-semibold text-green-700">학습하기</span>
-              <div className="text-green-600 text-sm">새로운 수어를 배워보세요</div>
             </div>
-          </Button>
 
-          <Button
-            onClick={() => navigate('/review')}
-            variant="outline"
-            className="h-20 hover:bg-purple-50 border-2 border-purple-200 hover:border-purple-300 flex items-center justify-center space-x-3 transform hover:scale-105 transition-all duration-300 rounded-xl shadow-sm"
-            data-tour="review-button"
-          >
-            <RotateCcw className="h-8 w-8 text-purple-600" />
-            <div>
-              <span className="text-lg font-semibold text-purple-700">복습하기</span>
-              <div className="text-purple-600 text-sm">학습한 내용을 복습해보세요</div>
-            </div>
-          </Button>
-        </div>
-
-        {/* Dashboard Cards */}
-        <div className="grid md:grid-cols-4 gap-4 mb-6" data-tour="dashboard-cards">
-          {/* 최근 학습 */}
-          <div 
-            className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-300 cursor-pointer group border border-blue-100"
-            onClick={() => handleCardClick('recent')}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-gray-800 text-sm group-hover:text-blue-600 transition-colors">최근 학습</h3>
-              <BookOpen className="h-4 w-4 text-blue-600 group-hover:scale-110 transition-transform" />
-            </div>
-            {recentLearning && recentLearning.category && recentLearning.chapter ? (
-              <>
-                <p className="text-xs text-gray-600 mb-1">{recentLearning.category}</p>
-                <p className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{recentLearning.chapter}</p>
-              </>
-            ) : (
-              <>
-                <p className="text-xs text-gray-600 mb-1">최근 학습 기록이 없습니다</p>
-                <p className="text-lg font-bold text-gray-400">-</p>
-              </>
-            )}
           </div>
 
-          {/* 연속 학습 */}
-          <div 
-            className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-300 cursor-pointer group border border-green-100"
-            onClick={() => handleCardClick('streak')}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-gray-800 text-sm group-hover:text-green-600 transition-colors">연속 학습</h3>
-              <Calendar className="h-4 w-4 text-green-600 group-hover:scale-110 transition-transform" />
-            </div>
-            <p className="text-xs text-gray-600 mb-1">연속 학습 일수</p>
-            <p className="text-lg font-bold text-green-600 group-hover:animate-pulse">{currentStreak}일 🔥</p>
-          </div>
-
-          {/* 획득 뱃지 */}
-          <div 
-            className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-300 cursor-pointer group border border-yellow-100"
-            onClick={() => handleCardClick('badges')}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-gray-800 text-sm group-hover:text-yellow-600 transition-colors">획득한 뱃지</h3>
-              <Trophy className="h-4 w-4 text-yellow-600 group-hover:scale-110 group-hover:rotate-12 transition-all" />
-            </div>
-            <p className="text-xs text-gray-600 mb-1">총 뱃지 개수</p>
-            <p className="text-lg font-bold text-yellow-600 group-hover:animate-bounce">{badgeCount}개 🏆</p>
-          </div>
-
-          {/* 전체 진도율 */}
-          <div 
-            className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-300 cursor-pointer group border border-purple-100"
-            onClick={() => handleCardClick('progress')}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-gray-800 text-sm group-hover:text-purple-600 transition-colors">전체 진도율</h3>
-              <Target className="h-4 w-4 text-purple-600 group-hover:scale-110 transition-transform" />
-            </div>
-            <p className="text-xs text-gray-600 mb-1">전체 과정</p>
-            {progressLoading ? (
-              <div className="flex items-center space-x-2">
-                <div className="text-lg font-bold text-purple-600 animate-pulse">...</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div className="bg-purple-600 h-2 rounded-full animate-pulse" style={{ width: '50%' }}></div>
+          {/* Right Column */}
+          <div className="space-y-6">
+            
+            {/* Learning Streak */}
+            <Card className="shadow-lg !rounded-button mb-6 cursor-pointer min-h-[240px] z-0 transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-green-400 hover:bg-green-50" onClick={() => setIsStreakModalOpen(true)}>
+              <div className="text-center">
+                <div className="text-2xl mb-2">🔥</div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">연속 학습</h3>
+                {streakLoading ? (
+                  <div className="text-gray-400 text-lg mb-1 animate-pulse">로딩 중...</div>
+                ) : (
+                  <div className="text-3xl font-bold text-green-500 mb-1">{currentStreak}일</div>
+                )}
+                <p className="text-gray-600 text-sm mb-2">연속 학습 중!</p>
+                <div className="mt-3 flex justify-center space-x-2">
+                  {(() => {
+                    const getLast7Days = () => {
+                      const days = [];
+                      const today = new Date();
+                      for (let i = 6; i >= 0; i--) {
+                        const d = new Date(today);
+                        d.setDate(today.getDate() - i);
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        days.push(`${y}-${m}-${day}`);
+                      }
+                      return days;
+                    };
+                    const last7Days = getLast7Days();
+                    return last7Days.map((date, i) => (
+                      <div
+                        key={i}
+                        className={`w-5 h-5 rounded-full ${studyDates && studyDates.includes(date) ? 'bg-green-500' : 'bg-gray-200'}`}
+                      />
+                    ));
+                  })()}
                 </div>
+                <p className="text-xs text-gray-500 mt-1">최근 7일</p>
               </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <p className="text-lg font-bold text-purple-600">{progressOverview?.overall_progress || 0}%</p>
-                <div className="flex-1 bg-gray-200 rounded-full h-2 group-hover:bg-purple-100 transition-colors">
-                  <div 
-                    className="bg-gradient-to-r from-purple-600 to-purple-500 h-2 rounded-full group-hover:animate-pulse transition-all duration-500"
-                    style={{ width: `${progressOverview?.overall_progress || 0}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Compact Today's Sentence & Recommended Learning */}
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Compact Today's Sentence */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-[1.02] shadow-lg">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-bold">✨ 오늘의 추천 수어</h3>
-              <div className="text-2xl opacity-30">🤟</div>
-            </div>
-            <p className="text-xl font-bold mb-2">{recommendedSign ? `"${String(recommendedSign.word)}"` : '...'}</p>
-            <p className="text-blue-100 text-sm mb-3">
-                {recommendedSign && recommendedSign.category && typeof recommendedSign.category === 'object' && recommendedSign.category !== null && 'name' in recommendedSign.category
-                  ? String((recommendedSign.category as { name?: unknown }).name ?? '랜덤 추천 수어를 배워보세요')
-                  : '랜덤 추천 수어를 배워보세요'}
-              </p>
-          <Button 
-              size="sm"
-            variant="secondary"
-            onClick={() => {
-              if (recommendedSign && recommendedSign.id) {
-                navigate(`/learn/${recommendedSign.id}`);
-              } else if (recommendedSign && recommendedSign.word) {
-                navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`);
-              } else {
-                alert('추천 수어 정보가 없습니다.');
-              }
-            }}
-              className="bg-white/20 hover:bg-white/30 border-white/30 backdrop-blur-sm"
-            disabled={!recommendedSign}
-          >
-              <BookOpen className="h-3 w-3 mr-2" />
-            지금 배우기
-          </Button>
-        </div>
-
-          {/* Compact Recommended Learning */}
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
-              <Target className="h-4 w-4 mr-2 text-blue-600" />
-            맞춤 추천 학습
-          </h3>
-            <div className="space-y-3">
-              {(progressOverview?.categories ?? []).slice(0, 2).map((category, index) => (
-                <div 
-                  key={category.id}
-                  className={`border rounded-lg p-3 hover:bg-blue-50 cursor-pointer transition-all ${
-                    category.status === 'completed' 
-                      ? 'border-green-200 hover:bg-green-50 hover:border-green-400' 
-                      : 'border-blue-200 hover:bg-blue-100 hover:border-blue-400'
-                  }`}
-                  onClick={() => navigate(`/learn/word/${encodeURIComponent(category.name)}`)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      category.status === 'completed' ? 'bg-green-100' : 'bg-blue-100'
-                    }`}>
-                        <span className="text-lg">{category.status === 'completed' ? '✅' : '📚'}</span>
-                    </div>
-                      <div>
-                        <h4 className="font-medium text-gray-800 text-sm">{category.name}</h4>
-                    <div className="flex items-center space-x-2">
-                          <span className={`text-xs ${
-                        category.status === 'completed' ? 'text-green-600' : 'text-blue-600'
-                      }`}>
-                            {category.status === 'completed' ? '완료 ✓' : `진도: ${category.progress}%`}
-                      </span>
-                          <div className={`w-16 rounded-full h-1.5 ${
-                        category.status === 'completed' ? 'bg-green-100' : 'bg-blue-100'
-                      }`}>
-                        <div 
-                              className={`h-1.5 rounded-full ${
-                            category.status === 'completed' ? 'bg-green-600' : 'bg-blue-600'
-                          }`} 
-                          style={{ width: `${category.progress}%` }}
-                        ></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      className={`text-xs px-2 py-1 ${
-                        category.status === 'completed' 
-                          ? 'border-green-600 text-green-600 hover:bg-green-600 hover:text-white' 
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
-                      } hover:scale-105 transition-all`}
-                      variant={category.status === 'completed' ? 'outline' : 'default'}
+            </Card>
+            {/* 전체 진도율 + 뱃지 카드 나란히 배치 */}
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Overall Progress */}
+              <Card className="shadow-lg !rounded-button flex-1 mb-0 cursor-pointer min-h-[150px] transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-blue-200 hover:bg-blue-50" onClick={() => setIsProgressModalOpen(true)}>
+                <div className="text-center">
+                  <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center justify-center">
+                    <Target className="mr-2 text-blue-500" />
+                    전체 진도율
+                  </h3>
+                  <div className="relative inline-block" style={{ width: radius * 2, height: radius * 2 }}>
+                    <svg
+                      width={radius * 2}
+                      height={radius * 2}
+                      className="block mx-auto"
+                      style={{ transform: 'rotate(-90deg)' }}
                     >
-                      {category.status === 'completed' ? '복습' : '계속'}
-                    </Button>
+                      {/* 배경 원 */}
+                      <circle
+                        cx={radius}
+                        cy={radius}
+                        r={normalizedRadius}
+                        fill="none"
+                        stroke="#E5E7EB"
+                        strokeWidth={stroke}
+                      />
+                      {/* 진행 원 */}
+                      <circle
+                        cx={radius}
+                        cy={radius}
+                        r={normalizedRadius}
+                        fill="none"
+                        stroke="#2563eb"
+                        strokeWidth={stroke}
+                        strokeDasharray={circumference}
+                        strokeDashoffset={offset}
+                        strokeLinecap="round"
+                        style={{ transition: 'stroke-dashoffset 0.6s' }}
+                      />
+                    </svg>
+                    {/* 중앙 숫자 */}
+                    <span className="absolute top-1/2 left-1/2 text-3xl font-bold text-blue-600" style={{ transform: 'translate(-50%, -50%)' }}>
+                      {percent}%
+                    </span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <div className="font-semibold text-gray-800">완료 챕터</div>
+                      <div className="text-blue-600 font-bold">{progressOverview?.completed_chapters || 0}/{progressOverview?.total_chapters || 0}</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-800">학습 시간</div>
+                      <div className="text-green-600 font-bold">24시간</div>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </Card>
+              {/* Badges */}
+              <Card className="shadow-lg !rounded-button flex-1 mb-0 cursor-pointer min-h-[150px] transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-yellow-200 hover:bg-yellow-50" onClick={() => setIsBadgeModalOpen(true)}>
+                <div className="mb-2">
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                    <Trophy className="mr-2 text-yellow-500" />
+                    획득한 뱃지
+                  </h3>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {badgeList.filter(badge => badge.unlocked).length === 0 ? (
+                    <div className="text-center text-gray-400 py-3">획득한 뱃지가 없습니다.</div>
+                  ) : (
+                    badgeList.filter(badge => badge.unlocked).slice(-3).reverse().map((badge) => (
+                      <div
+                        key={badge.id}
+                        className="flex items-center p-2 rounded-lg transition-all bg-yellow-50 border-2 border-yellow-200 mb-1"
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="flex-shrink-0 flex justify-center items-center mr-2">
+                          {getIconForBadge(badge.icon)}
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-xs text-gray-800 font-semibold">
+                            {badge.name.length > 8 ? badge.name.slice(0,8) + '...' : badge.name}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
-      {/* Modals */}
-      <BadgeModal 
-        isOpen={isBadgeModalOpen} 
-        onClose={() => setIsBadgeModalOpen(false)} 
-      />
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-center space-x-12">
+            <div className="flex flex-col items-center cursor-pointer text-indigo-600">
+              <HomeOutlined className="text-2xl mb-1" />
+              <span className="text-xs font-medium">홈</span>
+            </div>
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+                 onClick={() => navigate('/category')}>
+              <BookOutlined className="text-2xl mb-1" />
+              <span className="text-xs font-medium">학습</span>
+            </div>
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+                 onClick={() => navigate('/review')}>
+              <ReloadOutlined className="text-2xl mb-1" />
+              <span className="text-xs font-medium">복습</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <StreakModal 
-        isOpen={isStreakModalOpen} 
-        onClose={() => setIsStreakModalOpen(false)} 
-      />
+      {/* Bottom padding to account for fixed navigation */}
+      <div className="h-20"></div>
 
-      <ProgressModal 
-        isOpen={isProgressModalOpen} 
-        onClose={() => setIsProgressModalOpen(false)} 
-      />
-
-      <HandPreferenceModal 
-        isOpen={isHandPreferenceModalOpen} 
-        onClose={() => setIsHandPreferenceModalOpen(false)} 
-      />
-
-      {/* 온보딩 투어 */}
+      {/* 모달 */}
+      <BadgeModal isOpen={isBadgeModalOpen} onClose={() => setIsBadgeModalOpen(false)} />
+      <StreakModal isOpen={isStreakModalOpen} onClose={() => setIsStreakModalOpen(false)} />
+      <ProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} />
+      <HandPreferenceModal isOpen={isHandPreferenceModalOpen} onClose={() => setIsHandPreferenceModalOpen(false)} />
       {isOnboardingActive && shouldShowOnboarding && (
         <OnboardingTour
           currentStep={currentStep}
@@ -620,4 +697,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Dashboard; 

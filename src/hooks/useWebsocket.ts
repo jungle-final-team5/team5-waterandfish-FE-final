@@ -308,11 +308,11 @@ const sendMessage = (message: string | ArrayBuffer | Blob, connectionId?: string
         const connectedSockets = globalWebSocketState.connections.filter(
             conn => conn.ws?.readyState === WebSocket.OPEN
         );
-        
+
         if (connectedSockets.length === 0) {
             return false;
         }
-        
+
         let successCount = 0;
         connectedSockets.forEach(conn => {
             try {
@@ -322,7 +322,7 @@ const sendMessage = (message: string | ArrayBuffer | Blob, connectionId?: string
                 console.error(`Failed to send message to ${conn.url}:`, error);
             }
         });
-        
+
         return successCount > 0;
     }
 };
@@ -337,6 +337,12 @@ const autoReconnectService = WebSocketAutoReconnectService.getInstance();
 
 // 커스텀 훅
 const useWebsocket = (wsUrls?: string[]) => {
+    const [isConnected, setIsConnected] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState<
+        'disconnected' | 'connecting' | 'connected' | 'error'
+    >('disconnected');
+    const wsList = globalWebSocketState.connections.map(c => c.ws).filter(Boolean) as WebSocket[];
+
     const [state, setState] = useState(() => ({
         ...globalWebSocketState,
         ...getCompatibleState()
