@@ -95,7 +95,7 @@ const Index = () => {
         <div className="text-center max-w-4xl mx-auto mb-16">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-800 mb-6">
             인터랙티브 수어 학습의
-            <span className="text-violet-600 block">새로운 시작</span>
+            <span className="text-indigo-600 block">새로운 시작</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-600 mb-8">
             실시간 모션 인식과 즉각적인 피드백으로 혼자서도 효과적으로 수어를 배워보세요
@@ -107,10 +107,10 @@ const Index = () => {
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <Input
                 type="text"
-                placeholder="배우고 싶은 수어를 검색해보세요 (예: 안녕하세요, 감사합니다)"
+                placeholder="배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)"
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-12 pr-4 py-4 text-lg border-2 border-gray-200 focus:border-violet-500 rounded-xl"
+                className="pl-12 pr-4 py-3 text-base border-2 border-gray-200 focus:border-violet-500 rounded-xl whitespace-nowrap"
               />
             </div>
 
@@ -137,7 +137,7 @@ const Index = () => {
             <Button 
               size="lg" 
               onClick={handleStartLearning}
-              className="bg-violet-600 hover:bg-violet-700 text-lg px-8 py-4"
+              className="bg-indigo-600 hover:bg-indigo-700 text-lg px-8 py-4"
             >
               학습하러 가기
             </Button>
@@ -162,7 +162,7 @@ const Index = () => {
             </div>
             <h3 className="text-xl font-semibold mb-3">체계적 학습</h3>
             <p className="text-gray-600">
-              자음부터 문장까지 단계별 학습으로 체계적인 수어 습득이 가능합니다
+              기초부터 상황별 단어까지 단계별 학습으로 체계적인 수어 습득이 가능합니다
             </p>
           </div>
 
@@ -172,7 +172,7 @@ const Index = () => {
             </div>
             <h3 className="text-xl font-semibold mb-3">맞춤형 복습</h3>
             <p className="text-gray-600">
-              틀린 문제 자동 관리와 개인별 맞춤 복습으로 효율적인 학습을 지원합니다
+              틀린 문제 자동 관리와 개인 맞춤 복습으로 효율적인 학습을 지원합니다
             </p>
           </div>
         </div>
