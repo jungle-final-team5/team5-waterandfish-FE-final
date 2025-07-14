@@ -9,6 +9,7 @@ import API from '@/components/AxiosInstance';
 import SessionHeader from '@/components/SessionHeader';
 import LetterDisplay from '@/components/LetterDisplay';
 import { Hands } from '@mediapipe/hands';
+import { set } from 'lodash';
 
 const LetterSession = () => {
   const [gesture, setGesture] = useState<string | null>(null);
@@ -39,9 +40,9 @@ const LetterSession = () => {
         }
         pileref.current.textContent = '';
     }
-
-  const { setType,qOrs } = useParams();
-  const [sets] = useState(() => {
+    const studyResultRef = useRef<string[]>([]);
+    const { setType,qOrs } = useParams();
+    const [sets] = useState(() => {
     if (setType === 'consonant') {
       return ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
     } else if (setType === 'vowel') {
@@ -62,10 +63,30 @@ const LetterSession = () => {
 
     try {
       await API.post(
-        'learning/result/letter',
+        'study/letters/result',
         {
           passed: passedLetters,
           failed: failedLetters,
+        },
+        {
+          withCredentials: true, // ✅ 쿠키 포함
+        }
+      );
+      console.log("결과 전송 완료");
+      // 선택: localStorage 초기화
+      localStorage.removeItem('passed');
+      localStorage.removeItem('failed');
+    } catch (error) {
+      console.error("결과 전송 실패", error);
+    }
+  };
+  const sendstudyResult = async () => {
+
+    try {
+      await API.post(
+        'study/letters',
+        {
+          checked: studyResultRef.current,
         },
         {
           withCredentials: true, // ✅ 쿠키 포함
@@ -84,7 +105,7 @@ const LetterSession = () => {
   const [isDone, setIsDone] = useState(false);
 
   const times = useRef(10);
-  const qors = useRef<boolean>(qOrs === 'quiz');
+  const [qors, setQors] = useState<boolean>(qOrs === 'quiz');
   const timeref = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -195,7 +216,9 @@ const LetterSession = () => {
       
       // 약간의 지연을 두어 정리가 완료되도록 함
       await new Promise(resolve => setTimeout(resolve, 3000));
-
+      if(qors === true){
+        times.current = 10;
+      }
            console.log('MediaPipe Hands dynamic load via hands.js');
       // ESM entrypoint인 hands.js를 직접 불러와 실제 클래스 가져오기 (CDN)
 // 전역으로 로드된 Hands 생성자 사용
@@ -396,6 +419,10 @@ console.log('MediaPipe Hands instance created via global script');
 
   const handleNext = () => {
     setProgressPercent(0);
+    times.current = 10;
+    if (timeref.current) {
+      timeref.current.textContent = times.current.toString();
+    }
     if (currentIndex < sets.length) {
       setCurrentIndex(currentIndex + 1);
     }
@@ -445,7 +472,7 @@ console.log('MediaPipe Hands instance created via global script');
       }
     }
     pileref.current.textContent = '';
-    if(qors.current){
+    if(qors){
       times.current = 10;
       if (timeref.current) timeref.current.textContent = times.current.toString();
     }
@@ -455,7 +482,15 @@ console.log('MediaPipe Hands instance created via global script');
 const [gestureRecognitionActive, setGestureRecognitionActive] = useState(false);
 const gestureTimerRef = useRef<NodeJS.Timeout | null>(null);
 const startTimeRef = useRef<number | null>(null);
-
+useEffect(() => {
+  if (isDone && currentIndex === sets.length) {
+    if(!qors){
+      sendstudyResult();
+    }
+    else{
+    sendQuizResult();}
+  }
+}, [isDone, currentIndex]);
 useEffect(() => {
   pges.current = ges.current;
   navigated.current = false;
@@ -497,20 +532,26 @@ useEffect(() => {
             pileref.current.textContent += pges.current;
             decref.current.textContent = decref.current.textContent.replace(pges.current!, '');
             
-            if (decref.current.textContent === '' && !navigated.current) {
-              std.current = false;
-              navigated.current = true;
-              decref.current.textContent = '통과';
-              setIsDone(true);
-              
+          if (decref.current.textContent === '' && !navigated.current) {
+            std.current = false;
+            navigated.current = true;
+            decref.current.textContent = '통과';
+            setIsDone(true);
+            
+            if(qors){
               const passedChar = sets[currentIndex];
               const prevPassed = JSON.parse(localStorage.getItem('passed') || '[]');
               const newPassed = prevPassed.filter((c: string) => c !== passedChar);
               newPassed.push(passedChar);
               localStorage.setItem('passed', JSON.stringify(newPassed));
-              
-              setTimeout(handleNext, 2000);
+            }else{
+              const studyChar = sets[currentIndex];
+              if (!studyResultRef.current.includes(studyChar)) {
+                  studyResultRef.current.push(studyChar);
+                }
             }
+            setTimeout(handleNext, 2000);
+          }
           }
           
           // 타이머 초기화
@@ -559,12 +600,18 @@ useEffect(() => {
     std.current = true;
     divwords(words);
     
-    if(qors.current){
+    if(qors){
       setTimeout(timedown, 1000);
     }
   }, [words]);
 
   useEffect(() => {
+
+    // 예시: 'passed'와 'failed' 키 초기화
+    localStorage.removeItem('passed');
+    localStorage.removeItem('failed');
+    setIsDone(false);
+    setCurrentIndex(0);
     // 컴포넌트 마운트 시 카메라 초기화를 약간 지연시켜 DOM이 렌더링될 시간을 줌
     const timer = setTimeout(() => {
       console.log('카메라 초기화 시작');
@@ -592,8 +639,25 @@ useEffect(() => {
   {
       return (
           <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-xl font-bold text-gray-800 mb-2">끝내준다!!</h1>
+          <div className="text-center">
+          {!qors ? (
+            <Button onClick={() => {
+              const url = `/test/letter/${setType}/quiz`;
+              setIsDone(false);
+              setCurrentIndex(0);
+              setQors(true);
+              initializeCamera(); // MediaPipe 재초기화
+              navigate(url);
+            }}>
+              퀴즈로
+            </Button>
+          ) : (
+            <Button onClick={() => {
+              navigate(`/category`);
+            }}>
+              결과 전송
+            </Button>
+          )}
           <Button onClick={() => navigate('/home')}>돌아가기</Button>
         </div>
       </div>
@@ -614,7 +678,7 @@ useEffect(() => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {qors.current?(<div className="space-y-6">
+          {qors?(<div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>현재 문제</CardTitle>
