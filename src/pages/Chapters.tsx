@@ -73,7 +73,7 @@ const Chapters = () => {
           showStatus(); // 전역 상태 표시 활성화
 
           // 학습 진도 이벤트 기록
-          await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+          await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'study' });
 
           // lesson_mapper를 URL state로 전달
           navigate(path, {
@@ -112,7 +112,7 @@ const Chapters = () => {
           showStatus(); // 전역 상태 표시 활성화
 
           // 학습 진도 이벤트 기록
-          await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+          await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'review' });
 
           // lesson_mapper를 URL state로 전달
           navigate(path, {
