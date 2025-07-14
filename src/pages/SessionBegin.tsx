@@ -41,6 +41,14 @@ const SessionBegin = () => {
     );
   }
 
+  const handleBack = () => {
+    if (location.state && location.state.origin) {
+      navigate(location.state.origin);
+    } else {
+      navigate('/category');
+    }
+  };
+
   // (배움/퀴즈) 페이지로 이동하여 해당하는 챕터의 (배움/퀴즈) 컨텐츠 시작
   const startContents = () => {
     if (modeNum === 1) {
@@ -61,11 +69,11 @@ const SessionBegin = () => {
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
-                onClick={() => navigate('/category')}
+                onClick={handleBack}
                 className="hover:bg-blue-50"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                카테고리로
+                뒤로가기
               </Button>
             </div>
           </div>
