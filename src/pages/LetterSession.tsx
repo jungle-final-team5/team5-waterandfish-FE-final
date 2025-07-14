@@ -558,7 +558,7 @@ useEffect(() => {
 
   const progress = (currentIndex / sets.length) * 100;
 
-  if(isDone && currentIndex === sets.length - 1)
+  if(isDone && currentIndex === sets.length)
   {
       return (
           <div className="flex items-center justify-center min-h-screen">
