@@ -646,15 +646,7 @@ const Learn = () => {
           <div className="grid grid-cols-2 gap-12 items-start justify-center">
             {/* 애니메이션 영역 */}
             <div className="w-[680px] min-h-[600px] mx-auto mt-32">
-                      <Button 
-      onClick={togglePlaybackSpeed} 
-      variant="outline" 
-      size="sm"
-      className="flex items-center"
-    >
-      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
-      {isSlowMotion ? '(1x)' : '(0.5x)'}
-    </Button>
+
   {videoSrc ? (
     <video
       src={videoSrc}
@@ -713,6 +705,15 @@ const Learn = () => {
                   currentSign={lesson ?? undefined}
                   currentResult={displayConfidence}
                 />
+                                      <Button 
+      onClick={togglePlaybackSpeed} 
+      variant="outline" 
+      size="sm"
+      className="flex items-center"
+    >
+      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
+      {isSlowMotion ? '(1x)' : '(0.5x)'}
+    </Button>
               </div>
             </div>
           </div>

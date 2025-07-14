@@ -548,15 +548,6 @@ useEffect(() => {
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
-                          <Button 
-      onClick={togglePlaybackSpeed} 
-      variant="outline" 
-      size="sm"
-      className="flex items-center"
-    >
-      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
-      {isSlowMotion ? '(1x)' : '(0.5x)'}
-    </Button>
   {videoSrc ? (
     <video
       src={videoSrc}
@@ -584,6 +575,15 @@ useEffect(() => {
               currentSign={currentSign}
               currentResult={displayConfidence}
             />
+                                      <Button 
+      onClick={togglePlaybackSpeed} 
+      variant="outline" 
+      size="sm"
+      className="flex items-center"
+    >
+      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
+      {isSlowMotion ? '(1x)' : '(0.5x)'}
+    </Button>
 
             <StreamingControls
               connectionStatus={connectionStatus}

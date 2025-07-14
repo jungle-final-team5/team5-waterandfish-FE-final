@@ -506,15 +506,7 @@ useEffect(() => {
             {/* 애니메이션 영역 */}
             {!isQuizMode  && <div className="flex flex-col items-center justify-center">
               <h3 className="text-lg font-semibold text-gray-800 mb-2">수어 예시</h3>
-                  <Button 
-      onClick={togglePlaybackSpeed} 
-      variant="outline" 
-      size="sm"
-      className="flex items-center"
-    >
-      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
-      {isSlowMotion ? '(1x)' : '(0.5x)'}
-    </Button>
+
               {videoSrc ? (
                   <video
                     src={videoSrc}
@@ -550,6 +542,15 @@ useEffect(() => {
             {/* 캠 영역 */}
             <div className="mt-4 p-6 bg-gray-100 rounded-md flex flex-col items-center">
               <Button onClick={DEBUG_MAKECORRECT}>일단 정답 처리</Button>
+                                <Button 
+      onClick={togglePlaybackSpeed} 
+      variant="outline" 
+      size="sm"
+      className="flex items-center"
+    >
+      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
+      {isSlowMotion ? '(1x)' : '(0.5x)'}
+    </Button>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">따라하기</h3>
               <p className="text-gray-600 mb-4">웹캠을 보며 수어를 따라해보세요.</p>
               <div className="relative w-full max-w-lg mx-auto">
