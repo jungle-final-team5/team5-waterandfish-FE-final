@@ -27,7 +27,7 @@ const LearnSession = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
-  // URL state에서 lesson_mapper 가져오기
+  // URL state에서 lesson_mapper 가져오기(이 부분은 LearnSession에서 처리 필요)
   const [lesson_mapper, setLessonMapper] = useState<{ [key: string]: string }>(location.state?.lesson_mapper || {});
   const [currentWsUrl, setCurrentWsUrl] = useState<string>('');
   const [currentConnectionId, setCurrentConnectionId] = useState<string>('');
@@ -162,17 +162,12 @@ const LearnSession = () => {
   const { showStatus } = useGlobalWebSocketStatus();
 
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
-  const [isTransmitting, setIsTransmitting] = useState(false);
   const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [maxConfidence, setMaxConfidence] = useState(0.0);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   //const {findCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
   const { findCategoryById, findChapterById, findHierarchyByChapterId } = useLearningData();
-
-  const [chapter, setChapter] = useState<Chapter | null>(null);
-  const [category, setCategory] = useState<Category | null>(null);
 
   const [animData, setAnimData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -204,7 +199,6 @@ const LearnSession = () => {
   //const category = categoryId ? findCategoryById(categoryId) : null;
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const detectTimer = useRef<NodeJS.Timeout | null>(null);
 
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
@@ -419,8 +413,6 @@ const LearnSession = () => {
       // disconnectWebSockets()는 여기서 호출하지 않음
     };
   }, [isInitialized]);
-
-  const poseLength = animData && animData.pose ? animData.pose.length : 0;
 
   // 자음 모음쪽으로 네비게이팅 합니다. 이거 따로 빼야함
   useEffect(() => {
