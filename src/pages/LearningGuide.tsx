@@ -15,6 +15,8 @@ import {
 import {  useLearningData } from '@/hooks/useLearningData';
 import WebcamView from '@/components/WebcamView';
 import VideoInput from '@/components/VideoInput';
+import { disconnectWebSockets } from '@/hooks/useWebsocket';
+import { useEffect } from 'react';
 
 const LearningGuide = () => {
   const { chapterId: paramChapterId } = useParams();
@@ -55,6 +57,12 @@ const LearningGuide = () => {
   const goBack = () => {
     navigate(`/category/${chapterId}/chapters`);
   };
+
+  useEffect(() => {
+    return () => {
+      disconnectWebSockets();
+    }
+  }, []);
 
 
   return (

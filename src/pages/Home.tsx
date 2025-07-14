@@ -188,8 +188,17 @@ const Dashboard: React.FC = () => {
     return '좋은 저녁입니다';
   };
 
+  const handleRecommendedSignClick = () => {
+    if (recommendedSign && recommendedSign.id) {
+      navigate(`/learn/${recommendedSign.id}`);
+    } else if (recommendedSign && recommendedSign.word) {
+      navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`);
+    }
+  }
+
   // 데이터 패칭
   useEffect(() => {
+    disconnectWebSockets();
     const fetchProgressOverview = async () => {
       try {
         setProgressLoading(true);
@@ -505,11 +514,7 @@ const Dashboard: React.FC = () => {
                   <Button
                     className="w-full bg-white text-violet-600 py-3 text-base rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
                     onClick={() => {
-                      if (recommendedSign && recommendedSign.id) {
-                        navigate(`/learn/${recommendedSign.id}`);
-                      } else if (recommendedSign && recommendedSign.word) {
-                        navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`);
-                      }
+                      handleRecommendedSignClick();
                     }}
                   >
                     지금 배우기
