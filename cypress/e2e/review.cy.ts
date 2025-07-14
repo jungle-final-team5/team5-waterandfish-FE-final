@@ -1,4 +1,7 @@
 describe('학습 리뷰 목록 및 상세', () => {
+  beforeEach(() => {
+    cy.login('test@user.com', 'password123');
+  });
   it('리뷰 목록이 보이고, 첫 리뷰 클릭 시 상세로 이동', () => {
     cy.visit('/review');
     cy.get('.review-list-item').should('have.length.greaterThan', 0);
