@@ -62,6 +62,8 @@ const { Search: AntdSearch } = Input;
 interface RecentLearning {
   category: string | null;
   chapter: string | null;
+  chapterId?: string; // 추가
+  modeNum?: string; // 추가
 }
 
 // 진도율 정보 타입
@@ -317,9 +319,11 @@ const Dashboard: React.FC = () => {
   const handleCardClick = (cardType: string) => {
     switch (cardType) {
       case 'recent':
-        if (recentLearning && recentLearning.chapter) {
-          navigate(`/learn/chapter/${encodeURIComponent(recentLearning.chapter)}/guide`);
+        // 최근학습 정보에 chapterId, modeNum이 있으면 해당 경로로 이동
+        if (recentLearning && recentLearning.chapterId && recentLearning.modeNum) {
+          navigate(`/learn/chapter/${recentLearning.chapterId}/guide/${recentLearning.modeNum}`);
         } else {
+          // fallback: 카테고리 페이지로 이동
           navigate('/category');
         }
         break;

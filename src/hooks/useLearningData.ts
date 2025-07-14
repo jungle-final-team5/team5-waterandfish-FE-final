@@ -119,8 +119,6 @@ export const useLearningData = () => {
     return res.data.data || null;
   }
 
-
-
   // 카테고리 ID로 카테고리 찾기
   const findCategoryById = (categoryId: string): Category | null => {
 
