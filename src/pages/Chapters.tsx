@@ -390,7 +390,7 @@ const Chapters = () => {
                   <div className="flex space-x-3 items-center">
                     <Button
                       onClick={() => {
-                        handleStartLearn(chapter.id, lessonIds, `/category/${categoryId}/chapters`);
+                        handleStartLearn(chapter.id, lessonIds);
                       }}
                       disabled={connectingChapter === chapter.id}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white"
