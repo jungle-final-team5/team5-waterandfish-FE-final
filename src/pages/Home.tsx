@@ -433,7 +433,13 @@ const Dashboard: React.FC = () => {
       {/* 중앙 검색 바 (Home.tsx 스타일) */}
       <div className="w-full max-w-2xl mx-auto mt-8 mb-8 relative transition-all duration-200 rounded-xl bg-white">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          {connectingChapter ? (
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2 "></div>
+            </div>
+          ) : (
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          )}
           <CustomInput
             type="text"
             placeholder={placeholder}
