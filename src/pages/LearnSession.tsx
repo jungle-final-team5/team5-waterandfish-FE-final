@@ -431,7 +431,7 @@ useEffect(() => {
         } else {
           setCurrentFrame(0);
         }
-      }, 1000 / 30);
+      }, 1000 / 10); // 우측에 나누는 숫자가 키프레임 속도
     } else {
       if (animationIntervalRef.current) {
         clearInterval(animationIntervalRef.current);

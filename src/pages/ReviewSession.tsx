@@ -85,8 +85,7 @@ const ReviewSession = () => {
       });
   }, [chapterId]);
 
-  // 레슨 하나가 바뀔 때마다 해당하는 모델 준비하는 코드.
-  // TODO : 기존 학습/퀴즈와 동일하게 챕터 단위의 모델을 가져오도록 개선해야함
+  // 의도적으로 레슨 하나가 바뀔 때마다 해당하는 모델 준비하는 코드.
   useEffect(() => {
   
     if (!lessonId) return;
@@ -132,7 +131,7 @@ const ReviewSession = () => {
         setCurrentFrame(prev =>
           prev < animData.pose.length - 1 ? prev + 1 : 0
         );
-      }, 1000 / 30);
+      }, 1000 / 10); // 우측에 나누는 숫자가 키프레임 속도이다.
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -266,6 +265,7 @@ const ReviewSession = () => {
       if(next === 1)
       {
         setIsQuizMode(true);
+        handleStartQuiz();
       }
       else
       {
