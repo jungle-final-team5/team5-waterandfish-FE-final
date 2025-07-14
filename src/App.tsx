@@ -27,6 +27,7 @@ import { GlobalWebSocketProvider } from "@/contexts/GlobalWebSocketContext";
 import ReviewSession from "./pages/ReviewSession";
 import MediaPipeSession from "./pages/MediaPipeSession";
 import SessionBegin from "./pages/SessionBegin";
+import Dashboard from "./pages/Dashboard";
 import SessionComplete from "./pages/SessionComplete";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/Admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/test/mediapipe" element={<ProtectedRoute><MediaPipeSession /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
