@@ -227,8 +227,7 @@ const Dashboard: React.FC = () => {
   }, [connectedCount, totalConnections]);
 
   useEffect(() => {
-    if (isLearnConnected == true) {
-      alert("연결 완료");
+    if ( isLearnConnected == true) {
       navigate(`/learn/${connectingChapter}`);
     }
     else {
