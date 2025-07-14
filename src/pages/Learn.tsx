@@ -3,8 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   CheckCircle,
   BookOpen
 } from 'lucide-react';
@@ -213,7 +213,7 @@ const Learn = () => {
                 setIsRecording(false);
               }
             }
-          } catch (e) {}
+          } catch (e) { }
         };
         ws.addEventListener('message', fn);
         return { ws, fn };

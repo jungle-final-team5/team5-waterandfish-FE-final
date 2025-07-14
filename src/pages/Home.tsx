@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Progress, Badge, Avatar, Tooltip, Input } from 'antd';
-import { 
-  UserOutlined, 
-  SettingOutlined, 
+import {
+  UserOutlined,
+  SettingOutlined,
   SearchOutlined,
   PlayCircleOutlined,
   TrophyOutlined,
@@ -18,11 +18,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge as CustomBadge } from '@/components/ui/badge';
 import { Input as CustomInput } from '@/components/ui/input';
-import { 
-  BookOpen, 
-  Search, 
-  RotateCcw, 
-  Trophy, 
+import {
+  BookOpen,
+  Search,
+  RotateCcw,
+  Trophy,
   Calendar,
   Target,
   User,
@@ -38,6 +38,7 @@ import {
   Flame,
   Shield,
   Book,
+  Play,
   Sparkles
 } from 'lucide-react';
 import BadgeModal from '@/components/BadgeModal';
@@ -53,6 +54,11 @@ import HandPreferenceModal from '@/components/HandPreferenceModal';
 import OnboardingTour from '@/components/OnboardingTour';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useAuth } from '@/hooks/useAuth';
+import useWebsocket, { connectToWebSockets, disconnectWebSockets } from '@/hooks/useWebsocket';
+import { Lesson } from '@/types/learning';
+import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
+import { useChapterHandler } from '@/hooks/useChapterHandler';
+
 
 const { Search: AntdSearch } = Input;
 
@@ -138,7 +144,8 @@ const Dashboard: React.FC = () => {
   const { currentStreak, studyDates, loading: streakLoading } = useStreakData();
   const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { logout } = useAuth();
-
+  const { categories, findChapterById } = useLearningData();
+  const { showStatus } = useGlobalWebSocketStatus();
   // 검색 기능
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
@@ -182,8 +189,17 @@ const Dashboard: React.FC = () => {
     return '좋은 저녁입니다';
   };
 
+  const handleRecommendedSignClick = () => {
+    if (recommendedSign && recommendedSign.id) {
+      navigate(`/learn/${recommendedSign.id}`);
+    } else if (recommendedSign && recommendedSign.word) {
+      navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`);
+    }
+  }
+
   // 데이터 패칭
   useEffect(() => {
+    disconnectWebSockets();
     const fetchProgressOverview = async () => {
       try {
         setProgressLoading(true);
@@ -241,11 +257,11 @@ const Dashboard: React.FC = () => {
         // unlocked 필드 추가
         const processed = Array.isArray(allBadgesRes.data)
           ? allBadgesRes.data.map((badge) => ({
-              id: badge.id,
-              name: badge.name,
-              icon: badge.icon_url,
-              unlocked: earnedIds.includes(badge.id),
-            }))
+            id: badge.id,
+            name: badge.name,
+            icon: badge.icon_url,
+            unlocked: earnedIds.includes(badge.id),
+          }))
           : [];
         setBadgeList(processed);
         setBadgeCount(processed.filter(b => b.unlocked).length);
@@ -312,12 +328,23 @@ const Dashboard: React.FC = () => {
     navigate(`/learn/word/${encodeURIComponent(selectedItem)}`);
   };
 
+  const { connectingChapter, handleStartLearn, handleStartQuiz } = useChapterHandler();
+
   const handleCardClick = (cardType: string) => {
     switch (cardType) {
       case 'recent':
         // 최근학습 정보에 chapterId, modeNum이 있으면 해당 경로로 이동
-        if (recentLearning && recentLearning.chapterId && recentLearning.modeNum) {
-          navigate(`/learn/chapter/${recentLearning.chapterId}/guide/${recentLearning.modeNum}`);
+        if (recentLearning) {
+          const modeNum = recentLearning.modeNum;
+          const lessonIds = (findChapterById(recentLearning.chapterId)?.lessons || []).map((lesson: Lesson) => lesson.id);
+          if (modeNum == '1') {
+            handleStartLearn(recentLearning.chapterId, lessonIds);
+          } else if (recentLearning.modeNum == '2') {
+            handleStartQuiz(recentLearning.chapterId, lessonIds);
+          }
+          else {
+            alert(`유효하지 않은 최근학습입니다`);
+          }
         } else {
           // fallback: 카테고리 페이지로 이동
           navigate('/category');
@@ -339,7 +366,7 @@ const Dashboard: React.FC = () => {
   const handleLogout = async () => {
     try {
       await API.post('auth/logout');
-    } catch (error) {}
+    } catch (error) { }
     if (logout) logout();
     localStorage.clear();
     toast({ title: "로그아웃", description: "성공적으로 로그아웃되었습니다." });
@@ -431,10 +458,10 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* 최근 학습 + 오늘의 추천 수어 (나란히 배치) */}
             <div className="flex flex-col md:flex-row gap-6">
               {/* 최근 학습 카드 */}
@@ -452,12 +479,27 @@ const Dashboard: React.FC = () => {
                     <div className="text-base mb-4 text-blue-100">최근 학습 기록이 없습니다.</div>
                   )}
                 </div>
+
                 <Button
                   className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
-                  onClick={() => handleCardClick('recent')}
+                  onClick={() => {
+                    handleCardClick('recent')
+                  }}
                 >
-                  이어서 학습하기
+                  {connectingChapter === recentLearning?.chapterId ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      연결 중...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      이어서 학습하기
+                    </>
+                  )}
                 </Button>
+
+
               </div>
 
               {/* 오늘의 추천 수어 카드 */}
@@ -473,11 +515,7 @@ const Dashboard: React.FC = () => {
                   <Button
                     className="w-full bg-white text-violet-600 py-3 text-base rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
                     onClick={() => {
-                      if (recommendedSign && recommendedSign.id) {
-                        navigate(`/learn/${recommendedSign.id}`);
-                      } else if (recommendedSign && recommendedSign.word) {
-                        navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`);
-                      }
+                      handleRecommendedSignClick();
                     }}
                   >
                     지금 배우기
@@ -521,7 +559,7 @@ const Dashboard: React.FC = () => {
 
           {/* Right Column */}
           <div className="space-y-6">
-            
+
             {/* Learning Streak */}
             <Card className="shadow-lg !rounded-button mb-6 cursor-pointer min-h-[240px] z-0 transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-green-400 hover:bg-green-50" onClick={() => setIsStreakModalOpen(true)}>
               <div className="text-center">
@@ -634,7 +672,7 @@ const Dashboard: React.FC = () => {
                         </div>
                         <div className="flex flex-col">
                           <p className="text-xs text-gray-800 font-semibold">
-                            {badge.name.length > 8 ? badge.name.slice(0,8) + '...' : badge.name}
+                            {badge.name.length > 8 ? badge.name.slice(0, 8) + '...' : badge.name}
                           </p>
                         </div>
                       </div>
@@ -655,13 +693,13 @@ const Dashboard: React.FC = () => {
               <HomeOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">홈</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-white"
-                 onClick={() => navigate('/category')}>
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+              onClick={() => navigate('/category')}>
               <BookOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">학습</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-white"
-                 onClick={() => navigate('/review')}>
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+              onClick={() => navigate('/review')}>
               <ReloadOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">복습</span>
             </div>

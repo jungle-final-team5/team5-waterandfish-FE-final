@@ -2,17 +2,17 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  Camera, 
-  Users, 
-  Volume2, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  Camera,
+  Users,
+  Volume2,
   Lightbulb,
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import {  useLearningData } from '@/hooks/useLearningData';
+import { useLearningData } from '@/hooks/useLearningData';
 import WebcamView from '@/components/WebcamView';
 import VideoInput from '@/components/VideoInput';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
@@ -21,10 +21,10 @@ const SessionBegin = () => {
   const { chapterId: paramChapterId, modeNum: num } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const {  categories } = useLearningData();
+  const { categories } = useLearningData();
   const chapterId = paramChapterId;
   const modeNum = num ? parseInt(num, 10) : undefined;
-  
+
   // URL state에서 lesson_mapper 가져오기
   const lesson_mapper = location.state?.lesson_mapper || {};
   const { connectedCount, totalCount } = useGlobalWebSocketStatus();
@@ -40,29 +40,19 @@ const SessionBegin = () => {
       </div>
     );
   }
-  
-  
 
   // (배움/퀴즈) 페이지로 이동하여 해당하는 챕터의 (배움/퀴즈) 컨텐츠 시작
   const startContents = () => {
-    if(modeNum === 1)
-    {
+    if (modeNum === 1) {
       navigate(`/learn/chapter/${chapterId}`, { state: { lesson_mapper } });
     }
-    else if(modeNum === 2)
-    {
+    else if (modeNum === 2) {
       navigate(`/quiz/chapter/${chapterId}`, { state: { lesson_mapper } });
     }
-    else 
-    {
+    else {
       navigate(`/review/chapter/${chapterId}`, { state: { lesson_mapper } });
     }
   };
-
-  const goBack = () => {
-    navigate(`/category/${chapterId}/chapters`);
-  };
-
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -80,65 +70,12 @@ const SessionBegin = () => {
             </div>
           </div>
         </header>
-      {/* Header */}
-      {/* 
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={goBack}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                돌아가기
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-800">
-                  {isQuiz ? '퀴즈 시작 가이드' : '학습 시작 가이드'}
-                </h1>
-                <p className="text-sm text-gray-600">{category.title} - {chapter.title}</p>
-              </div>
-            </div>
-            <Badge variant={isQuiz ? "secondary" : "default"} className="text-sm">
-              {isQuiz ? '퀴즈 모드' : '학습 모드'}
-            </Badge>
-          </div>
-        </div>
-      </header> */}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 가이드 정보 */}
           <div className="space-y-6">
-            {/* 챕터 정보 */}
-            
-            {/* <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Lightbulb className="h-5 w-5 mr-2 text-yellow-600" />
-                  {chapter.title} 안내
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 mb-4">
-                  {isQuiz 
-                    ? `${chapter.title} 챕터에서 학습한 내용을 퀴즈로 확인해보세요. 총 ${chapter.signs.length}개의 수어 동작이 출제됩니다.`
-                    : `${chapter.title} 챕터에서 ${chapter.signs.length}개의 수어 동작을 학습합니다. 각 동작을 천천히 따라하며 연습해보세요.`
-                  }
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {chapter.signs.slice(0, 5).map((sign, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {sign.word}
-                    </Badge>
-                  ))}
-                  {chapter.signs.length > 5 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{chapter.signs.length - 5}개 더
-                    </Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card> */}
 
             {/* 학습 전 준비사항 */}
             <Card>
@@ -148,7 +85,7 @@ const SessionBegin = () => {
                   {modeNum === 1 && ('학습 시작 전 준비사항')}
                   {modeNum === 2 && ('퀴즈 시작 전 준비사항')}
                   {modeNum === 3 && ('복습 시작 전 준비사항')}
-                  
+
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -162,7 +99,7 @@ const SessionBegin = () => {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start space-x-3">
                     <Users className="h-5 w-5 text-green-600 mt-0.5" />
                     <div>
@@ -172,7 +109,7 @@ const SessionBegin = () => {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start space-x-3">
                     <Lightbulb className="h-5 w-5 text-yellow-600 mt-0.5" />
                     <div>
@@ -191,7 +128,7 @@ const SessionBegin = () => {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
-                                   {modeNum === 1 && ('학습 시작 전 준비사항')}
+                  {modeNum === 1 && ('학습 시작 전 준비사항')}
                   {modeNum === 2 && ('퀴즈 시작 전 준비사항')}
                   {modeNum === 3 && ('복습 시작 전 준비사항')}
                 </CardTitle>
@@ -199,95 +136,105 @@ const SessionBegin = () => {
               <CardContent>
                 <ul className="space-y-2 text-sm text-gray-700">
                   {modeNum == 1 &&
-                  (
-                    <>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        동작을 천천히 따라하며 자연스럽게 익혀보세요
-                      </li>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        어려운 동작은 반복 연습을 통해 익숙해질 수 있습니다
-                      </li>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        설명 기능을 활용해 동작의 의미를 이해해보세요
-                      </li>
-                    </>
-                  )}
+                    (
+                      <>
+                        <li className="flex items-start">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          동작을 천천히 따라하며 자연스럽게 익혀보세요
+                        </li>
+                        <li className="flex items-start">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          어려운 동작은 반복 연습을 통해 익숙해질 수 있습니다
+                        </li>
+                        <li className="flex items-start">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          설명 기능을 활용해 동작의 의미를 이해해보세요
+                        </li>
+                      </>
+                    )}
                   {modeNum == 2 &&
-                  (
-                    <>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        시간 제한이 있으니 미리 동작을 연습해두세요
-                      </li>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        정확한 동작이 중요합니다. 천천히 정확하게 해주세요
-                      </li>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        틀린 문제는 자동으로 복습 목록에 추가됩니다
-                      </li>
-                    </>
-                  )}
+                    (
+                      <>
+                        <li className="flex items-start">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          시간 제한이 있으니 미리 동작을 연습해두세요
+                        </li>
+                        <li className="flex items-start">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          정확한 동작이 중요합니다. 천천히 정확하게 해주세요
+                        </li>
+                        <li className="flex items-start">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          틀린 문제는 자동으로 복습 목록에 추가됩니다
+                        </li>
+                      </>
+                    )}
                   {modeNum == 3 &&
-                  (
-                    <>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        ULTIMATE SIGN LANGUAGE PLAYER가 되기 위해
-                      </li>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        복습을 하다니 정말 의지가 뚜렷한 모습이 있어 보기 좋습니다
-                      </li>
-                      <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        죄송해요 말밖에 할게 없네요 해브어 굿 데이
-                      </li>
-                    </>
-                  )}
-                 
+                    (
+                      <>
+                        <li className="flex items-start">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          ULTIMATE SIGN LANGUAGE PLAYER가 되기 위해
+                        </li>
+                        <li className="flex items-start">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          복습을 하다니 정말 의지가 뚜렷한 모습이 있어 보기 좋습니다
+                        </li>
+                        <li className="flex items-start">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          죄송해요 말밖에 할게 없네요 해브어 굿 데이
+                        </li>
+                      </>
+                    )}
+
                 </ul>
               </CardContent>
             </Card>
           </div>
 
-            {/* 시작 버튼 */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center space-y-4">
-                  <p className="text-gray-600">
-                                   {modeNum === 1 && ('즐거운 학습 시간 !!')}
+          {/* 시작 버튼 */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <p className="text-gray-600">
+                  {modeNum === 1 && ('즐거운 학습 시간 !!')}
                   {modeNum === 2 && ('검증의 퀴즈시간!!')}
                   {modeNum === 3 && ('반성의 복습시간!!')}
-                  </p>
-                  {connectedCount !== totalCount && (
+                </p>
+                {connectedCount !== totalCount && (
+                  <>
+                    <div className="flex items-center justify-center mb-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-blue-600"></div>
+                    </div>
                     <p className="text-gray-600">
                       수어 분류 서버에 연결중입니다
                     </p>
-                  )}
-                  {connectedCount === totalCount && (
+                  </>
+                )}
+                {connectedCount === totalCount && (
+                  <>
+                    <div className="flex items-center justify-center mb-2">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                    </div>
                     <p className="text-gray-600">
                       수어 분류 서버에 연결되었습니다
                     </p>
-                  )
-                  }
-                  <Button 
-                    disabled={connectedCount !== totalCount}
-                    onClick={startContents} 
-                    size="lg" 
-                    className="w-full"
-                  >
-                    {'세션 시작'}
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          
+                  </>
+                )
+                }
+                <Button
+                  disabled={connectedCount !== totalCount}
+                  onClick={startContents}
+                  size="lg"
+                  className="w-full"
+                >
+                  {'세션 시작'}
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
       </main>
     </div>

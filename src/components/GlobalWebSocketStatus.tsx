@@ -67,6 +67,10 @@ const GlobalWebSocketStatus: React.FC<GlobalWebSocketStatusProps> = ({
     activeReconnects: 0
   });
 
+  useEffect(() => {
+    setIsMinimized(true);
+  }, []);
+
   // 자동 재연결 상태 주기적 업데이트
   useEffect(() => {
     const interval = setInterval(() => {
