@@ -94,12 +94,12 @@ return (
     )}</>}
             <div className="flex justify-center space-x-4">
                 {modeNum === 1 && 
-                <Button onClick={() => navigate('/home')} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => navigate(`/learn/chapter/${chapterId}/guide/2`)} className="bg-blue-600 hover:bg-blue-700">
                 연이어 퀴즈하기
                 </Button>}
 {modeNum === 2 && (
   <>
-    <Button onClick={() => navigate('/home')} className="bg-blue-600 hover:bg-blue-700">
+    <Button onClick={() => navigate(`/learn/chapter/${chapterId}/guide/3`)} className="bg-blue-600 hover:bg-blue-700">
       연이어 복습하기 - 복습 대상 아이템이 있는 경우에 한함
     </Button>
   </>

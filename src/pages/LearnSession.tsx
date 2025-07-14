@@ -13,6 +13,7 @@ import LearningDisplay from '@/components/LearningDisplay';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import StreamingControls from '@/components/StreamingControls';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 
 // 재시도 설정
 const RETRY_CONFIG = {
@@ -22,6 +23,7 @@ const RETRY_CONFIG = {
 };
 
 const LearnSession = () => {
+  const { checkBadges } = useBadgeSystem();
   const { categoryId, chapterId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -376,7 +378,7 @@ const LearnSession = () => {
         } else {
           setCurrentFrame(0);
         }
-      }, 1000 / 30);
+      }, 1000 / 10); // 우측에 나누는 숫자가 키프레임 속도
     } else {
       if (animationIntervalRef.current) {
         clearInterval(animationIntervalRef.current);
@@ -525,6 +527,7 @@ const LearnSession = () => {
 
   if (sessionComplete) // 모든 내용이 완료 된 경우
   {
+    checkBadges("");
     navigate(`/complete/chapter/${chapterId}/${1}`);
   }
 

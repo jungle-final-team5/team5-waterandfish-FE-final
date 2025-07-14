@@ -26,7 +26,6 @@ function getChapterStatus(lessons: Lesson[]) {
 }
 
 const Chapters = () => {
-  const { checkBadges } = useBadgeSystem();
   const navigate = useNavigate();
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
@@ -58,6 +57,9 @@ const Chapters = () => {
           await connectToWebSockets(response.data.data.ws_urls);
           showStatus(); // 전역 상태 표시 활성화
 
+          // 학습 진도 이벤트 기록
+          await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+
           // lesson_mapper를 URL state로 전달
           navigate(path, {
             state: {
@@ -70,11 +72,6 @@ const Chapters = () => {
         console.warn('WebSocket 연결 실패:', wsError);
         // WebSocket 연결 실패해도 페이지 이동은 계속 진행
       }
-
-      // 학습 진도 이벤트 기록
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const userId = user._id;
-      await API.post('/progress/lessons/events', { user_id: userId, lesson_ids: lessonIds });
 
       setConnectingChapter(null);
       navigate(path);
@@ -102,6 +99,9 @@ const Chapters = () => {
           await connectToWebSockets(response.data.data.ws_urls);
           showStatus(); // 전역 상태 표시 활성화
 
+          // 학습 진도 이벤트 기록
+          await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+
           // lesson_mapper를 URL state로 전달
           navigate(path, {
             state: {
@@ -114,11 +114,6 @@ const Chapters = () => {
         console.warn('WebSocket 연결 실패:', wsError);
         // WebSocket 연결 실패해도 페이지 이동은 계속 진행
       }
-
-      // 학습 진도 이벤트 기록
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const userId = user._id;
-      await API.post('/progress/lessons/events', { user_id: userId, lesson_ids: lessonIds });
 
       setConnectingChapter(null);
       navigate(path);
@@ -146,6 +141,9 @@ const Chapters = () => {
           await connectToWebSockets(response.data.data.ws_urls);
           showStatus(); // 전역 상태 표시 활성화
 
+          // 학습 진도 이벤트 기록
+          await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+
           // lesson_mapper를 URL state로 전달
           navigate(path, {
             state: {
@@ -158,11 +156,6 @@ const Chapters = () => {
         console.warn('WebSocket 연결 실패:', wsError);
         // WebSocket 연결 실패해도 페이지 이동은 계속 진행
       }
-
-      // 학습 진도 이벤트 기록
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const userId = user._id;
-      await API.post('/progress/lessons/events', { user_id: userId, lesson_ids: lessonIds });
 
       setConnectingChapter(null);
       navigate(path);

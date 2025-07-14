@@ -19,6 +19,7 @@ import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
 import QuizTimer from '@/components/QuizTimer';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 
 interface Lesson extends LessonBase {
   sign_text?: string;
@@ -32,6 +33,7 @@ const QUIZ_TIME_LIMIT = 15;
 
 // caution : 백엔드 api에 오타 수정 해야 이거 작동함. pr 잊지말고 해야 작동 보장함
 const ReviewSession = () => {
+  const { checkBadges } = useBadgeSystem();
   const [animData, setAnimData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
@@ -68,7 +70,7 @@ const ReviewSession = () => {
     // TODO? : 복습하기 진입 전 복습해야 할 대상 단어들 목록을 조회 할텐데, 그 조회 결과를 그대로 쓸 수 있을지에 대한 고민
     useEffect(() => {
     setLessonLoading(true);
-    API.get(`/progress/failures/${chapterId}`)
+    API.get<{ success: boolean; data: Lesson[] }>(`/progress/failures/${chapterId}`)
       .then(res => {
         const wrongLessons = res.data.data;
         console.log(res);
@@ -85,8 +87,7 @@ const ReviewSession = () => {
       });
   }, [chapterId]);
 
-  // 레슨 하나가 바뀔 때마다 해당하는 모델 준비하는 코드.
-  // TODO : 기존 학습/퀴즈와 동일하게 챕터 단위의 모델을 가져오도록 개선해야함
+  // 의도적으로 레슨 하나가 바뀔 때마다 해당하는 모델 준비하는 코드.
   useEffect(() => {
   
     if (!lessonId) return;
@@ -132,7 +133,7 @@ const ReviewSession = () => {
         setCurrentFrame(prev =>
           prev < animData.pose.length - 1 ? prev + 1 : 0
         );
-      }, 1000 / 30);
+      }, 1000 / 10); // 우측에 나누는 숫자가 키프레임 속도이다.
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -171,6 +172,14 @@ const ReviewSession = () => {
     minTrackingConfidence: 0.5,
     enableLogging: false
   });
+
+  // 최근 학습 반영: 세션 진입 시점에 호출
+  useEffect(() => {
+    if (lessons && lessons.length > 0) {
+      const lessonIds = lessons.map(l => l.id);
+      API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+    }
+  }, [lessons]);
 
   // 캠(비디오)은 항상 켜지도록 (페이지 진입 시 바로 startCamera, 언마운트 시 stopCamera)
   useEffect(() => {
@@ -258,6 +267,7 @@ const ReviewSession = () => {
       if(next === 1)
       {
         setIsQuizMode(true);
+        handleStartQuiz();
       }
       else
       {
@@ -290,6 +300,15 @@ const ReviewSession = () => {
     }
   }, [lessonIdx, lessons]);
 
+  const handleRepeatSign = useCallback(() => {
+    console.log("반복");
+    setIsQuizMode(false);
+    setCorrectCount(0);
+    setCurrentResult(null);
+    setIsRecording(true);
+
+  }, []);
+
   // 시간 초과 시 호출
   const handleTimeUp = useCallback(() => {
     console.log('⏰ 시간 초과! 오답 처리');
@@ -297,6 +316,7 @@ const ReviewSession = () => {
     setTimerActive(false);
     setFeedback('incorrect');
 
+    // 오답이면 다시해 이녀석아
     if (lesson) {
       setQuizResults(prev => [...prev, {
         signId: lesson.id,
@@ -305,11 +325,11 @@ const ReviewSession = () => {
       }]);
     }
 
-    // 3초 후 다음 문제로 이동
+    
     setTimeout(() => {
-      handleNextSign();
+      handleRepeatSign();
     }, 3000);
-  }, [lesson, handleNextSign]);
+  }, [lesson, handleRepeatSign]);
 
   // 퀴즈 시작 함수
   const handleStartQuiz = () => {
@@ -372,8 +392,21 @@ useEffect(() => {
       console.log("다음 레슨으로 넘어가겠다!!");
       }
 
+      console.log("완료!");
+            const recordActivity = async () => {
+        try {
+          await API.post(`/review/mark/${lesson.id}`);
+          console.log("해당 리뷰에 대한 기록을 완료했다.");
+        } catch (err) {
+          console.error("기록을 못했어요..", err);
+        };
+    }
+    recordActivity();
+    
+      
     } else if (!isCompleted && feedback === null && !isWaitingForReset) {
       // 3회 미만이고 모달이 닫혔으며, 리셋 대기가 아닐 때만 분류 재시작
+      console.log("불리면 안되는데");
       setIsRecording(true);
     }
   }, [correctCount, isCompleted, feedback, isWaitingForReset]);
@@ -407,13 +440,23 @@ useEffect(() => {
     return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
   }
   if (lessons.length === 0) {
-    return <div className="text-center mt-10 text-gray-600">복습할 틀린 문제가 없습니다!</div>;
+    return (
+
+      <div className="text-center mt-10 text-gray-600">복습할 틀린 문제가 없습니다!
+      <Button onClick={() => navigate('/home')}>돌아가기</Button>
+      </div>
+
+      
+    );
   }
 
   // 완료 화면
   if (isCompleted) {
+    checkBadges("");
     navigate(`/complete/chapter/${chapterId}/${3}`);
   }
+
+
 
   return (
     <div className="min-h-screen bg-gray-50">

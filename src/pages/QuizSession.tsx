@@ -19,6 +19,7 @@ import { Chapter } from '@/types/learning';
 import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
 import VideoInput from '@/components/VideoInput';
 import StreamingControls from '@/components/StreamingControls';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 
 // 재시도 설정
 const RETRY_CONFIG = {
@@ -28,6 +29,7 @@ const RETRY_CONFIG = {
 };
 
 const QuizSession = () => {
+  const { checkBadges } = useBadgeSystem();
   const { categoryId, chapterId, sessionType } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -637,12 +639,21 @@ const QuizSession = () => {
 
   // 타이머 키 리셋은 handleNextSign에서만 처리
 
+  // 최근 학습 반영: 세션 진입 시점에 호출
+  useEffect(() => {
+    if (lessons && lessons.length > 0) {
+      const lessonIds = lessons.map(l => l.id);
+      API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+    }
+  }, [lessons]);
+
   if (sessionComplete) {
     const totalQuestions = lessons.length;
     const correctCount = quizResults.filter(result => result.correct).length;
     const wrongCount = totalQuestions - correctCount;
     
 // 퀴즈 결과 데이터와 함께 SessionComplete 페이지로 이동
+checkBadges("");
 navigate(`/complete/chapter/${chapterId}/${2}`, {
   state: {
     totalQuestions: lessons.length,
