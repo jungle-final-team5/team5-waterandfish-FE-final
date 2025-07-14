@@ -8,7 +8,7 @@ import {
   CheckCircle,
   BookOpen
 } from 'lucide-react';
-import WebcamView from '@/components/WebcamView';
+ 
 import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
@@ -32,6 +32,7 @@ const CORRECT_TARGET = 3;
 const Learn = () => {
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
     const [videoSrc, setVideoSrc] = useState<string | null>(null);
+
     const [isSlowMotion, setIsSlowMotion] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [currentResult, setCurrentResult] = useState<any>(null);
@@ -454,11 +455,16 @@ const Learn = () => {
     if (lessonId) loadAnim();
   }, [lessonId]);
 
-    const togglePlaybackSpeed = () => {
+const togglePlaybackSpeed = () => {
   setIsSlowMotion(prev => !prev);
 };
 
-
+useEffect(() => {
+  const videoElement = document.querySelector('video[src]') as HTMLVideoElement;
+  if (videoElement) {
+    videoElement.playbackRate = isSlowMotion ? 0.5 : 1.0;
+  }
+}, [isSlowMotion, videoSrc]);
   // 분류 결과 처리: 정답이면 카운트 증가, 3회 이상이면 완료
   useEffect(() => {
     if (!wsUrl) return;
