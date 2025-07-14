@@ -728,12 +728,12 @@ const Dashboard: React.FC = () => {
               <HomeOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">홈</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition-colors"
               onClick={() => navigate('/category')}>
               <BookOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">학습</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition-colors"
               onClick={() => navigate('/review')}>
               <ReloadOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">복습</span>
