@@ -20,6 +20,8 @@ import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
 import LearningDisplay from '@/components/LearningDisplay';
 import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
 import { ClassificationResult, signClassifierClient, LandmarksData } from '@/services/SignClassifierClient';
+import StreamingControls from '@/components/StreamingControls';
+import SessionHeader from '@/components/SessionHeader';
 
 interface Lesson extends LessonBase {
   sign_text?: string;
@@ -31,14 +33,13 @@ const CORRECT_TARGET = 3;
 
 const Learn = () => {
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
-    const [videoSrc, setVideoSrc] = useState<string | null>(null);
-    const [isSlowMotion, setIsSlowMotion] = useState(false);
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [isSlowMotion, setIsSlowMotion] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [currentResult, setCurrentResult] = useState<any>(null);
   const [displayConfidence, setDisplayConfidence] = useState<string>('');
   const [transmissionCount, setTransmissionCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
-  const [incorrectCount, setIncorrectCount] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isWaitingForReset, setIsWaitingForReset] = useState(false);
   const location = useLocation();
@@ -62,12 +63,12 @@ const Learn = () => {
   const [currentWsUrl, setCurrentWsUrl] = useState<string>('');
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const currentSign = lessons[currentSignIndex];
   const currentSignId = lessons[currentSignIndex]?.id;
   const [isBufferingPaused, setIsBufferingPaused] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const { connectionStatus, wsList, sendMessage } = useWebsocket();
-  
+  const currentSign = lesson?.sign_text;
+
   // 재시도 설정
   const RETRY_CONFIG = {
     maxAttempts: 3,
@@ -76,6 +77,7 @@ const Learn = () => {
   };
   const [maxConfidence, setMaxConfidence] = useState(0.0);
   const studyListRef = useRef<string[]>([]);
+
   const [landmarksBuffer, setLandmarksBuffer] = useState<LandmarksData[]>([]);
   const bufferIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const BUFFER_DURATION = 1000; // 2초
@@ -235,7 +237,7 @@ const Learn = () => {
                   break;
                 }
                 const { prediction, confidence, probabilities } = msg.data;
-                const target = currentSign?.word;
+                const target = lesson?.sign_text;
                 let percent: number | undefined = undefined;
                 if (prediction === target) {
                   percent = confidence * 100;
@@ -248,7 +250,7 @@ const Learn = () => {
                 setCurrentResult(msg.data);
                 if (percent >= 80.0) {
                   setFeedback("correct");
-                  studyListRef.current.push(currentSign.id);
+                  studyListRef.current.push(lesson?.id);
                   console.log("PASSED");
                 }
                 break;
@@ -285,6 +287,7 @@ const Learn = () => {
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
     // 녹화 중일 때만 버퍼에 추가
     if (isRecording && isConnected) {
+      console.log("✅ 랜드마크 감지됨");
       setLandmarksBuffer(prev => {
         const newBuffer = [...prev, landmarks];
         return newBuffer;
@@ -300,6 +303,7 @@ const Learn = () => {
     videoRef,
     canvasRef,
     isInitialized,
+    startCamera,
     stopCamera,
     inspect_sequence,
     initializeSession
@@ -340,6 +344,7 @@ const Learn = () => {
               if (isBufferingPaused) {
                 setIsBufferingPaused(false);
               }
+              console.log('🔄 랜드마크 시퀀스 전송됨 (1초 간격)');
               sendMessage(JSON.stringify(landmarksSequence), currentConnectionId);
             }
             else {
@@ -365,7 +370,6 @@ const Learn = () => {
         clearInterval(bufferIntervalRef.current);
         bufferIntervalRef.current = null;
       }
-
       // 버퍼 비우기
       setLandmarksBuffer([]);
     }
@@ -390,6 +394,20 @@ const Learn = () => {
       }
     }
   }, []);
+
+  // MediaPipe 초기화 후 카메라 자동 시작
+  useEffect(() => {
+    if (isInitialized && !isCompleted) {
+      console.log('🎥 MediaPipe 초기화 완료, 카메라 시작...');
+      startCamera().then(success => {
+        if (success) {
+          console.log('✅ 카메라 시작 성공');
+        } else {
+          console.error('❌ 카메라 시작 실패');
+        }
+      });
+    }
+  }, [isInitialized, isCompleted, startCamera]);
 
   //===============================================
 
@@ -433,76 +451,28 @@ const Learn = () => {
 
   // 애니메이션 데이터 로딩
   useEffect(() => {
-  
     const loadAnim = async () => {
       try {
-          const response = await API.get(`/anim/${lessonId}`, {
-        responseType: 'blob'
-      });
-    const videoBlob = new Blob([response.data], {type: 'video/webm'});
-      const videoUrl = URL.createObjectURL(videoBlob);
+        const response = await API.get(`/anim/${lessonId}`, {
+          responseType: 'blob'
+        });
+        const videoBlob = new Blob([response.data as BlobPart], { type: 'video/webm' });
+        const videoUrl = URL.createObjectURL(videoBlob);
 
-      if(videoSrc)
-      {
-        URL.revokeObjectURL(videoSrc);
+        if (videoSrc) {
+          URL.revokeObjectURL(videoSrc);
+        }
+        setVideoSrc(videoUrl);
+      } catch (error) {
+        console.error('애니메이션 불러오는데 실패했습니다 : ', error);
       }
-      setVideoSrc(videoUrl);
-    } catch (error) {
-      console.error('애니메이션 불러오는데 실패했습니다 : ', error);
-    }
     };
     if (lessonId) loadAnim();
   }, [lessonId]);
 
-    const togglePlaybackSpeed = () => {
-  setIsSlowMotion(prev => !prev);
-};
-
-
-  // 분류 결과 처리: 정답이면 카운트 증가, 3회 이상이면 완료
-  useEffect(() => {
-    if (!wsUrl) return;
-    if (wsList && wsList.length > 0) {
-      const handlers = wsList.map(ws => {
-        const fn = (event: MessageEvent) => {
-          try {
-            const msg = JSON.parse(event.data);
-            if (feedback !== null) return; // 모달 떠 있으면 결과 무시
-            if (msg.type === 'classification_result') {
-              setCurrentResult(msg.data);
-              const { prediction, confidence, probabilities } = msg.data;
-              const target = lesson?.sign_text;
-              let percent: number | undefined = undefined;
-              if (prediction === target) {
-                percent = confidence * 100;
-              } else if (probabilities && target && probabilities[target] != null) {
-                percent = probabilities[target] * 100;
-              }
-              if (percent != null) {
-                setDisplayConfidence(`${percent.toFixed(1)}%`);
-              }
-              // 정답 시
-              if (percent != null && percent >= 80.0 && prediction === target && feedback !== 'correct') {
-                setFeedback('correct');
-                setIsRecording(false); // 분류 멈춤, 캠은 계속
-              } else if (
-                prediction && prediction !== target && prediction !== 'None' && percent != null && percent >= 80.0 && feedback !== 'incorrect'
-              ) {
-                // None이 아니고, 정답도 아니고, 신뢰도 80% 이상일 때만 오답
-                setFeedback('incorrect');
-                setIsRecording(false);
-              }
-            }
-          } catch (e) { }
-        };
-        ws.addEventListener('message', fn);
-        return { ws, fn };
-      });
-      return () => {
-        handlers.forEach(({ ws, fn }) => ws.removeEventListener('message', fn));
-      };
-    }
-  }, [wsList, wsUrl, lesson, feedback]);
+  const togglePlaybackSpeed = () => {
+    setIsSlowMotion(prev => !prev);
+  };
 
   // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당)
   const handleFeedbackComplete = useCallback(() => {
@@ -515,6 +485,7 @@ const Learn = () => {
     setCurrentResult(null);
     if (feedback === 'correct') {
       setIsWaitingForReset(true); // 정답 후에는 리셋 대기
+      setIsRecording(true);
     }
   }, [feedback]);
 
@@ -536,7 +507,7 @@ const Learn = () => {
       setFeedback(null);
       setCurrentResult(null);
       setIsWaitingForReset(false);
-      
+
     } else if (!isCompleted && feedback === null && !isWaitingForReset) {
       // 3회 미만이고 모달이 닫혔으며, 리셋 대기가 아닐 때만 분류 재시작
       setIsRecording(true);
@@ -611,127 +582,83 @@ const Learn = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/home')}
-                className="hover:bg-blue-50"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                홈으로
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-800">{lesson?.sign_text ?? lessonId ?? ''}</h1>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                {correctCount} / {CORRECT_TARGET} 회 성공
-              </div>
-              <div className="w-32">
-                <Progress value={(correctCount / CORRECT_TARGET) * 100} className="h-2" />
-              </div>
-            </div>
+      <SessionHeader
+        isQuizMode={false}
+        currentSign={"쑤퍼노바"}
+        chapter={"chaptar"}
+        currentSignIndex={1}
+        progress={1}
+        categoryId={undefined}
+        navigate={navigate}
+      />
+
+      <div className="grid lg:grid-cols-2 gap-12">
+        {videoSrc ? (
+          <video
+            src={videoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-auto"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
+            <p>비디오 로딩 중...</p>
           </div>
-        </div>
-      </header>
+        )}
+        <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-[1400px] mx-auto overflow-x-auto">
-          <div className="grid grid-cols-2 gap-12 items-start justify-center">
-            {/* 애니메이션 영역 */}
-            <div className="w-[680px] min-h-[600px] mx-auto mt-32">
+          {/* 비디오 입력 영역 */}
+          <div className="space-y-4">
+            <VideoInput
+              width={640}
+              height={480}
+              autoStart={true}
+              showControls={true}
+              className="h-full"
+              currentSign={lesson}
+              currentResult={displayConfidence}
+            />
+            <Button
+              onClick={togglePlaybackSpeed}
+              variant="outline"
+              size="sm"
+              className="flex items-center"
+            >
+              {isSlowMotion ? '일반 속도' : '천천히 보기'}
+              {isSlowMotion ? '(1x)' : '(0.5x)'}
+            </Button>
 
-  {videoSrc ? (
-    <video
-      src={videoSrc}
-      autoPlay
-      loop
-      muted
-      playsInline
-      className="w-full h-auto"
-    />
-  ) : (
-    <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
-      <p>비디오 로딩 중...</p>
-    </div>
-  )}
-            </div>
-            {/* 캠 영역 */}
-            <div className="mt-4 p-0 bg-gray-100 rounded-md flex flex-col items-center w-[480px] min-h-[360px] mx-auto">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">실시간 따라하기</h3>
-              <p className="text-gray-600 mb-4">웹캠을 보며 수어를 따라해보세요. 3회 성공 시 학습이 완료됩니다.</p>
-              {/* MediaPipe용 비디오/캔버스만 숨김 */}
-              <div className="hidden relative w-full max-w-lg mx-auto">
-                <video
-                  ref={videoRef}
-                  width={640}
-                  height={480}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="rounded-lg bg-black w-full h-auto object-cover"
-                  style={{ aspectRatio: '4/3' }}
-                />
-                <canvas
-                  ref={canvasRef}
-                  width={640}
-                  height={480}
-                  className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                  style={{ aspectRatio: '4/3' }}
-                />
-              </div>
-              <div className="flex justify-center mt-4">
-                {feedback === 'correct' && (
-                  <span className="text-green-600 font-bold">정답!</span>
-                )}
-                {feedback === 'incorrect' && (
-                  <span className="text-red-600 font-bold">다시 시도해보세요</span>
-                )}
-              </div>
-              {/* VideoInput은 그대로 노출 */}
-              <div className="space-y-4">
-                <VideoInput
-                  width={480}
-                  height={360}
-                  autoStart={true}
-                  showControls={true}
-                  className="h-full"
-                  currentSign={lesson ?? undefined}
-                  currentResult={displayConfidence}
-                />
-                                      <Button 
-      onClick={togglePlaybackSpeed} 
-      variant="outline" 
-      size="sm"
-      className="flex items-center"
-    >
-      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
-      {isSlowMotion ? '(1x)' : '(0.5x)'}
-    </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Feedback Display */}
-          {!isCompleted && feedback && (
-            <div className="mt-8">
-              <FeedbackModalForLearn
-                feedback={feedback}
-                prediction={currentResult?.prediction ?? "none"}
-                onComplete={undefined}
+            {/* 숨겨진 비디오 요소들 */}
+            <div className="hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
               />
+              <canvas ref={canvasRef} />
             </div>
-          )}
+          </div>
+
         </div>
-      </main>
+        {/* 피드백 표시 */}
+        {feedback && (
+          <div className="mt-8">
+            <FeedbackDisplay
+              feedback={feedback}
+              prediction={currentResult.prediction}
+              onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
 export default Learn;
+
+

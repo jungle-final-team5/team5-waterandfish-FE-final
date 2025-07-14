@@ -275,16 +275,16 @@ const LearnSession = () => {
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 재생 속도 토글 함수
-const togglePlaybackSpeed = () => {
-  setIsSlowMotion(prev => !prev);
-};
+  const togglePlaybackSpeed = () => {
+    setIsSlowMotion(prev => !prev);
+  };
 
-useEffect(() => {
-  const videoElement = document.querySelector('video[src]') as HTMLVideoElement;
-  if (videoElement) {
-    videoElement.playbackRate = isSlowMotion ? 0.5 : 1.0;
-  }
-}, [isSlowMotion, videoSrc]);
+  useEffect(() => {
+    const videoElement = document.querySelector('video[src]') as HTMLVideoElement;
+    if (videoElement) {
+      videoElement.playbackRate = isSlowMotion ? 0.5 : 1.0;
+    }
+  }, [isSlowMotion, videoSrc]);
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
     // 녹화 중일 때만 버퍼에 추가
@@ -456,11 +456,10 @@ useEffect(() => {
         responseType: 'blob'
       });
 
-      const videoBlob = new Blob([response.data], {type: 'video/webm'});
+      const videoBlob = new Blob([response.data], { type: 'video/webm' });
       const videoUrl = URL.createObjectURL(videoBlob);
 
-      if(videoSrc)
-      {
+      if (videoSrc) {
         URL.revokeObjectURL(videoSrc);
       }
       setVideoSrc(videoUrl);
@@ -548,20 +547,20 @@ useEffect(() => {
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
-  {videoSrc ? (
-    <video
-      src={videoSrc}
-      autoPlay
-      loop
-      muted
-      playsInline
-      className="w-full h-auto"
-    />
-  ) : (
-    <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
-      <p>비디오 로딩 중...</p>
-    </div>
-  )}
+        {videoSrc ? (
+          <video
+            src={videoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-auto"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
+            <p>비디오 로딩 중...</p>
+          </div>
+        )}
         <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
           {/* 비디오 입력 영역 */}
@@ -575,15 +574,15 @@ useEffect(() => {
               currentSign={currentSign}
               currentResult={displayConfidence}
             />
-                                      <Button 
-      onClick={togglePlaybackSpeed} 
-      variant="outline" 
-      size="sm"
-      className="flex items-center"
-    >
-      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
-      {isSlowMotion ? '(1x)' : '(0.5x)'}
-    </Button>
+            <Button
+              onClick={togglePlaybackSpeed}
+              variant="outline"
+              size="sm"
+              className="flex items-center"
+            >
+              {isSlowMotion ? '일반 속도' : '천천히 보기'}
+              {isSlowMotion ? '(1x)' : '(0.5x)'}
+            </Button>
 
             <StreamingControls
               connectionStatus={connectionStatus}

@@ -88,6 +88,7 @@ interface ProgressOverview {
 }
 
 interface RecommendedSign {
+  id: string;
   word: string;
   description?: string;
   videoUrl?: string;
@@ -180,61 +181,37 @@ const Dashboard: React.FC = () => {
   const circumference = 2 * Math.PI * normalizedRadius;
   const progress = Math.max(0, Math.min(percent, 100));
   const offset = circumference - (progress / 100) * circumference;
-  const [wsUrl, setWsUrl] = useState<string | null>(null);
-  const [wsUrlLoading, setWsUrlLoading] = useState(true);
-  const [isLearnConnected, setIsLearnConnected] = useState(false);
   const { connectedCount, totalConnections } = useWebsocket();
-
 
   const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz } = useChapterHandler();
 
-  const handleStartRecommendation = async (chapterId: string, lessonId: string) => {
+  const handleStartRecommendation = async (lessonId: string) => {
     try {
       setConnectingChapter(lessonId);
-      // 1. WebSocket 연결 시도
+      
+      // WebSocket 연결 시도
       try {
-        API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`)
-          .then(res => {
-            setWsUrl(res.data.data.ws_url);
-            setWsUrlLoading(false);
-            setIsLearnConnected(true);
-          })
-          .catch(() => {
-            setWsUrl(null);
-            setWsUrlLoading(false);
-          });
-        if (wsUrl) {
-          await connectToWebSockets([wsUrl]);
+        const response = await API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`);
+        if (response.data.success && response.data.data.ws_url) {
+          await connectToWebSockets([response.data.data.ws_url]);
           showStatus(); // 전역 상태 표시 활성화
+          navigate(`/learn/${lessonId}`);
           return; // 성공적으로 처리되었으므로 함수 종료
         }
       } catch (wsError) {
         console.warn('WebSocket 연결 실패:', wsError);
         // WebSocket 연결 실패해도 페이지 이동은 계속 진행
       }
+      
+      // WebSocket 연결 실패 시에도 페이지 이동
+      navigate(`/learn/${lessonId}`);
     } catch (err) {
       console.error('학습 시작 실패:', err);
+      setConnectingChapter(null);
     }
   };
 
-  useEffect(() => {
-    if (connectedCount == totalConnections) {
-      setIsLearnConnected(true);
-    }
-    else {
-      setIsLearnConnected(false);
-    }
-  }, [connectedCount, totalConnections]);
 
-  useEffect(() => {
-    if (isLearnConnected == true) {
-      alert("연결 완료");
-      navigate(`/learn/${connectingChapter}`);
-    }
-    else {
-      setIsLearnConnected(false);
-    }
-  }, [isLearnConnected]);
 
   // 시간대별 인사 메시지
   const getGreeting = () => {
@@ -559,8 +536,11 @@ const Dashboard: React.FC = () => {
                   <Button
                     className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
                     onClick={() => {
-                      handleStartRecommendation(recommendedSign.id, recommendedSign.id);
+                      if (recommendedSign?.id) {
+                        handleStartRecommendation(recommendedSign.id);
+                      }
                     }}
+                    disabled={!recommendedSign?.id}
                   >
                     {connectingChapter === recommendedSign?.id ? (
                       <>
