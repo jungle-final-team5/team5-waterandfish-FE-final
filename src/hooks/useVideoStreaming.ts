@@ -5,7 +5,6 @@ import {
   StreamingStatus, 
   DEFAULT_STREAMING_CONFIG 
 } from '@/types/streaming';
-import { getConnectionByUrl } from '@/hooks/useWebsocket';
 
 interface UseVideoStreamingProps {
   connectionStatus: string;

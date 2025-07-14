@@ -1,8 +1,6 @@
-import { Button } from '@/components/ui/button';
 import { Category, Chapter, Lesson } from '@/types/learning';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useVideoStreaming } from '@/hooks/useVideoStreaming';
 import { ClassificationResult, signClassifierClient, LandmarksData } from '@/services/SignClassifierClient';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import React, { useState, useRef, useEffect, useCallback, startTransition } from 'react';
@@ -14,9 +12,6 @@ import SessionHeader from '@/components/SessionHeader';
 import LearningDisplay from '@/components/LearningDisplay';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import StreamingControls from '@/components/StreamingControls';
-import SessionInfo from '@/components/SessionInfo';
-import SystemStatus from '@/components/SystemStatus';
-import FeatureGuide from '@/components/FeatureGuide';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 
 // 재시도 설정
@@ -211,29 +206,6 @@ const LearnSession = () => {
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectTimer = useRef<NodeJS.Timeout | null>(null);
 
-
-  // 비디오 스트리밍 훅
-  const {
-    isStreaming,
-    streamingStatus,
-    currentStream,
-    streamInfo,
-    streamingConfig,
-    streamingStats,
-    // canvasRef,
-    // videoRef,
-    startStreaming,
-    stopStreaming,
-    setStreamingConfig,
-    handleStreamReady,
-    handleStreamError,
-  } = useVideoStreaming({
-    connectionStatus,
-    broadcastMessage,
-    sendMessage,
-    connectionId: currentConnectionId,
-  });
-
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
     console.log(`🎯 랜드마크 감지됨 - 녹화: ${isRecording}, 연결: ${isConnected}`);
@@ -249,7 +221,6 @@ const LearnSession = () => {
       console.log(`⚠️ 랜드마크 버퍼링 건너뜀 - 녹화: ${isRecording}, 연결: ${isConnected}`);
     }
   }, [isRecording, isConnected]);
-
 
   // MediaPipe holistic hook 사용
   const {
@@ -531,6 +502,7 @@ const LearnSession = () => {
     }
   }, [currentSignId, lesson_mapper, retryWsConnection, retryLessonMapper]);
 
+  //
   useEffect(() => {
     if (wsList && wsList.length > 0) {
       // 각 소켓에 대해 핸들러 등록
@@ -610,7 +582,6 @@ const LearnSession = () => {
 
           console.log(chapData.lessons);
           setLessons(chapData.lessons);
-          //setCategory(hierachy)
         } catch (error) {
           console.error('챕터 데이터 로드 실패:', error);
         }
@@ -668,22 +639,13 @@ const LearnSession = () => {
               height={480}
               autoStart={true}
               showControls={true}
-              onStreamReady={handleStreamReady}
-              onStreamError={handleStreamError}
               className="h-full"
               currentSign={currentSign}
               currentResult={displayConfidence}
             />
 
             <StreamingControls
-              isStreaming={isStreaming}
-              streamingStatus={streamingStatus}
-              streamingConfig={streamingConfig}
-              currentStream={currentStream}
               connectionStatus={connectionStatus}
-              onStartStreaming={startStreaming}
-              onStopStreaming={stopStreaming}
-              onConfigChange={setStreamingConfig}
               transitionSign={handleNextSign}
             />
 

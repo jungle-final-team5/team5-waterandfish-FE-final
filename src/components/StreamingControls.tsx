@@ -4,26 +4,12 @@ import { Play, Pause, Upload } from 'lucide-react';
 import { StreamingConfig, STREAMING_PRESETS } from '@/types/streaming';
 
 interface StreamingControlsProps {
-  isStreaming: boolean;
-  streamingStatus: string;
-  streamingConfig: StreamingConfig;
-  currentStream: MediaStream | null;
   connectionStatus: string;
-  onStartStreaming: () => void;
-  onStopStreaming: () => void;
-  onConfigChange: (config: StreamingConfig) => void;
   transitionSign: () => void;
 }
 
 const StreamingControls: React.FC<StreamingControlsProps> = ({
-  isStreaming,
-  streamingStatus,
-  streamingConfig,
-  currentStream,
   connectionStatus,
-  onStartStreaming,
-  onStopStreaming,
-  onConfigChange,
   transitionSign
 }) => {
 
