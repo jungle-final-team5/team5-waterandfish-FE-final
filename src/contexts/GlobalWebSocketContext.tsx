@@ -11,6 +11,8 @@ interface GlobalWebSocketContextType {
   setPosition: (position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left') => void;
   isAutoShow: boolean;
   setAutoShow: (autoShow: boolean) => void;
+  connectedCount: number;
+  totalCount: number;
 }
 
 const GlobalWebSocketContext = createContext<GlobalWebSocketContextType | undefined>(undefined);
@@ -41,7 +43,7 @@ export const GlobalWebSocketProvider: React.FC<GlobalWebSocketProviderProps> = (
   const [isAutoShow, setAutoShow] = useState(autoShowOnConnection);
   
   // WebSocket 상태 모니터링
-  const { connectionStatus, wsList } = useWebsocket();
+  const { connectionStatus, wsList, connectedCount, totalConnections } = useWebsocket();
 
   // WebSocket 연결 시 자동으로 상태 표시
   useEffect(() => {
@@ -63,7 +65,9 @@ export const GlobalWebSocketProvider: React.FC<GlobalWebSocketProviderProps> = (
     position,
     setPosition,
     isAutoShow,
-    setAutoShow
+    setAutoShow,
+    connectedCount,
+    totalCount: totalConnections
   };
 
   return (
