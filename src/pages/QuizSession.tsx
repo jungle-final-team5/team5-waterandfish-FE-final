@@ -421,9 +421,8 @@ const QuizSession = () => {
   // 퀴즈 관련 처리
   //===============================================
 
-  // sessionComplete 시 소켓 연결 해제 및 결과 전송
-  useEffect(() => {
-    if (sessionComplete) {
+const beforeNavigate = useCallback(async () => {
+      
       disconnectWebSockets();
 
       // 백엔드 퀴즈 제출 API 사용
@@ -432,6 +431,8 @@ const QuizSession = () => {
         correct: result.correct,
         timeSpent: result.timeSpent
       }));
+      console.log("run!");
+      console.log(results);
 
       API.post(`/quiz/chapter/${chapterId}/submit`, {
         results: results
@@ -443,24 +444,44 @@ const QuizSession = () => {
       }).catch((error) => {
         console.error('퀴즈 결과 제출 실패:', error);
       });
-    }
-  }, [sessionComplete, quizResults, chapterId]);
+    
+}, [sessionComplete, quizResults, chapterId]);
 
-  // 다음 수어로 넘어가는 내용
-  const handleNextSign = useCallback(async () => {
-    // 타이머 상태 초기화
-    setTimerActive(false);
-    setQuizStarted(false);
-    setIsRecording(false);
-    setIsQuizReady(false);
-
-    if (lessons && currentSignIndex < lessons.length - 1) {
-      setCurrentSignIndex(currentSignIndex + 1);
-      setFeedback(null);
-    } else {
-      setSessionComplete(true);
+// handleNextSign 함수 수정
+const handleNextSign = useCallback(async (latestResults = quizResults) => {
+  console.log('🔄 다음 수어로 이동:', currentSignIndex + 1);
+  console.log('현재 퀴즈 결과:', latestResults);
+  
+  // 타이머 상태 초기화
+  setTimerActive(false);
+  setQuizStarted(false);
+  setIsRecording(false);
+  setIsQuizReady(false);
+  
+  if (lessons && currentSignIndex < lessons.length - 1) {
+    setCurrentSignIndex(currentSignIndex + 1);
+    setFeedback(null);
+  } else {
+    setSessionComplete(true);
+      disconnectWebSockets();
+    // 백엔드 퀴즈 제출 API 사용 (최신 결과 사용)
+    try {
+      const results = latestResults.map(result => ({
+        lessonId: result.signId,
+        correct: result.correct,
+        timeSpent: result.timeSpent
+      }));
+      console.log("yo");
+      console.log(results);
+      await API.post(`/quiz/chapter/${chapterId}/submit`, {
+        results: results
+      });
+      console.log('퀴즈 결과 제출 완료');
+    } catch (error) {
+      console.error('퀴즈 결과 제출 실패:', error);
     }
-  }, [currentSignIndex, lessons]);
+  }
+}, [currentSignIndex, lessons, chapterId]);
 
   // FeedbackDisplay 완료 콜백 함수
   const handleFeedbackComplete = () => {
@@ -570,19 +591,30 @@ const QuizSession = () => {
                   setFeedback("correct");
                   studyListRef.current.push(currentSign.id);
 
+                  
+
                   // 퀴즈 결과 저장 (정답)
                   if (currentSign) {
-                    setQuizResults(prev => [...prev, {
-                      signId: currentSign.id,
-                      correct: true,
-                      timeSpent: QUIZ_TIME_LIMIT - timeSpent
-                    }]);
-                  }
-
-                  // 정답 시 3초 후 다음 문제로 이동
-                  setTimeout(() => {
-                    handleNextSign();
-                  }, 3000);
+    // 새 결과 객체 생성
+    const newResult = {
+      signId: currentSign.id,
+      correct: true,
+      timeSpent: QUIZ_TIME_LIMIT - timeSpent
+    };
+    
+    // 상태 업데이트와 동시에 로컬 변수에도 저장
+    setQuizResults(prev => {
+      const updatedResults = [...prev, newResult];
+      
+      // 상태 업데이트 후 3초 뒤에 다음 문제로 이동
+      setTimeout(() => {
+        console.log("업데이트된 퀴즈 결과 (정답):", updatedResults);
+        handleNextSign(updatedResults); // 업데이트된 결과를 인자로 전달
+      }, 3000);
+      
+      return updatedResults;
+    });
+  }
                 }
                 break;
               }
@@ -654,28 +686,39 @@ const QuizSession = () => {
     };
   }, []);
 
-  // 퀴즈 타이머 관련 (중복 제거)
 
-  // 시간 초과 시 호출
-  const handleTimeUp = useCallback(() => {
-    console.log('⏰ 시간 초과! 오답 처리');
-    setIsRecording(false);
-    setTimerActive(false);
-    setFeedback('incorrect');
+// 시간 초과 시 호출
+const handleTimeUp = useCallback(() => {
+  console.log('⏰ 시간 초과! 오답 처리');
+  setIsRecording(false);
+  setTimerActive(false);
+  setFeedback('incorrect');
 
-    if (currentSign) {
-      setQuizResults(prev => [...prev, {
-        signId: currentSign.id,
-        correct: false,
-        timeSpent: QUIZ_TIME_LIMIT
-      }]);
-    }
-
-    // 3초 후 다음 문제로 이동
-    setTimeout(() => {
-      handleNextSign();
-    }, 3000);
-  }, [currentSign, handleNextSign]);
+  if (currentSign) {
+    // 새 결과 객체 생성
+    const newResult = {
+      signId: currentSign.id,
+      correct: false,
+      timeSpent: QUIZ_TIME_LIMIT
+    };
+    
+    // 상태 업데이트와 동시에 로컬 변수에도 저장
+    setQuizResults(prev => {
+      const updatedResults = [...prev, newResult];
+      
+      // 상태 업데이트 후 3초 뒤에 다음 문제로 이동
+      setTimeout(() => {
+        console.log("업데이트된 퀴즈 결과:", updatedResults);
+        handleNextSign(updatedResults); // 업데이트된 결과를 인자로 전달
+      }, 3000);
+      
+      return updatedResults;
+    });
+    
+    console.log(currentSign.id);
+    console.log("틀린거 저장 완료하다");
+  }
+}, [currentSign]);
 
   // 퀴즈 시작 함수
   const handleStartQuiz = () => {
