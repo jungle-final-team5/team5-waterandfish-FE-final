@@ -394,27 +394,7 @@ useEffect(() => {
 
   const poseLength = animData && animData.pose ? animData.pose.length : 0;
 
-  // 자음 모음쪽으로 네비게이팅 합니다. 이거 따로 빼야함
-  useEffect(() => {
-    API.get<{ success: boolean; data: { title: string }; message: string }>(`/chapters/${chapterId}/session`)
-      .then(res => {
-        const title = res.data.data.title;
-        if (title == '자음') {
-          navigate("/test/letter/consonant/study");
-        } else if (title == '모음') {
-          navigate("/test/letter/vowel/study");
-        }
-        else {
-          localStorage.removeItem("studyword");
-          setCurrentSignIndex(0);
-          setFeedback(null);
-        }
-      })
-      .catch(err => {
-        console.error('타입 조회 실패:', err);
-        navigate("/not-found");
-      });
-  }, [chapterId, categoryId, navigate]);
+
 
 
   // 수어 변경 시점마다 애니메이션 자동 변경 [완료]
