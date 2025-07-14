@@ -5,6 +5,7 @@ import { ArrowLeft, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import API from '@/components/AxiosInstance';
 import { Lesson } from '@/types/learning';
+import { HomeOutlined, BookOutlined, ReloadOutlined } from '@ant-design/icons';
 
 // 챕터별 그룹 타입
 interface ChapterGroup {
@@ -24,8 +25,8 @@ const Review = () => {
       setError(null);
 
       try {
-        const res = await API.get("/progress/failures/me");
-        const lessons: Lesson[] = (res.data as any).data;
+        const res = await API.get<{ data: Lesson[] }>("/progress/failures/me");
+        const lessons: Lesson[] = res.data.data;
 
         // 챕터별로 그룹핑 (chapter_title 사용)
         const groupMap: { [chapter_title: string]: Lesson[] } = {};
@@ -142,7 +143,7 @@ const Review = () => {
                       onClick={e => {
                         e.stopPropagation();
                         if (group.lessons.length > 0) {
-                          navigate(`/learn/chapter/${group.lessons[0].chapter_id}/guide/3`);
+                          navigate(`/learn/chapter/${group.lessons[0].id}/guide/3`);
                         }
                       }}
                     >
@@ -155,6 +156,30 @@ const Review = () => {
           </div>
         )}
       </main>
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-indigo-700 px-6 py-3">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-center space-x-12">
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition-colors"
+              onClick={() => navigate('/home')}>
+              <HomeOutlined className="text-2xl mb-1" />
+              <span className="text-xs font-medium">홈</span>
+            </div>
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition-colors"
+              onClick={() => navigate('/category')}>
+              <BookOutlined className="text-2xl mb-1" />
+              <span className="text-xs font-medium">학습</span>
+            </div>
+            <div className="flex flex-col items-center cursor-pointer text-white"
+              onClick={() => navigate('/review')}>
+              <ReloadOutlined className="text-2xl mb-1" />
+              <span className="text-xs font-medium">복습</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Bottom padding to account for fixed navigation */}
+      <div className="h-20"></div>
     </div>
   );
 };
