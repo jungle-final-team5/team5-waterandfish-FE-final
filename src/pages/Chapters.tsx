@@ -40,6 +40,21 @@ const Chapters = () => {
         disconnectWebSockets();
       
     }, [])
+  const handleletter = async (chapter: Chapter, lessonIds: string[]) => {
+    let path;
+    if(chapter.title == "자음"){
+      path = "/test/letter/consonant/study";
+    }else if(chapter.title == "모음"){
+      path = "/test/letter/vowel/study";
+    } else {
+      path = "/test/letter/word/study";
+    }
+    
+
+    await API.post(`/progress/chapters/${chapter.id}`);
+    await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+    navigate(path);
+  };
   const handleStartChapter = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 1;
     const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
@@ -222,7 +237,190 @@ const Chapters = () => {
   }
 
   const sortedChapters = (categoryData.chapters as Chapter[]).slice(); // 정렬된 챕터 목록
+  if (categoryData.title == "수어 기초"){
+    return (
+    <div className="min-h-screen bg-gray-50"> 
+      <header className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/category')}
+              className="hover:bg-blue-50"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              카테고리로
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-gray-800">
+                {/* {category.icon}  */}
+                {categoryData.title}
+              </h1>
+              <p className="text-sm text-gray-600">{categoryData.description}</p>
+            </div>
+            
+            {/* WebSocket 연결 상태 표시 */}
+            {/* <div className="flex items-center space-x-2">
+              {connectionStatus === 'connected' ? (
+                <div className="flex items-center space-x-1 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-xs">연결됨 ({wsList.length})</span>
+                </div>
+              ) : connectionStatus === 'connecting' ? (
+                <div className="flex items-center space-x-1 text-yellow-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                  <span className="text-xs">연결 중...</span>
+                </div>
+              ) : wsList.length > 0 ? (
+                <div className="flex items-center space-x-1 text-red-600">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-xs">연결 안됨</span>
+                </div>
+              ) : null}
+            </div> */}
+          </div>
+        </div>
+      </header>
 
+      <main className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          {sortedChapters.map((chapter, index) => {
+            const lessonIds = (chapter.lessons || []).map((lesson: Lesson) => lesson.id);
+            const chapterStatus = getChapterStatus(chapter.lessons);
+            return (
+              <Card key={chapter.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {chapter.type === 'word' ? (
+                        <FileText className="h-6 w-6 text-blue-600" />
+                      ) : (
+                        <MessageSquare className="h-6 w-6 text-green-600" />
+                      )}
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span>챕터 {index + 1}: {chapter.title}</span>
+                          {chapterStatus === 'reviewed' && (
+                            <Badge className="bg-green-500 text-white text-xs flex items-center">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              완료
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm font-normal text-gray-600">
+                          {chapter.type === 'word' ? '단어' : '문장'} • {(chapter.lessons || []).length}개 수어
+                        </div>
+                      </div>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* 진도 표시 */}
+                  {/* <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-gray-600">학습 진도</span>
+                      <span className="text-sm font-semibold text-gray-800">
+                        {chapterProgress.completed}/{chapterProgress.total} ({chapterProgress.percentage}%)
+                      </span>
+                    </div>
+                    <Progress value={chapterProgress.percentage} className="h-2" />
+                  </div> */}
+
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+                    {(chapter.lessons || []).map((lesson) => (
+                      <div
+                        key={lesson.id}
+                        className="text-center p-2 bg-gray-100 rounded text-sm"
+                      >
+                        {lesson.word}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex space-x-3 items-center">
+                    <Button
+                      onClick={() => {
+                        handleletter( chapter, lessonIds)
+
+                      }}
+                      // disabled={connectingChapter === chapter.id}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          학습하기
+                        </>
+                    </Button>
+                     {/* <Button
+                      onClick={() => {
+                        handleStartChapter_quiz( chapter.id, lessonIds)
+
+                      }}
+                      disabled={connectingChapter === chapter.id}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {connectingChapter === chapter.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          연결 중...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          퀴즈를 풀기
+                        </>
+                      )}
+                    </Button> */}
+                     {/* <Button
+                      onClick={() => {
+                        handleStartChapter_review( chapter.id, lessonIds)
+
+                      }}
+                    >
+                      {connectingChapter === chapter.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          연결 중...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          야무진 복습
+                        </>
+                      )}
+                    </Button> */}
+                    {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
+                      <Button
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => {
+                          navigate(`/learn/chapter/${chapter.id}/guide/2`);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        퀴즈 풀기
+                      </Button>
+                    )}
+                    {chapterStatus === 'quiz_wrong' && (
+                      <Button
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={async () => {
+                          // await updateRecentLearning(lessonIds);
+                          navigate(`/learn/chapter/${chapter.id}/guide/3`);
+                        }}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        복습하기
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </main>
+    </div>
+  );
+  }
   return (
     <div className="min-h-screen bg-gray-50"> 
       <header className="bg-white shadow-sm border-b">
