@@ -441,7 +441,7 @@ const Dashboard: React.FC = () => {
               <span className="text-2xl font-bold text-indigo-600">
                 수어지교
               </span>
-              <div className="text-xs text-gray-500 mt-0.5">인터렉티브 수어 학습 플랫폼</div>
+              <div className="text-xs text-gray-500 mt-0.5">인터랙티브 수어 학습 플랫폼</div>
             </div>
           </div>
           {/* 프로필/설정 버튼 - 알림(벨) 아이콘 제거 */}

@@ -352,7 +352,7 @@ const Chapters = () => {
                       <Button
                         className="bg-green-600 hover:bg-green-700"
                         onClick={async () => {
-                          handleStartQuiz(chapter.id, lessonIds, `/category/${categoryId}/chapters`);
+                          navigate(`/learn/chapter/${chapter.id}/guide/3`, { state: { origin: `/category/${categoryId}/chapters` } });
                         }}
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
