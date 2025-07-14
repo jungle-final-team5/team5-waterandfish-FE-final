@@ -34,6 +34,8 @@ const QUIZ_TIME_LIMIT = 15;
 // caution : 백엔드 api에 오타 수정 해야 이거 작동함. pr 잊지말고 해야 작동 보장함
 const ReviewSession = () => {
   const { checkBadges } = useBadgeSystem();
+    const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  
   const [animData, setAnimData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
@@ -113,14 +115,23 @@ const ReviewSession = () => {
 
   // 애니메이션 데이터 로딩 [완료]
   useEffect(() => {
+  
     const loadAnim = async () => {
       try {
-        const response = await API.get(`/anim/${lessonId}`);
-        const data: any = response.data;
-        setAnimData(data.data || data);
-      } catch (error) {
-        console.error('애니메이션 불러오는데 실패했습니다 : ', error);
+          const response = await API.get(`/anim/${lessonId}`, {
+        responseType: 'blob'
+      });
+    const videoBlob = new Blob([response.data], {type: 'video/webm'});
+      const videoUrl = URL.createObjectURL(videoBlob);
+
+      if(videoSrc)
+      {
+        URL.revokeObjectURL(videoSrc);
       }
+      setVideoSrc(videoUrl);
+    } catch (error) {
+      console.error('애니메이션 불러오는데 실패했습니다 : ', error);
+    }
     };
     if (lessonId) loadAnim();
   }, [lessonId]);
@@ -496,14 +507,20 @@ useEffect(() => {
             {/* 애니메이션 영역 */}
             {!isQuizMode  && <div className="flex flex-col items-center justify-center">
               <h3 className="text-lg font-semibold text-gray-800 mb-2">수어 예시</h3>
-              {/* animData 상태 임시 출력 */}
-              {animData && animData.pose && animData.pose.length > 0 ? (
-                <div style={{ minHeight: 360, minWidth: 320, width: '100%' }}>
-                  <ExampleAnim data={animData} currentFrame={currentFrame} showCylinders={true} showLeftHand={true} showRightHand={true}/>
-                </div>
-              ) : (
-                <div className="text-gray-400 mt-8">애니메이션 데이터를 불러오는 중이거나 데이터가 없습니다.</div>
-              )}
+              {videoSrc ? (
+                  <video
+                    src={videoSrc}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-auto"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
+                    <p>비디오 로딩 중...</p>
+                  </div>
+                )}
             </div>
             }
               {isQuizMode  && (

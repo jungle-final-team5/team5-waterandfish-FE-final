@@ -25,6 +25,7 @@ const RETRY_CONFIG = {
 const LearnSession = () => {
   const { checkBadges } = useBadgeSystem();
   const { categoryId, chapterId } = useParams();
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
@@ -438,8 +439,18 @@ const LearnSession = () => {
     try {
       const id = currentSign.id;
       console.log(id);
-      const response = await API.get(`/anim/${id}`);
-      setAnimData(response.data);
+      const response = await API.get(`/anim/${id}`, {
+        responseType: 'blob'
+      });
+
+      const videoBlob = new Blob([response.data], {type: 'video/webm'});
+      const videoUrl = URL.createObjectURL(videoBlob);
+
+      if(videoSrc)
+      {
+        URL.revokeObjectURL(videoSrc);
+      }
+      setVideoSrc(videoUrl);
     } catch (error) {
       console.error('애니메이션 불러오는데 실패했습니다 : ', error);
     }
@@ -449,30 +460,6 @@ const LearnSession = () => {
   useEffect(() => {
     loadAnim();
   }, [currentSign]);
-
-  // 애니메이션 자동 재생 처리 및 프레임 조절
-  useEffect(() => {
-    if (animData) {
-      animationIntervalRef.current = setInterval(() => {
-        if (currentFrame < animData.pose.length - 1) {
-          setCurrentFrame(prev => prev + 1);
-        } else {
-          setCurrentFrame(0);
-        }
-      }, 1000 / 10); // 우측에 나누는 숫자가 키프레임 속도
-    } else {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current);
-        animationIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current);
-      }
-    };
-  }, [animData, currentFrame]);
 
   // 챕터 아이디를 통해 챕터 첫 준비
   useEffect(() => {
@@ -548,11 +535,20 @@ const LearnSession = () => {
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
-        {<LearningDisplay
-          data={animData}
-          currentFrame={currentFrame}
-          totalFrame={150}
-        />}
+  {videoSrc ? (
+    <video
+      src={videoSrc}
+      autoPlay
+      loop
+      muted
+      playsInline
+      className="w-full h-auto"
+    />
+  ) : (
+    <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
+      <p>비디오 로딩 중...</p>
+    </div>
+  )}
         <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
           {/* 비디오 입력 영역 */}
