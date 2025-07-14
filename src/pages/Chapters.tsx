@@ -190,7 +190,7 @@ const Chapters = () => {
                         <Button
                           className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-300"
                           onClick={() => {
-                            handleStartQuiz(chapter.id, lessonIds);
+                            handleStartQuiz(chapter.id, lessonIds, `/category/${categoryId}/chapters`);
                           }}
                           disabled={connectingChapter === chapter.id}
                         >
@@ -202,7 +202,7 @@ const Chapters = () => {
                         <Button
                           className="bg-green-600 hover:bg-green-700"
                           onClick={async () => {
-                            navigate(`/learn/chapter/${chapter.id}/guide/3`);
+                            navigate(`/learn/chapter/${chapter.id}/guide/3`, { state: { origin: `/category/${categoryId}/chapters` } });
                           }}
                         >
                           <RotateCcw className="h-4 w-4 mr-2" />
@@ -310,8 +310,7 @@ const Chapters = () => {
                   <div className="flex space-x-3 items-center">
                     <Button
                       onClick={() => {
-                        handleStartLearn( chapter.id, lessonIds)
-
+                        handleStartLearn(chapter.id, lessonIds, `/category/${categoryId}/chapters`);
                       }}
                       disabled={connectingChapter === chapter.id}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white"
@@ -332,7 +331,7 @@ const Chapters = () => {
                       <Button
                         className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-300"
                         onClick={() => {
-                          handleStartQuiz(chapter.id, lessonIds)
+                          handleStartQuiz(chapter.id, lessonIds, `/category/${categoryId}/chapters`);
                         }}
                         disabled={connectingChapter === chapter.id}
                       >
@@ -353,7 +352,7 @@ const Chapters = () => {
                       <Button
                         className="bg-green-600 hover:bg-green-700"
                         onClick={async () => {
-                          handleStartQuiz(chapter.id, lessonIds)
+                          handleStartQuiz(chapter.id, lessonIds, `/category/${categoryId}/chapters`);
                         }}
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
