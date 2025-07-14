@@ -182,7 +182,7 @@ const Chapters = () => {
   }
 
   const sortedChapters = (categoryData.chapters as Chapter[]).slice(); // 정렬된 챕터 목록
-  iif (categoryData.title == "수어 기초") {
+  if (categoryData.title == "수어 기초") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100"> 
 
