@@ -152,7 +152,7 @@ const Dashboard: React.FC = () => {
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-
+  const [searchLessonIds, setSearchLessonIds] = useState<string[]>([]);
   // 진도율 상태
   const [progressOverview, setProgressOverview] = useState<ProgressOverview | null>(null);
   const [progressLoading, setProgressLoading] = useState(true);
@@ -183,34 +183,9 @@ const Dashboard: React.FC = () => {
   const offset = circumference - (progress / 100) * circumference;
   const { connectedCount, totalConnections } = useWebsocket();
 
-  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz } = useChapterHandler();
+  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz, handleStartSingleLearn } = useChapterHandler();
 
-  const handleStartRecommendation = async (lessonId: string) => {
-    try {
-      setConnectingChapter(lessonId);
-      
-      // WebSocket 연결 시도
-      try {
-        const response = await API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`);
-        if (response.data.success && response.data.data.ws_url) {
-          await connectToWebSockets([response.data.data.ws_url]);
-          showStatus(); // 전역 상태 표시 활성화
-          navigate(`/learn/${lessonId}`);
-          return; // 성공적으로 처리되었으므로 함수 종료
-        }
-      } catch (wsError) {
-        console.warn('WebSocket 연결 실패:', wsError);
-        // WebSocket 연결 실패해도 페이지 이동은 계속 진행
-      }
-      
-      // WebSocket 연결 실패 시에도 페이지 이동
-      navigate(`/learn/${lessonId}`);
-    } catch (err) {
-      console.error('학습 시작 실패:', err);
-      setConnectingChapter(null);
-    }
-  };
-
+  
 
 
   // 시간대별 인사 메시지
@@ -328,6 +303,7 @@ const Dashboard: React.FC = () => {
         const { data } = await API.get<{ data: { lessons: RecommendedSign[] } }>('/search', { params: { q: query, k: 5 } });
         if (Array.isArray(data?.data?.lessons)) {
           setSearchResults(data.data.lessons.map((item) => item.word));
+          setSearchLessonIds(data.data.lessons.map((item) => item.id));
         } else {
           setSearchResults([]);
         }
@@ -346,10 +322,10 @@ const Dashboard: React.FC = () => {
     debouncedFetch(query);
   };
 
-  const handleSearchSelect = (selectedItem: string) => {
+  const handleSearchSelect = (selectedItem: string, index: number) => {
     setSearchQuery(selectedItem);
     setShowResults(false);
-    navigate(`/learn/word/${encodeURIComponent(selectedItem)}`);
+    handleStartSingleLearn(searchLessonIds[index]);
   };
 
   const handleCardClick = async (cardType: string) => {
@@ -463,7 +439,7 @@ const Dashboard: React.FC = () => {
             {searchResults.map((result, index) => (
               <button
                 key={index}
-                onClick={() => handleSearchSelect(result)}
+                onClick={() => handleSearchSelect(result, index)}
                 className="w-full px-4 py-3 text-left hover:bg-blue-50 first:rounded-t-xl last:rounded-b-xl transition-colors"
               >
                 <div className="flex items-center justify-between">
@@ -537,7 +513,7 @@ const Dashboard: React.FC = () => {
                     className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
                     onClick={() => {
                       if (recommendedSign?.id) {
-                        handleStartRecommendation(recommendedSign.id);
+                        handleStartSingleLearn(recommendedSign.id);
                       }
                     }}
                     disabled={!recommendedSign?.id}
