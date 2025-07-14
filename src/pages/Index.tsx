@@ -51,7 +51,7 @@ const Index = () => {
     navigate(`/learn/word/${encodeURIComponent(selectedItem)}`);
   };
 
-  const handleStartLearning = () => {
+  const handleLogin = () => {
     if (isAuthenticated) {
       navigate('/home');
     } else {
@@ -136,7 +136,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              onClick={handleStartLearning}
+              onClick={handleLogin}
               className="bg-indigo-600 hover:bg-indigo-700 text-lg px-8 py-4"
             >
               학습하러 가기
