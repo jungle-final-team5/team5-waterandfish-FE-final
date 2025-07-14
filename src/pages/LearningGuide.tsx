@@ -54,10 +54,6 @@ const LearningGuide = () => {
     }
   };
 
-  const goBack = () => {
-    navigate(`/category/${chapterId}/chapters`);
-  };
-
   useEffect(() => {
     return () => {
       disconnectWebSockets();
