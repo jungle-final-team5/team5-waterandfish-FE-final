@@ -44,15 +44,12 @@ import StreakModal from '@/components/StreakModal';
 import ProgressModal from '@/components/ProgressModal';
 import { useToast } from '@/hooks/use-toast';
 import { useLearningData } from '@/hooks/useLearningData';
-import { useNotificationHistory } from '@/hooks/useNotificationHistory';
 import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import { useStreakData } from '@/hooks/useStreakData';
 import API from '@/components/AxiosInstance';
 import debounce from 'lodash.debounce';
-import { NotificationDrawer } from '@/components/NotificationDrawer';
 import HandPreferenceModal from '@/components/HandPreferenceModal';
 import OnboardingTour from '@/components/OnboardingTour';
-import { useNotifications } from '@/hooks/useNotifications';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -136,10 +133,8 @@ const getIconForBadge = (iconName: string | undefined) => {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { unreadCount } = useNotificationHistory();
   const { checkBadges } = useBadgeSystem();
   const { currentStreak, studyDates, loading: streakLoading } = useStreakData();
-  const { showStreakAchievement } = useNotifications();
   const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { logout } = useAuth();
 
@@ -351,7 +346,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100">
       <style>
         {`
           .!rounded-button {
@@ -378,22 +373,13 @@ const Dashboard: React.FC = () => {
               <div className="text-xs text-gray-500 mt-0.5">인터렉티브 수어 학습 플랫폼</div>
             </div>
           </div>
-          {/* 프로필/설정 버튼 */}
+          {/* 프로필/설정 버튼 - 알림(벨) 아이콘 제거 */}
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
-            <NotificationDrawer>
-              <Button variant="ghost" size="icon" className="hover:bg-blue-50 transition-colors relative">
-                <Bell className="h-5 w-5 text-gray-600" />
-                {unreadCount > 0 && (
-                  <CustomBadge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </CustomBadge>
-                )}
-              </Button>
-            </NotificationDrawer>
+            {/* 알림 버튼 제거됨 */}
             <Button onClick={() => navigate('/profile')} variant="ghost" size="icon">
               <User className="h-5 w-5 text-gray-600" />
             </Button>
-            <Button onClick={handleLogout} variant="ghost" size="icon">
+            <Button onClick={handleLogout} variant="ghost" size="icon" aria-label="logout">
               <LogOut className="h-5 w-5 text-gray-600" />
             </Button>
           </div>
@@ -409,7 +395,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 중앙 검색 바 (Home.tsx 스타일) */}
-      <div className="w-full max-w-2xl mx-auto mt-8 mb-8 relative transition-all duration-200 hover:shadow-xl hover:scale-105 rounded-xl bg-white">
+      <div className="w-full max-w-2xl mx-auto mt-8 mb-8 relative transition-all duration-200 rounded-xl bg-white">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <CustomInput
@@ -505,21 +491,25 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-xl font-bold text-gray-800">맞춤 추천 학습</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {(progressOverview?.categories ?? []).slice(0, 3).map((category) => (
-                  <div key={category.id} className="bg-violet-50 rounded-lg p-6 shadow-lg min-h-[140px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 hover:bg-violet-100 cursor-pointer"
-                    onClick={() => navigate(`/learn/word/${encodeURIComponent(category.name)}`)}
-                  >
-                    <h3 className="font-semibold text-gray-800 mb-2 text-lg">{category.name}</h3>
-                    <div className="flex items-center justify-between mt-auto">
-                      <CustomBadge variant={category.status === 'completed' ? 'secondary' : 'default'} className="text-sm px-2 py-1 text-violet-600 bg-violet-100 hover:bg-violet-200">
-                        {category.status === 'completed' ? '완료' : `진도: ${category.progress}%`}
-                      </CustomBadge>
-                      <Button className="bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 cursor-pointer whitespace-nowrap px-3 py-1.5" size="sm">
-                        {category.status === 'completed' ? '복습' : '계속'}
-                      </Button>
+                {(progressOverview?.categories ?? [])
+                  .filter(category => category.status !== 'completed')
+                  .sort((a, b) => b.progress - a.progress)
+                  .slice(0, 3)
+                  .map((category) => (
+                    <div key={category.id} className="bg-violet-50 rounded-lg p-6 shadow-lg min-h-[140px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 hover:bg-violet-100 cursor-pointer"
+                      onClick={() => navigate(`/category/${category.id}/chapters`)}
+                    >
+                      <h3 className="font-semibold text-gray-800 mb-2 text-lg">{category.name}</h3>
+                      <div className="flex items-center justify-between mt-auto">
+                        <CustomBadge variant="default" className="text-sm px-2 py-1 text-violet-600 bg-violet-100 hover:bg-violet-200">
+                          {`진도: ${category.progress}%`}
+                        </CustomBadge>
+                        <Button className="bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 cursor-pointer whitespace-nowrap px-3 py-1.5" size="sm">
+                          계속
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
@@ -610,15 +600,10 @@ const Dashboard: React.FC = () => {
                       {percent}%
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <div className="font-semibold text-gray-800">완료 챕터</div>
-                      <div className="text-blue-600 font-bold">{progressOverview?.completed_chapters || 0}/{progressOverview?.total_chapters || 0}</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-800">학습 시간</div>
-                      <div className="text-green-600 font-bold">24시간</div>
-                    </div>
+                  {/* 완료 챕터 중앙 정렬 */}
+                  <div className="mt-4 flex flex-col items-center justify-center text-sm">
+                    <div className="font-semibold text-gray-800">완료 챕터</div>
+                    <div className="text-blue-600 font-bold">{progressOverview?.completed_chapters || 0}/{progressOverview?.total_chapters || 0}</div>
                   </div>
                 </div>
               </Card>
@@ -659,19 +644,19 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-indigo-700 px-6 py-3">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-center space-x-12">
-            <div className="flex flex-col items-center cursor-pointer text-indigo-600">
+            <div className="flex flex-col items-center cursor-pointer text-white">
               <HomeOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">홈</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+            <div className="flex flex-col items-center cursor-pointer text-white"
                  onClick={() => navigate('/category')}>
               <BookOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">학습</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+            <div className="flex flex-col items-center cursor-pointer text-white"
                  onClick={() => navigate('/review')}>
               <ReloadOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">복습</span>
