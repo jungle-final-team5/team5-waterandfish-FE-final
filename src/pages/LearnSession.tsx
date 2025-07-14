@@ -15,7 +15,6 @@ import StreamingControls from '@/components/StreamingControls';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 
 // 재시도 설정
-// TODO: 웹소켓 훅으로 보내기
 const RETRY_CONFIG = {
   maxAttempts: 3,
   initialDelay: 1000, // 1초
@@ -27,23 +26,19 @@ const LearnSession = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
-  // URL state에서 lesson_mapper 가져오기(이 부분은 LearnSession에서 처리 필요)
   const [lesson_mapper, setLessonMapper] = useState<{ [key: string]: string }>(location.state?.lesson_mapper || {});
   const [currentWsUrl, setCurrentWsUrl] = useState<string>('');
   const [currentConnectionId, setCurrentConnectionId] = useState<string>('');
-
-  // 재시도 관련 상태
-  // TODO: 웹소켓 훅으로 보내기
   const [retryAttempts, setRetryAttempts] = useState({
     lessonMapper: 0,
     wsConnection: 0,
   });
-
   const [isRetrying, setIsRetrying] = useState(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
   const studyListRef = useRef<string[]>([]);
   const [isBufferingPaused, setIsBufferingPaused] = useState(false);
+  const { connectionStatus, wsList, broadcastMessage, sendMessage } = useWebsocket();
 
   // WebGL 지원 확인
   useEffect(() => {
@@ -53,15 +48,15 @@ const LearnSession = () => {
         const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
         setWebglSupported(!!gl);
       } catch (err) {
+        alert(`지원하지 않는 브라우저입니다. 크롬 브라우저를 사용해주세요.`);
         setWebglSupported(false);
+        navigate("/");
       }
     };
-
     checkWebGL();
   }, []);
 
   // lesson_mapper 재시도 함수
-  // TODO: 웹소켓 훅으로 보내기
   const retryLessonMapper = useCallback(async () => {
     if (retryAttempts.lessonMapper >= RETRY_CONFIG.maxAttempts) {
       console.error('[LearnSession] lesson_mapper 재시도 횟수 초과');
@@ -96,7 +91,6 @@ const LearnSession = () => {
   }, [retryAttempts.lessonMapper, retryAttempts.wsConnection, location.state, currentConnectionId]);
 
   // WebSocket 연결 재시도 함수
-  // TODO: 웹소켓 훅으로 보내기
   const retryWsConnection = useCallback(async (targetUrl: string) => {
     if (retryAttempts.wsConnection >= RETRY_CONFIG.maxAttempts) {
       console.error('[LearnSession] WebSocket 연결 재시도 횟수 초과');
@@ -131,23 +125,7 @@ const LearnSession = () => {
     }, delay);
   }, [retryAttempts.wsConnection, retryAttempts.lessonMapper, lesson_mapper]);
 
-  // lesson_mapper 디버그 로그
-  useEffect(() => {
-    console.log('[LearnSession] lesson_mapper:', lesson_mapper);
-    console.log('[LearnSession] lesson_mapper keys:', Object.keys(lesson_mapper));
-
-    // lesson_mapper가 비어있으면 재시도
-    if (Object.keys(lesson_mapper).length === 0 && !isRetrying) {
-      console.log('[LearnSession] lesson_mapper가 비어있음, 재시도 시작');
-      retryLessonMapper();
-    }
-  }, [lesson_mapper, isRetrying, retryLessonMapper]);
-
-  // WebSocket 훅
-  const { connectionStatus, wsList, broadcastMessage, sendMessage } = useWebsocket();
-
   // WebSocket 연결 상태 모니터링
-  // TODO: 웹소켓 훅으로 보내기
   useEffect(() => {
     // connectionStatus가 변경될 때마다 isConnected 업데이트
     const isWsConnected = connectionStatus === 'connected' && wsList.length > 0;
@@ -155,8 +133,6 @@ const LearnSession = () => {
     console.log(`🔌 WebSocket 연결 상태: ${connectionStatus}, 연결된 소켓: ${wsList.length}개, isConnected: ${isWsConnected}`);
   }, [connectionStatus, wsList.length]);
 
-  // 분류 로그 및 결과 수신 처리
-  const [logs, setLogs] = useState<any[]>([]);
   const [displayConfidence, setDisplayConfidence] = useState<string>('');
 
   const { showStatus } = useGlobalWebSocketStatus();
@@ -166,7 +142,6 @@ const LearnSession = () => {
   const [maxConfidence, setMaxConfidence] = useState(0.0);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  //const {findCategoryById, findChapterById, addToReview, markSignCompleted, markChapterCompleted, markCategoryCompleted, getChapterProgress } = useLearningData();
   const { findCategoryById, findChapterById, findHierarchyByChapterId } = useLearningData();
 
   const [animData, setAnimData] = useState(null);
@@ -186,7 +161,6 @@ const LearnSession = () => {
   const bufferIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const BUFFER_DURATION = 1000; // 2초
 
-  // sessionComplete 시 소켓 연결 해제
   // sessionComplete 시 소켓 연결 해제, 동시에 챕터 단위 진행도 업데이트
   useEffect(() => {
     if (sessionComplete) {
@@ -202,13 +176,10 @@ const LearnSession = () => {
 
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
-    console.log(`🎯 랜드마크 감지됨 - 녹화: ${isRecording}, 연결: ${isConnected}`);
-
     // 녹화 중일 때만 버퍼에 추가
     if (isRecording && isConnected) {
       setLandmarksBuffer(prev => {
         const newBuffer = [...prev, landmarks];
-        console.log(`📥 랜드마크 버퍼에 추가됨 (총 ${newBuffer.length}개)`);
         return newBuffer;
       });
     } else {
@@ -221,13 +192,9 @@ const LearnSession = () => {
     videoRef,
     canvasRef,
     isInitialized,
-    isProcessing,
-    lastLandmarks,
-    startCamera,
     stopCamera,
-    retryInitialization,
-    error,
-    inspect_sequence
+    inspect_sequence,
+    initializeSession
   } = useMediaPipeHolistic({
     onLandmarks: handleLandmarksDetected,
     modelComplexity: 1,
@@ -354,7 +321,7 @@ const LearnSession = () => {
     handleNextSign();
   };
 
-  // 애니메이션 재생 루틴 [완료]
+  // 애니메이션 재생 루틴
   const loadAnim = async () => {
     try {
       const id = currentSign.id;
@@ -366,29 +333,7 @@ const LearnSession = () => {
     }
   };
 
-  // 카메라 및 MediaPipe 초기화
-  const initializeSession = async () => {
-    if (!isInitialized) {
-      console.log('⚠️ MediaPipe가 아직 초기화되지 않음');
-      return false;
-    }
 
-    try {
-      console.log('📹 카메라 시작 중...');
-      const cameraStarted = await startCamera();
-
-      if (cameraStarted) {
-        console.log('✅ 세션 초기화 완료');
-        return true;
-      } else {
-        console.log('[LearnSession] ❌ 카메라 시작 실패');
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ 세션 초기화 실패:', error);
-      return false;
-    }
-  };
 
   // 컴포넌트 마운트 시 자동 초기화
   useEffect(() => {
@@ -436,13 +381,12 @@ const LearnSession = () => {
       });
   }, [chapterId, categoryId, navigate]);
 
-
-  // 수어 변경 시점마다 애니메이션 자동 변경 [완료]
+  // 수어 변경 시점마다 애니메이션 자동 변경
   useEffect(() => {
     loadAnim();
   }, [currentSign]);
 
-  // 애니메이션 자동 재생 처리 및 프레임 조절 [완료]
+  // 애니메이션 자동 재생 처리 및 프레임 조절
   useEffect(() => {
     if (animData) {
       animationIntervalRef.current = setInterval(() => {
@@ -602,7 +546,6 @@ const LearnSession = () => {
   {
     navigate(`/complete/chapter/${chapterId}/${1}`);
   }
-
 
   return (
     <div className="min-h-screen bg-gray-50">

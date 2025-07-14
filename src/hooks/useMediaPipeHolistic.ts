@@ -175,6 +175,7 @@ interface UseMediaPipeHolisticReturn {
   processFrame: () => void;
   retryInitialization: () => Promise<boolean>;
   inspect_sequence: (sequence: any) => boolean;
+  initializeSession: () => Promise<boolean>;
 }
 
 // MediaPipe 모듈 로딩 상태 추적
@@ -1188,6 +1189,30 @@ export const useMediaPipeHolistic = (
     }
   }, [isInitialized]);
 
+    // 카메라 및 MediaPipe 초기화
+    const initializeSession = async () => {
+      if (!isInitialized) {
+        console.log('⚠️ MediaPipe가 아직 초기화되지 않음');
+        return false;
+      }
+  
+      try {
+        console.log('📹 카메라 시작 중...');
+        const cameraStarted = await startCamera();
+  
+        if (cameraStarted) {
+          console.log('✅ 세션 초기화 완료');
+          return true;
+        } else {
+          console.log('[LearnSession] ❌ 카메라 시작 실패');
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ 세션 초기화 실패:', error);
+        return false;
+      }
+    };
+
   // 카메라 정지
   const stopCamera = useCallback(() => {
     if (cameraRef.current) {
@@ -1256,5 +1281,6 @@ export const useMediaPipeHolistic = (
     processFrame,
     retryInitialization,
     inspect_sequence,
+    initializeSession
   };
 }; 
