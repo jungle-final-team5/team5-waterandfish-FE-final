@@ -5,15 +5,9 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { useVideoStreaming } from '@/hooks/useVideoStreaming';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
-import { Button } from '@/components/ui/button';
-
-import HandDetectionIndicator from '@/components/HandDetectionIndicator';
-import { createPoseHandler } from '@/components/detect/usePoseHandler';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import QuizTimer from '@/components/QuizTimer';
 import SessionHeader from '@/components/SessionHeader';
-import WebcamSection from '@/components/WebcamSection';
-import NotFound from './NotFound';
 import API from '@/components/AxiosInstance';
 import { Chapter } from '@/types/learning';
 import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
@@ -289,10 +283,10 @@ const QuizSession = () => {
   //===============================================
   // 랜드마크 버퍼링 및 전송 처리
   //===============================================
-  
+
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
     // 녹화 중일 때만 버퍼에 추가
@@ -305,7 +299,7 @@ const QuizSession = () => {
       console.log(`⚠️ 랜드마크 버퍼링 건너뜀 - 녹화: ${isRecording}, 연결: ${isConnected}`);
     }
   }, [isRecording, isConnected]);
-  
+
   // 랜드마크 버퍼링 및 전송 처리
   // MediaPipe holistic hook 사용
   const {
@@ -324,7 +318,7 @@ const QuizSession = () => {
     minTrackingConfidence: 0.5,
     enableLogging: false // MediaPipe 내부 로그 숨김
   });
-  
+
   useEffect(() => {
     // 녹화 중이고 연결된 상태일 때만 버퍼링 시작
     if (isRecording && isConnected) {
@@ -572,6 +566,7 @@ const QuizSession = () => {
                 // 퀴즈 모드에서 정답 판정 (80% 이상이면 정답)
                 if (percent >= 80.0) {
                   console.log("✅ 정답! 시간 내에 성공");
+                  setTimerActive(false);
                   setFeedback("correct");
                   studyListRef.current.push(currentSign.id);
 
@@ -699,6 +694,17 @@ const QuizSession = () => {
     }
   };
 
+  useEffect(() => {
+    if (currentResult) {
+      if (!quizStarted) {
+        handleStartQuiz();
+      }
+    }
+    else {
+      setDisplayConfidence('인식이 시작되면 퀴즈가 시작됩니다.');
+    }
+  }, [currentResult, quizStarted]);
+
   // 진행률 계산
   useEffect(() => {
     if (lessons && lessons.length > 0) {
@@ -730,7 +736,6 @@ const QuizSession = () => {
         wrongCount: totalQuestions - correctCount
       }
     })
-
   }
 
   return (
@@ -773,16 +778,6 @@ const QuizSession = () => {
                 <p className="text-gray-600 mb-6">
                   {currentSignIndex + 1} / {lessons.length}
                 </p>
-
-                {/* 시작 버튼 */}
-                {!isQuizReady && currentSign && (
-                  <Button
-                    onClick={handleStartQuiz}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold"
-                  >
-                    🎯 퀴즈 시작
-                  </Button>
-                )}
 
                 {/* 퀴즈 진행 중 표시 */}
                 {isQuizReady && (
