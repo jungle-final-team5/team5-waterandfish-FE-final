@@ -180,6 +180,61 @@ const Dashboard: React.FC = () => {
   const circumference = 2 * Math.PI * normalizedRadius;
   const progress = Math.max(0, Math.min(percent, 100));
   const offset = circumference - (progress / 100) * circumference;
+  const [wsUrl, setWsUrl] = useState<string | null>(null);
+  const [wsUrlLoading, setWsUrlLoading] = useState(true);
+  const [isLearnConnected, setIsLearnConnected] = useState(false);
+  const { connectedCount, totalConnections } = useWebsocket();
+
+
+  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz } = useChapterHandler();
+
+  const handleStartRecommendation = async (chapterId: string, lessonId: string) => {
+    try {
+      setConnectingChapter(lessonId);
+      // 1. WebSocket 연결 시도
+      try {
+        API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`)
+          .then(res => {
+            setWsUrl(res.data.data.ws_url);
+            setWsUrlLoading(false);
+            setIsLearnConnected(true);
+          })
+          .catch(() => {
+            setWsUrl(null);
+            setWsUrlLoading(false);
+          });
+        if (wsUrl) {
+          await connectToWebSockets([wsUrl]);
+          showStatus(); // 전역 상태 표시 활성화
+          return; // 성공적으로 처리되었으므로 함수 종료
+        }
+      } catch (wsError) {
+        console.warn('WebSocket 연결 실패:', wsError);
+        // WebSocket 연결 실패해도 페이지 이동은 계속 진행
+      }
+    } catch (err) {
+      console.error('학습 시작 실패:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (connectedCount == totalConnections) {
+      setIsLearnConnected(true);
+    }
+    else {
+      setIsLearnConnected(false);
+    }
+  }, [connectedCount, totalConnections]);
+
+  useEffect(() => {
+    if (isLearnConnected == true) {
+      alert("연결 완료");
+      navigate(`/learn/${connectingChapter}`);
+    }
+    else {
+      setIsLearnConnected(false);
+    }
+  }, [isLearnConnected]);
 
   // 시간대별 인사 메시지
   const getGreeting = () => {
@@ -188,14 +243,6 @@ const Dashboard: React.FC = () => {
     if (currentTime < 18) return '좋은 오후입니다';
     return '좋은 저녁입니다';
   };
-
-  const handleRecommendedSignClick = () => {
-    if (recommendedSign && recommendedSign.id) {
-      navigate(`/learn/${recommendedSign.id}`);
-    } else if (recommendedSign && recommendedSign.word) {
-      navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`);
-    }
-  }
 
   // 데이터 패칭
   useEffect(() => {
@@ -327,8 +374,6 @@ const Dashboard: React.FC = () => {
     setShowResults(false);
     navigate(`/learn/word/${encodeURIComponent(selectedItem)}`);
   };
-
-  const { connectingChapter, handleStartLearn, handleStartQuiz } = useChapterHandler();
 
   const handleCardClick = async (cardType: string) => {
     switch (cardType) {
@@ -487,7 +532,7 @@ const Dashboard: React.FC = () => {
                 >
                   {connectingChapter === recentLearning?.chapterId ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2 "></div>
                       연결 중...
                     </>
                   ) : (
@@ -511,14 +556,26 @@ const Dashboard: React.FC = () => {
                   <p className="text-purple-100 mb-4 text-lg">{recommendedSign?.description || '수어지교에서 추천하는 수어를 배워보세요'}</p>
                 </div>
                 <div className="flex items-center justify-between mt-2">
+
                   <Button
-                    className="w-full bg-white text-violet-600 py-3 text-base rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+                    className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2 "
                     onClick={() => {
-                      handleRecommendedSignClick();
+                      handleStartRecommendation(recommendedSign.id, recommendedSign.id);
                     }}
                   >
-                    지금 배우기
+                    {connectingChapter === recommendedSign?.id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2 "></div>
+                        연결 중...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        지금 배우기
+                      </>
+                    )}
                   </Button>
+
                 </div>
               </div>
             </div>

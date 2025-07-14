@@ -75,6 +75,7 @@ export const useChapterHandler = () => {
 
   return {
     connectingChapter,
+    setConnectingChapter,
     handleStartLearn,
     handleStartQuiz
   };
