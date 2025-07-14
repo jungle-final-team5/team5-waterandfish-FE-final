@@ -14,6 +14,7 @@ import FeedbackDisplay from '@/components/FeedbackDisplay';
 import StreamingControls from '@/components/StreamingControls';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import { useBadgeSystem } from '@/hooks/useBadgeSystem';
+import { Button } from '@/components/ui/button';
 
 // 재시도 설정
 const RETRY_CONFIG = {
@@ -26,6 +27,7 @@ const LearnSession = () => {
   const { checkBadges } = useBadgeSystem();
   const { categoryId, chapterId } = useParams();
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [isSlowMotion, setIsSlowMotion] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
@@ -272,6 +274,17 @@ const LearnSession = () => {
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 재생 속도 토글 함수
+const togglePlaybackSpeed = () => {
+  setIsSlowMotion(prev => !prev);
+};
+
+useEffect(() => {
+  const videoElement = document.querySelector('video[src]') as HTMLVideoElement;
+  if (videoElement) {
+    videoElement.playbackRate = isSlowMotion ? 0.5 : 1.0;
+  }
+}, [isSlowMotion, videoSrc]);
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
     // 녹화 중일 때만 버퍼에 추가
@@ -535,6 +548,15 @@ const LearnSession = () => {
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
+                          <Button 
+      onClick={togglePlaybackSpeed} 
+      variant="outline" 
+      size="sm"
+      className="flex items-center"
+    >
+      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
+      {isSlowMotion ? '(1x)' : '(0.5x)'}
+    </Button>
   {videoSrc ? (
     <video
       src={videoSrc}
