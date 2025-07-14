@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, MessageSquare, Play, CheckCircle, RotateCcw, Wifi, WifiOff, Pencil } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import { useEffect, useRef, useState } from 'react';
-import {Lesson,Chapter,Category} from '../types/learning';
+import { Lesson, Chapter, Category } from '../types/learning';
 import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import API from '@/components/AxiosInstance';
 import useWebsocket, { connectToWebSockets, disconnectWebSockets } from '@/hooks/useWebsocket';
@@ -31,16 +31,17 @@ const Chapters = () => {
   const [categoryData, setCategoryData] = useState<Category | null>(null);
   const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // 전역 WebSocket 상태 관리
   const { showStatus } = useGlobalWebSocketStatus();
   const { connectionStatus, wsList } = useWebsocket();
   useEffect(() => {
-      
-        disconnectWebSockets();
-      
-    }, [])
-  const handleStartChapter = async (chapterId: string, lessonIds: string[]) => {
+
+    disconnectWebSockets();
+
+  }, [])
+  // navigate(`/learn/chapter/${chapter.id}/guide/2`);
+  const handleStartLearn = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 1;
     const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
     try {
@@ -81,63 +82,18 @@ const Chapters = () => {
       navigate(path); // 실패해도 이동
     }
   };
-
-    const handleStartChapter_quiz = async (chapterId: string, lessonIds: string[]) => {
+  
+  const handleStartQuiz = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 2;
     const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
     try {
       setConnectingChapter(chapterId);
 
-      // 1. 챕터 프로그레스 초기화 API 호출 (user_chapter_progress, user_lesson_progress 생성)
-      await API.post(`/progress/chapters/${chapterId}`);
-
-      // 2. WebSocket 연결 시도
+      // WebSocket 연결 시도
       try {
         const response = await API.get<{ success: boolean; data: { ws_urls: string[], lesson_mapper: { [key: string]: string } } }>(`/ml/deploy/${chapterId}`);
         if (response.data.success && response.data.data.ws_urls) {
-          console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
-          await connectToWebSockets(response.data.data.ws_urls);
-          showStatus(); // 전역 상태 표시 활성화
-
-          // 학습 진도 이벤트 기록
-          await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
-
-          // lesson_mapper를 URL state로 전달
-          navigate(path, {
-            state: {
-              lesson_mapper: response.data.data.lesson_mapper
-            }
-          });
-          return; // 성공적으로 처리되었으므로 함수 종료
-        }
-      } catch (wsError) {
-        console.warn('WebSocket 연결 실패:', wsError);
-        // WebSocket 연결 실패해도 페이지 이동은 계속 진행
-      }
-
-      setConnectingChapter(null);
-      navigate(path);
-    } catch (err) {
-      console.error('학습 시작 실패:', err);
-      setConnectingChapter(null);
-      navigate(path); // 실패해도 이동
-    }
-  };
-
-  const handleStartChapter_review = async (chapterId: string, lessonIds: string[]) => {
-    const modeNum = 3;
-    const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
-    try {
-      setConnectingChapter(chapterId);
-
-      // 1. 챕터 프로그레스 초기화 API 호출 (user_chapter_progress, user_lesson_progress 생성)
-      await API.post(`/progress/chapters/${chapterId}`);
-
-      // 2. WebSocket 연결 시도
-      try {
-        const response = await API.get<{ success: boolean; data: { ws_urls: string[], lesson_mapper: { [key: string]: string } } }>(`/ml/deploy/${chapterId}`);
-        if (response.data.success && response.data.data.ws_urls) {
-          console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
+        console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
           await connectToWebSockets(response.data.data.ws_urls);
           showStatus(); // 전역 상태 표시 활성화
 
@@ -191,9 +147,9 @@ const Chapters = () => {
         setLoading(false);
       });
   }, [categoryId]);
-  
+
   const isCompleted = useRef(false); // 완료 여부 참조
-  
+
   // 챕터별 퀴즈 버튼 노출 조건
   function canShowQuizButton(lessons: Lesson[]) {
     if (!lessons || lessons.length === 0) return false;
@@ -224,7 +180,7 @@ const Chapters = () => {
   const sortedChapters = (categoryData.chapters as Chapter[]).slice(); // 정렬된 챕터 목록
 
   return (
-    <div className="min-h-screen bg-gray-50"> 
+    <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
@@ -243,7 +199,7 @@ const Chapters = () => {
               </h1>
               <p className="text-sm text-gray-600">{categoryData.description}</p>
             </div>
-            
+
             {/* WebSocket 연결 상태 표시 */}
             <div className="flex items-center space-x-2">
               {connectionStatus === 'connected' ? (
@@ -324,8 +280,7 @@ const Chapters = () => {
                   <div className="flex space-x-3 items-center">
                     <Button
                       onClick={() => {
-                        handleStartChapter( chapter.id, lessonIds)
-
+                        handleStartLearn(chapter.id, lessonIds)
                       }}
                       disabled={connectingChapter === chapter.id}
                       className="bg-blue-600 hover:bg-blue-700"
@@ -342,49 +297,11 @@ const Chapters = () => {
                         </>
                       )}
                     </Button>
-                     {/* <Button
-                      onClick={() => {
-                        handleStartChapter_quiz( chapter.id, lessonIds)
-
-                      }}
-                      disabled={connectingChapter === chapter.id}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {connectingChapter === chapter.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          연결 중...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          퀴즈를 풀기
-                        </>
-                      )}
-                    </Button> */}
-                     {/* <Button
-                      onClick={() => {
-                        handleStartChapter_review( chapter.id, lessonIds)
-
-                      }}
-                    >
-                      {connectingChapter === chapter.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          연결 중...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          야무진 복습
-                        </>
-                      )}
-                    </Button> */}
                     {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
                       <Button
                         className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={() => {
-                          navigate(`/learn/chapter/${chapter.id}/guide/2`);
+                          handleStartQuiz(chapter.id, lessonIds)
                         }}
                       >
                         <Pencil className="h-4 w-4 mr-2" />
@@ -395,8 +312,7 @@ const Chapters = () => {
                       <Button
                         className="bg-green-600 hover:bg-green-700"
                         onClick={async () => {
-                          // await updateRecentLearning(lessonIds);
-                          navigate(`/learn/chapter/${chapter.id}/guide/3`);
+                          // handleStartReview(chapter.id, lessonIds)
                         }}
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
