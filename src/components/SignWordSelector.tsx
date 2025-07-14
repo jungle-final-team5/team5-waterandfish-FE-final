@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, Plus } from 'lucide-react';
 import { Lesson } from '@/types/learning';
+import API from './AxiosInstance';
 
 // 샘플 수어 데이터 (실제로는 API나 데이터베이스에서 가져올 것)
 // const availableSigns: Lesson[] = [
@@ -35,14 +36,16 @@ interface SignWordSelectorProps {
   selectedSigns: Lesson[];
   onSelectionChange: (signs: Lesson[]) => void;
   categoryId: string;
-  lessons : Lesson[]
+  lessons: Lesson[];
+  chapterTitle?: string;
 }
 
 export const SignWordSelector: React.FC<SignWordSelectorProps> = ({
   selectedSigns,
   onSelectionChange,
   categoryId,
-  lessons
+  lessons,
+  chapterTitle
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [newWord, setNewWord] = useState('');
@@ -67,18 +70,26 @@ export const SignWordSelector: React.FC<SignWordSelectorProps> = ({
     }
   };
 
-  const addNewSign = () => {
+  const addNewSign = async () => {
     if (newWord.trim()) {
-      const newSign: Lesson = {
-        id: `custom-${Date.now()}`,
-        word: newWord.trim(),
-        type:"word",
-        category: categoryId,
-        difficulty: newDifficulty
+    try {
+      const payload = {
+        sign: newWord.trim(),
+        description: "", // 필요시 입력값 추가
+        type: "word", // 또는 "letter", "sentence" 등
+        order: 0, // 순서 지정 필요시
+        chapter: chapterTitle // chapter의 title(이름)이어야 함
+        // url: "미디어 URL", // 필요시 추가
       };
+      const res = await API.post('/lessons', payload);
+      const newSign = res.data as Lesson; // 서버에서 반환된 lesson 객체
       onSelectionChange([...selectedSigns, newSign]);
       setNewWord('');
+    } catch (e) {
+      alert("단어 생성 실패");
+      console.error(e);
     }
+  }
   };
 
   const getDifficultyColor = (difficulty: string) => {

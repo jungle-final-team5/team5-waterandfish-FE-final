@@ -15,6 +15,7 @@ import {
 import {  useLearningData } from '@/hooks/useLearningData';
 import WebcamView from '@/components/WebcamView';
 import VideoInput from '@/components/VideoInput';
+import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 
 const SessionBegin = () => {
   const { chapterId: paramChapterId, modeNum: num } = useParams();
@@ -26,6 +27,7 @@ const SessionBegin = () => {
   
   // URL state에서 lesson_mapper 가져오기
   const lesson_mapper = location.state?.lesson_mapper || {};
+  const { connectedCount, totalCount } = useGlobalWebSocketStatus();
 
   console.log('chapterId', chapterId);
   if (!chapterId) {
@@ -248,7 +250,19 @@ const SessionBegin = () => {
                   {modeNum === 2 && ('검증의 퀴즈시간!!')}
                   {modeNum === 3 && ('반성의 복습시간!!')}
                   </p>
+                  {connectedCount !== totalCount && (
+                    <p className="text-gray-600">
+                      수어 분류 서버에 연결중입니다
+                    </p>
+                  )}
+                  {connectedCount === totalCount && (
+                    <p className="text-gray-600">
+                      수어 분류 서버에 연결되었습니다
+                    </p>
+                  )
+                  }
                   <Button 
+                    disabled={connectedCount !== totalCount}
                     onClick={startContents} 
                     size="lg" 
                     className="w-full"
