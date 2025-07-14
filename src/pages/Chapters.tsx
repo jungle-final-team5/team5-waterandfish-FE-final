@@ -96,6 +96,7 @@ const Chapters = () => {
       navigate(path); // 실패해도 이동
     }
   };
+
   const handleStartQuiz = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 2;
     const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
@@ -134,6 +135,7 @@ const Chapters = () => {
       navigate(path); // 실패해도 이동
     }
   };
+  
 
   useEffect(() => { // 카테고리 데이터 가져오기 및 챕터별 레슨 상태 fetch
     if (!categoryId) return;
