@@ -153,6 +153,8 @@ const Dashboard: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchLessonIds, setSearchLessonIds] = useState<string[]>([]);
+  const [isEnteringLesson, setIsEnteringLesson] = useState(false);
+  const [placeholder, setPlaceholder] = useState('배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)');
   // 진도율 상태
   const [progressOverview, setProgressOverview] = useState<ProgressOverview | null>(null);
   const [progressLoading, setProgressLoading] = useState(true);
@@ -181,7 +183,6 @@ const Dashboard: React.FC = () => {
   const circumference = 2 * Math.PI * normalizedRadius;
   const progress = Math.max(0, Math.min(percent, 100));
   const offset = circumference - (progress / 100) * circumference;
-  const { connectedCount, totalConnections } = useWebsocket();
 
   const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz, handleStartSingleLearn } = useChapterHandler();
 
@@ -326,7 +327,17 @@ const Dashboard: React.FC = () => {
     setSearchQuery(selectedItem);
     setShowResults(false);
     handleStartSingleLearn(searchLessonIds[index]);
+    setIsEnteringLesson(true);
   };
+
+  useEffect(() => {
+    if (isEnteringLesson) {
+      setPlaceholder('연결 중...');
+    }
+    else {
+      setPlaceholder('배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)');
+    }
+  }, [isEnteringLesson]);
 
   const handleCardClick = async (cardType: string) => {
     switch (cardType) {
@@ -425,13 +436,14 @@ const Dashboard: React.FC = () => {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <CustomInput
             type="text"
-            placeholder="배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)"
+            placeholder={placeholder}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               handleSearch(e.target.value);
             }}
             className="w-full pl-12 pr-4 py-4 text-lg border-2 !border-gray-200 focus:!border-transparent focus:ring-2 focus:ring-blue-400 rounded-xl h-14 transition-all"
+            disabled={isEnteringLesson}
           />
         </div>
         {showResults && searchResults.length > 0 && (
