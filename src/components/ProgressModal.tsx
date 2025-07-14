@@ -164,7 +164,7 @@ const ProgressModal = ({ isOpen, onClose }: ProgressModalProps) => {
                     <p className="text-gray-600 mb-2">{category.description}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span>📚 {category.completed_chapters}/{category.total_chapters} 챕터</span>
-                      <span>⏰ {category.status === 'completed' ? '완료됨' : category.status === 'in_progress' ? '진행중' : '시작 전'}</span>
+                      <span>⏰ {category.progress === 0 ? '시작 전' : category.progress === 100 ? '완료됨' : '진행중'}</span>
                     </div>
                   </div>
                 </div>
@@ -172,19 +172,19 @@ const ProgressModal = ({ isOpen, onClose }: ProgressModalProps) => {
                   <div className={`text-3xl font-bold text-gray-700 mb-1`}>
                     {category.progress}%
                   </div>
-                  {category.status === 'completed' && (
+                  {category.progress === 100 && (
                     <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                       <Trophy className="h-4 w-4 mr-1" />
                       완료!
                     </div>
                   )}
-                  {category.status === 'in_progress' && (
+                  {category.progress > 0 && category.progress < 100 && (
                     <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                       <TrendingUp className="h-4 w-4 mr-1" />
                       진행중
                     </div>
                   )}
-                  {category.status === 'not_started' && (
+                  {category.progress === 0 && (
                     <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
                       시작 전
                     </div>
@@ -201,18 +201,15 @@ const ProgressModal = ({ isOpen, onClose }: ProgressModalProps) => {
                   <div className="text-sm text-gray-600">
                     다음 목표: {category.progress < 100 ? `${Math.min(category.progress + 20, 100)}% 달성` : '완료됨'}
                   </div>
-                  <Button 
-                    size="sm" 
-                    className={`${category.status === 'not_started' ? 'bg-blue-600 hover:bg-blue-700' : 
-                      category.status === 'completed' ? 'bg-green-600 hover:bg-green-700' : 
-                      'bg-purple-600 hover:bg-purple-700'} hover:scale-105 transition-all`}
+                  <Button
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white hover:scale-105 transition-all"
                     onClick={() => {
                       navigate(`/category/${category.id}/chapters`);
                       onClose();
                     }}
                   >
-                    {category.status === 'not_started' ? '시작하기' : 
-                     category.status === 'completed' ? '복습하기' : '계속하기'}
+                    {category.progress === 0 ? '시작하기' : category.progress === 100 ? '복습하기' : '계속하기'}
                   </Button>
                 </div>
               </div>

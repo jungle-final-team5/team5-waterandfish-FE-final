@@ -6,7 +6,7 @@ describe('홈 화면', () => {
 
   it('메인 페이지가 정상적으로 렌더링된다', () => {
     cy.contains('수어지교').should('exist').and('be.visible');
-    cy.contains('인터렉티브 수어 학습 플랫폼').should('exist').and('be.visible');
+    cy.contains('인터랙티브 수어 학습 플랫폼').should('exist').and('be.visible');
     cy.contains('오늘도 수어 학습을 시작해볼까요?').should('exist').and('be.visible');
     cy.contains('이어서 학습하기').should('exist').and('be.visible');
     cy.contains('오늘의 추천 수어').should('exist').and('be.visible');

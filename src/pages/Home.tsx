@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Progress, Badge, Avatar, Tooltip, Input } from 'antd';
-import { 
-  UserOutlined, 
-  SettingOutlined, 
+import {
+  UserOutlined,
+  SettingOutlined,
   SearchOutlined,
   PlayCircleOutlined,
   TrophyOutlined,
@@ -18,11 +18,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge as CustomBadge } from '@/components/ui/badge';
 import { Input as CustomInput } from '@/components/ui/input';
-import { 
-  BookOpen, 
-  Search, 
-  RotateCcw, 
-  Trophy, 
+import {
+  BookOpen,
+  Search,
+  RotateCcw,
+  Trophy,
   Calendar,
   Target,
   User,
@@ -37,7 +37,9 @@ import {
   Crown,
   Flame,
   Shield,
-  Book
+  Book,
+  Play,
+  Sparkles
 } from 'lucide-react';
 import BadgeModal from '@/components/BadgeModal';
 import StreakModal from '@/components/StreakModal';
@@ -52,6 +54,11 @@ import HandPreferenceModal from '@/components/HandPreferenceModal';
 import OnboardingTour from '@/components/OnboardingTour';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useAuth } from '@/hooks/useAuth';
+import useWebsocket, { connectToWebSockets, disconnectWebSockets } from '@/hooks/useWebsocket';
+import { Lesson } from '@/types/learning';
+import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
+import { useChapterHandler } from '@/hooks/useChapterHandler';
+
 
 const { Search: AntdSearch } = Input;
 
@@ -81,6 +88,7 @@ interface ProgressOverview {
 }
 
 interface RecommendedSign {
+  id: string;
   word: string;
   description?: string;
   videoUrl?: string;
@@ -137,7 +145,8 @@ const Dashboard: React.FC = () => {
   const { currentStreak, studyDates, loading: streakLoading } = useStreakData();
   const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { logout } = useAuth();
-
+  const { categories, findChapterById } = useLearningData();
+  const { showStatus } = useGlobalWebSocketStatus();
   // 검색 기능
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
@@ -172,6 +181,37 @@ const Dashboard: React.FC = () => {
   const circumference = 2 * Math.PI * normalizedRadius;
   const progress = Math.max(0, Math.min(percent, 100));
   const offset = circumference - (progress / 100) * circumference;
+  const { connectedCount, totalConnections } = useWebsocket();
+
+  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz } = useChapterHandler();
+
+  const handleStartRecommendation = async (lessonId: string) => {
+    try {
+      setConnectingChapter(lessonId);
+      
+      // WebSocket 연결 시도
+      try {
+        const response = await API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`);
+        if (response.data.success && response.data.data.ws_url) {
+          await connectToWebSockets([response.data.data.ws_url]);
+          showStatus(); // 전역 상태 표시 활성화
+          navigate(`/learn/${lessonId}`);
+          return; // 성공적으로 처리되었으므로 함수 종료
+        }
+      } catch (wsError) {
+        console.warn('WebSocket 연결 실패:', wsError);
+        // WebSocket 연결 실패해도 페이지 이동은 계속 진행
+      }
+      
+      // WebSocket 연결 실패 시에도 페이지 이동
+      navigate(`/learn/${lessonId}`);
+    } catch (err) {
+      console.error('학습 시작 실패:', err);
+      setConnectingChapter(null);
+    }
+  };
+
+
 
   // 시간대별 인사 메시지
   const getGreeting = () => {
@@ -183,6 +223,7 @@ const Dashboard: React.FC = () => {
 
   // 데이터 패칭
   useEffect(() => {
+    disconnectWebSockets();
     const fetchProgressOverview = async () => {
       try {
         setProgressLoading(true);
@@ -240,11 +281,11 @@ const Dashboard: React.FC = () => {
         // unlocked 필드 추가
         const processed = Array.isArray(allBadgesRes.data)
           ? allBadgesRes.data.map((badge) => ({
-              id: badge.id,
-              name: badge.name,
-              icon: badge.icon_url,
-              unlocked: earnedIds.includes(badge.id),
-            }))
+            id: badge.id,
+            name: badge.name,
+            icon: badge.icon_url,
+            unlocked: earnedIds.includes(badge.id),
+          }))
           : [];
         setBadgeList(processed);
         setBadgeCount(processed.filter(b => b.unlocked).length);
@@ -311,14 +352,22 @@ const Dashboard: React.FC = () => {
     navigate(`/learn/word/${encodeURIComponent(selectedItem)}`);
   };
 
-  const handleCardClick = (cardType: string) => {
+  const handleCardClick = async (cardType: string) => {
     switch (cardType) {
       case 'recent':
-        // 최근학습 정보에 chapterId, modeNum이 있으면 해당 경로로 이동
-        if (recentLearning && recentLearning.chapterId && recentLearning.modeNum) {
-          navigate(`/learn/chapter/${recentLearning.chapterId}/guide/${recentLearning.modeNum}`);
+        if (recentLearning) {
+          const modeNum = recentLearning.modeNum;
+          const chapter = await findChapterById(recentLearning.chapterId);
+          const lessonIds = (chapter?.lessons || []).map((lesson: Lesson) => lesson.id);
+          if (modeNum == '1') {
+            handleStartLearn(recentLearning.chapterId, lessonIds, '/home');
+          } else if (recentLearning.modeNum == '2') {
+            handleStartQuiz(recentLearning.chapterId, lessonIds, '/home');
+          }
+          else {
+            alert(`유효하지 않은 최근학습입니다`);
+          }
         } else {
-          // fallback: 카테고리 페이지로 이동
           navigate('/category');
         }
         break;
@@ -338,7 +387,7 @@ const Dashboard: React.FC = () => {
   const handleLogout = async () => {
     try {
       await API.post('auth/logout');
-    } catch (error) {}
+    } catch (error) { }
     if (logout) logout();
     localStorage.clear();
     toast({ title: "로그아웃", description: "성공적으로 로그아웃되었습니다." });
@@ -363,14 +412,14 @@ const Dashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           {/* 로고 영역 */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-violet-200 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 bg-indigo-200 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-xl">🐟</span>
             </div>
             <div>
-              <span className="text-2xl font-bold bg-violet-600 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold text-indigo-600">
                 수어지교
               </span>
-              <div className="text-xs text-gray-500 mt-0.5">인터렉티브 수어 학습 플랫폼</div>
+              <div className="text-xs text-gray-500 mt-0.5">인터랙티브 수어 학습 플랫폼</div>
             </div>
           </div>
           {/* 프로필/설정 버튼 - 알림(벨) 아이콘 제거 */}
@@ -388,7 +437,7 @@ const Dashboard: React.FC = () => {
 
       {/* 인사 메시지: 중앙 검색창 바로 위 */}
       <div className="w-full max-w-2xl mx-auto mt-8 mb-2 text-center">
-        <h1 className="text-3xl font-bold text-violet-600 mb-2">
+        <h1 className="text-3xl font-bold text-indigo-600 mb-2">
           {getGreeting()}, {nickname}님! 👋
         </h1>
         <p className="text-gray-600 mb-2">오늘도 수어 학습을 시작해볼까요?</p>
@@ -430,10 +479,10 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* 최근 학습 + 오늘의 추천 수어 (나란히 배치) */}
             <div className="flex flex-col md:flex-row gap-6">
               {/* 최근 학습 카드 */}
@@ -451,44 +500,72 @@ const Dashboard: React.FC = () => {
                     <div className="text-base mb-4 text-blue-100">최근 학습 기록이 없습니다.</div>
                   )}
                 </div>
+
                 <Button
                   className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
-                  onClick={() => handleCardClick('recent')}
+                  onClick={() => {
+                    handleCardClick('recent')
+                  }}
                 >
-                  이어서 학습하기
+                  {connectingChapter === recentLearning?.chapterId ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2 "></div>
+                      연결 중...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      이어서 학습하기
+                    </>
+                  )}
                 </Button>
+
+
               </div>
 
               {/* 오늘의 추천 수어 카드 */}
-              <div className="flex-1 bg-violet-600 rounded-lg p-6 text-white shadow-lg min-h-[240px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 cursor-pointer">
-                <div>
-                  <h2 className="text-xl font-bold flex items-center mb-2">
-                    <Calendar className="mr-2 text-purple-100" />오늘의 추천 수어
-                  </h2>
-                  <h3 className="text-3xl font-semibold mb-3">{recommendedSign ? recommendedSign.word : '...'}</h3>
-                  <p className="text-purple-100 mb-4 text-lg">{recommendedSign?.description || '수어지교에서 추천하는 수어를 배워보세요'}</p>
-                </div>
-                <div className="flex items-center justify-between mt-2">
+                <div className="flex-1 bg-violet-600 rounded-lg p-6 text-white shadow-lg min-h-[240px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 cursor-pointer">
+                  <div>
+                    <h2 className="text-xl font-bold flex items-center mb-2">
+                      <Calendar className="mr-2 text-purple-100" />오늘의 추천 수어
+                    </h2>
+                    <h3 className="text-3xl font-semibold mb-3">{recommendedSign ? recommendedSign.word : '...'}</h3>
+                    <p className="text-purple-100 mb-4 text-lg">{recommendedSign?.description || '수어지교에서 추천하는 수어를 배워보세요'}</p>
+                  </div>
+                  
                   <Button
-                    className="w-full bg-white text-violet-600 py-3 text-base rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+                    className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
                     onClick={() => {
-                      if (recommendedSign && recommendedSign.id) {
-                        navigate(`/learn/${recommendedSign.id}`);
-                      } else if (recommendedSign && recommendedSign.word) {
-                        navigate(`/learn/word/${encodeURIComponent(recommendedSign.word)}`);
+                      if (recommendedSign?.id) {
+                        handleStartRecommendation(recommendedSign.id);
                       }
                     }}
+                    disabled={!recommendedSign?.id}
                   >
-                    지금 배우기
+                    {connectingChapter === recommendedSign?.id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                        연결 중...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        지금 배우기
+                      </>
+                    )}
                   </Button>
                 </div>
-              </div>
+
+
             </div>
 
             {/* 맞춤 추천 학습 */}
             <div className="bg-white rounded-lg p-8 shadow-lg min-h-[220px]">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-800">맞춤 추천 학습</h2>
+                <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                  <Sparkles className="mr-2 text-indigo-400" />
+                  맞춤 추천 학습
+                </h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {(progressOverview?.categories ?? [])
@@ -496,15 +573,15 @@ const Dashboard: React.FC = () => {
                   .sort((a, b) => b.progress - a.progress)
                   .slice(0, 3)
                   .map((category) => (
-                    <div key={category.id} className="bg-violet-50 rounded-lg p-6 shadow-lg min-h-[140px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 hover:bg-violet-100 cursor-pointer"
+                    <div key={category.id} className="bg-indigo-50 rounded-lg p-6 shadow-lg min-h-[140px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-indigo-300 hover:bg-indigo-100 cursor-pointer"
                       onClick={() => navigate(`/category/${category.id}/chapters`)}
                     >
                       <h3 className="font-semibold text-gray-800 mb-2 text-lg">{category.name}</h3>
                       <div className="flex items-center justify-between mt-auto">
-                        <CustomBadge variant="default" className="text-sm px-2 py-1 text-violet-600 bg-violet-100 hover:bg-violet-200">
+                        <CustomBadge variant="default" className="text-sm px-2 py-1 text-indigo-600 bg-indigo-100 hover:bg-indigo-200">
                           {`진도: ${category.progress}%`}
                         </CustomBadge>
-                        <Button className="bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 cursor-pointer whitespace-nowrap px-3 py-1.5" size="sm">
+                        <Button className="bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 cursor-pointer whitespace-nowrap px-3 py-1.5" size="sm">
                           계속
                         </Button>
                       </div>
@@ -517,7 +594,7 @@ const Dashboard: React.FC = () => {
 
           {/* Right Column */}
           <div className="space-y-6">
-            
+
             {/* Learning Streak */}
             <Card className="shadow-lg !rounded-button mb-6 cursor-pointer min-h-[240px] z-0 transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-green-400 hover:bg-green-50" onClick={() => setIsStreakModalOpen(true)}>
               <div className="text-center">
@@ -630,7 +707,7 @@ const Dashboard: React.FC = () => {
                         </div>
                         <div className="flex flex-col">
                           <p className="text-xs text-gray-800 font-semibold">
-                            {badge.name.length > 8 ? badge.name.slice(0,8) + '...' : badge.name}
+                            {badge.name.length > 8 ? badge.name.slice(0, 8) + '...' : badge.name}
                           </p>
                         </div>
                       </div>
@@ -651,13 +728,13 @@ const Dashboard: React.FC = () => {
               <HomeOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">홈</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-white"
-                 onClick={() => navigate('/category')}>
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+              onClick={() => navigate('/category')}>
               <BookOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">학습</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-white"
-                 onClick={() => navigate('/review')}>
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+              onClick={() => navigate('/review')}>
               <ReloadOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">복습</span>
             </div>
