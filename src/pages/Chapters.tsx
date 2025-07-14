@@ -224,7 +224,7 @@ const Chapters = () => {
   const sortedChapters = (categoryData.chapters as Chapter[]).slice(); // 정렬된 챕터 목록
 
   return (
-    <div className="min-h-screen bg-gray-50"> 
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100"> 
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
@@ -325,10 +325,9 @@ const Chapters = () => {
                     <Button
                       onClick={() => {
                         handleStartChapter( chapter.id, lessonIds)
-
                       }}
                       disabled={connectingChapter === chapter.id}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-violet-700 hover:bg-violet-800 text-white"
                     >
                       {connectingChapter === chapter.id ? (
                         <>
