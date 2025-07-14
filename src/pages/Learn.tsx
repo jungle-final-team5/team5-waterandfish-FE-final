@@ -67,7 +67,7 @@ const Learn = () => {
   const [isBufferingPaused, setIsBufferingPaused] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean>(false); // 초기값에 의해 타입 결정됨.
   const { connectionStatus, wsList, sendMessage } = useWebsocket();
-  
+
   // 재시도 설정
   const RETRY_CONFIG = {
     maxAttempts: 3,
@@ -285,11 +285,13 @@ const Learn = () => {
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
     // 녹화 중일 때만 버퍼에 추가
     if (isRecording && isConnected) {
+      alert("랜드마크 감지");
       setLandmarksBuffer(prev => {
         const newBuffer = [...prev, landmarks];
         return newBuffer;
       });
     } else {
+      alert("랜드마크 버퍼링 건너뜀");
       console.log(`⚠️ 랜드마크 버퍼링 건너뜀 - 녹화: ${isRecording}, 연결: ${isConnected}`);
     }
   }, [isRecording, isConnected]);
@@ -340,6 +342,7 @@ const Learn = () => {
               if (isBufferingPaused) {
                 setIsBufferingPaused(false);
               }
+              console.log('🔄 랜드마크 시퀀스 전송됨 (1초 간격)');
               sendMessage(JSON.stringify(landmarksSequence), currentConnectionId);
             }
             else {
@@ -365,7 +368,6 @@ const Learn = () => {
         clearInterval(bufferIntervalRef.current);
         bufferIntervalRef.current = null;
       }
-
       // 버퍼 비우기
       setLandmarksBuffer([]);
     }
@@ -538,7 +540,7 @@ const Learn = () => {
       setFeedback(null);
       setCurrentResult(null);
       setIsWaitingForReset(false);
-      
+
     } else if (!isCompleted && feedback === null && !isWaitingForReset) {
       // 3회 미만이고 모달이 닫혔으며, 리셋 대기가 아닐 때만 분류 재시작
       setIsRecording(true);
