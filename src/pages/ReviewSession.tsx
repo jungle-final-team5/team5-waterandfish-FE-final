@@ -172,6 +172,14 @@ const ReviewSession = () => {
     enableLogging: false
   });
 
+  // 최근 학습 반영: 세션 진입 시점에 호출
+  useEffect(() => {
+    if (lessons && lessons.length > 0) {
+      const lessonIds = lessons.map(l => l.id);
+      API.post('/progress/lessons/events', { lesson_ids: lessonIds });
+    }
+  }, [lessons]);
+
   // 캠(비디오)은 항상 켜지도록 (페이지 진입 시 바로 startCamera, 언마운트 시 stopCamera)
   useEffect(() => {
     if (isInitialized) {
@@ -420,7 +428,14 @@ useEffect(() => {
     return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
   }
   if (lessons.length === 0) {
-    return <div className="text-center mt-10 text-gray-600">복습할 틀린 문제가 없습니다!</div>;
+    return (
+
+      <div className="text-center mt-10 text-gray-600">복습할 틀린 문제가 없습니다!
+      <Button onClick={() => navigate('/home')}>돌아가기</Button>
+      </div>
+
+      
+    );
   }
 
   // 완료 화면
@@ -428,13 +443,7 @@ useEffect(() => {
     navigate(`/complete/chapter/${chapterId}/${3}`);
   }
 
-  // 최근 학습 반영: 세션 진입 시점에 호출
-  useEffect(() => {
-    if (lessons && lessons.length > 0) {
-      const lessonIds = lessons.map(l => l.id);
-      API.post('/progress/lessons/events', { lesson_ids: lessonIds });
-    }
-  }, [lessons]);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
