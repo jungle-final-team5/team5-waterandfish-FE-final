@@ -37,7 +37,8 @@ import {
   Crown,
   Flame,
   Shield,
-  Book
+  Book,
+  Sparkles
 } from 'lucide-react';
 import BadgeModal from '@/components/BadgeModal';
 import StreakModal from '@/components/StreakModal';
@@ -363,11 +364,11 @@ const Dashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           {/* 로고 영역 */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-violet-200 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 bg-indigo-200 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-xl">🐟</span>
             </div>
             <div>
-              <span className="text-2xl font-bold bg-violet-600 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold text-indigo-600">
                 수어지교
               </span>
               <div className="text-xs text-gray-500 mt-0.5">인터렉티브 수어 학습 플랫폼</div>
@@ -388,7 +389,7 @@ const Dashboard: React.FC = () => {
 
       {/* 인사 메시지: 중앙 검색창 바로 위 */}
       <div className="w-full max-w-2xl mx-auto mt-8 mb-2 text-center">
-        <h1 className="text-3xl font-bold text-violet-600 mb-2">
+        <h1 className="text-3xl font-bold text-indigo-600 mb-2">
           {getGreeting()}, {nickname}님! 👋
         </h1>
         <p className="text-gray-600 mb-2">오늘도 수어 학습을 시작해볼까요?</p>
@@ -488,7 +489,10 @@ const Dashboard: React.FC = () => {
             {/* 맞춤 추천 학습 */}
             <div className="bg-white rounded-lg p-8 shadow-lg min-h-[220px]">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-800">맞춤 추천 학습</h2>
+                <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                  <Sparkles className="mr-2 text-indigo-400" />
+                  맞춤 추천 학습
+                </h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {(progressOverview?.categories ?? [])
@@ -496,15 +500,15 @@ const Dashboard: React.FC = () => {
                   .sort((a, b) => b.progress - a.progress)
                   .slice(0, 3)
                   .map((category) => (
-                    <div key={category.id} className="bg-violet-50 rounded-lg p-6 shadow-lg min-h-[140px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 hover:bg-violet-100 cursor-pointer"
+                    <div key={category.id} className="bg-indigo-50 rounded-lg p-6 shadow-lg min-h-[140px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-indigo-300 hover:bg-indigo-100 cursor-pointer"
                       onClick={() => navigate(`/category/${category.id}/chapters`)}
                     >
                       <h3 className="font-semibold text-gray-800 mb-2 text-lg">{category.name}</h3>
                       <div className="flex items-center justify-between mt-auto">
-                        <CustomBadge variant="default" className="text-sm px-2 py-1 text-violet-600 bg-violet-100 hover:bg-violet-200">
+                        <CustomBadge variant="default" className="text-sm px-2 py-1 text-indigo-600 bg-indigo-100 hover:bg-indigo-200">
                           {`진도: ${category.progress}%`}
                         </CustomBadge>
-                        <Button className="bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 cursor-pointer whitespace-nowrap px-3 py-1.5" size="sm">
+                        <Button className="bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 cursor-pointer whitespace-nowrap px-3 py-1.5" size="sm">
                           계속
                         </Button>
                       </div>

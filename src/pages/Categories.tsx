@@ -75,7 +75,7 @@ const Categories = () => {
             <Card
               key={category.id}
               tabIndex={0}
-              className="hover:shadow-lg transition-shadow cursor-pointer relative focus:outline-none focus:ring-4 focus:ring-violet-300 hover:ring-4 hover:ring-violet-200"
+              className="hover:shadow-lg transition-shadow cursor-pointer relative focus:outline-none focus:ring-4 focus:ring-indigo-300 hover:ring-4 hover:ring-indigo-200"
               onClick={() => navigate(`/category/${category.id}/chapters`)}
             >
               <CardHeader>
@@ -102,7 +102,7 @@ const Categories = () => {
                       }
                     }}
                     size="sm"
-                    className="bg-violet-700 hover:bg-violet-800 text-white"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
                     {isCompleted.current ? '복습하기' : '시작하기'}
