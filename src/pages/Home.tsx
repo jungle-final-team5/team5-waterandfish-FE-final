@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Progress, Badge, Avatar, Tooltip, Input } from 'antd';
-import { 
-  UserOutlined, 
-  SettingOutlined, 
+import {
+  UserOutlined,
+  SettingOutlined,
   SearchOutlined,
   PlayCircleOutlined,
   TrophyOutlined,
@@ -18,11 +18,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge as CustomBadge } from '@/components/ui/badge';
 import { Input as CustomInput } from '@/components/ui/input';
-import { 
-  BookOpen, 
-  Search, 
-  RotateCcw, 
-  Trophy, 
+import {
+  BookOpen,
+  Search,
+  RotateCcw,
+  Trophy,
   Calendar,
   Target,
   User,
@@ -37,7 +37,8 @@ import {
   Crown,
   Flame,
   Shield,
-  Book
+  Book,
+  Play
 } from 'lucide-react';
 import BadgeModal from '@/components/BadgeModal';
 import StreakModal from '@/components/StreakModal';
@@ -250,11 +251,11 @@ const Dashboard: React.FC = () => {
         // unlocked 필드 추가
         const processed = Array.isArray(allBadgesRes.data)
           ? allBadgesRes.data.map((badge) => ({
-              id: badge.id,
-              name: badge.name,
-              icon: badge.icon_url,
-              unlocked: earnedIds.includes(badge.id),
-            }))
+            id: badge.id,
+            name: badge.name,
+            icon: badge.icon_url,
+            unlocked: earnedIds.includes(badge.id),
+          }))
           : [];
         setBadgeList(processed);
         setBadgeCount(processed.filter(b => b.unlocked).length);
@@ -324,7 +325,6 @@ const Dashboard: React.FC = () => {
   const handleStartLearn = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 1;
     const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
-    alert(path);
     try {
       setConnectingChapter(chapterId);
 
@@ -336,7 +336,6 @@ const Dashboard: React.FC = () => {
         const response = await API.get<{ success: boolean; data: { ws_urls: string[], lesson_mapper: { [key: string]: string } } }>(`/ml/deploy/${chapterId}`);
         if (response.data.success && response.data.data.ws_urls) {
           console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
-          alert(response.data.data.ws_urls);
           await connectToWebSockets(response.data.data.ws_urls);
           showStatus(); // 전역 상태 표시 활성화
 
@@ -344,7 +343,6 @@ const Dashboard: React.FC = () => {
           await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'study' });
 
           // lesson_mapper를 URL state로 전달
-          alert(path);
           navigate(path, {
             state: {
               lesson_mapper: response.data.data.lesson_mapper
@@ -442,7 +440,7 @@ const Dashboard: React.FC = () => {
   const handleLogout = async () => {
     try {
       await API.post('auth/logout');
-    } catch (error) {}
+    } catch (error) { }
     if (logout) logout();
     localStorage.clear();
     toast({ title: "로그아웃", description: "성공적으로 로그아웃되었습니다." });
@@ -543,10 +541,10 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* 최근 학습 + 오늘의 추천 수어 (나란히 배치) */}
             <div className="flex flex-col md:flex-row gap-6">
               {/* 최근 학습 카드 */}
@@ -564,12 +562,27 @@ const Dashboard: React.FC = () => {
                     <div className="text-base mb-4 text-blue-100">최근 학습 기록이 없습니다.</div>
                   )}
                 </div>
+
                 <Button
                   className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
-                  onClick={() => handleCardClick('recent')}
+                  onClick={() => {
+                    handleCardClick('recent')
+                  }}
                 >
-                  이어서 학습하기
+                  {connectingChapter === recentLearning?.chapterId ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      연결 중...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      이어서 학습하기
+                    </>
+                  )}
                 </Button>
+
+
               </div>
 
               {/* 오늘의 추천 수어 카드 */}
@@ -626,7 +639,7 @@ const Dashboard: React.FC = () => {
 
           {/* Right Column */}
           <div className="space-y-6">
-            
+
             {/* Learning Streak */}
             <Card className="shadow-lg !rounded-button mb-6 cursor-pointer min-h-[240px] z-0 transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-green-400 hover:bg-green-50" onClick={() => setIsStreakModalOpen(true)}>
               <div className="text-center">
@@ -744,7 +757,7 @@ const Dashboard: React.FC = () => {
                         </div>
                         <div className="flex flex-col">
                           <p className="text-xs text-gray-800 font-semibold">
-                            {badge.name.length > 8 ? badge.name.slice(0,8) + '...' : badge.name}
+                            {badge.name.length > 8 ? badge.name.slice(0, 8) + '...' : badge.name}
                           </p>
                         </div>
                       </div>
@@ -766,12 +779,12 @@ const Dashboard: React.FC = () => {
               <span className="text-xs font-medium">홈</span>
             </div>
             <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
-                 onClick={() => navigate('/category')}>
+              onClick={() => navigate('/category')}>
               <BookOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">학습</span>
             </div>
             <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
-                 onClick={() => navigate('/review')}>
+              onClick={() => navigate('/review')}>
               <ReloadOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">복습</span>
             </div>
