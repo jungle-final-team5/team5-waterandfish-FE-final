@@ -1,4 +1,3 @@
-
 import API from '@/components/AxiosInstance';
 import axios from 'axios';
 import {
@@ -124,15 +123,15 @@ const BadgeModal = ({ isOpen, onClose }: BadgeModalProps) => {
       );      
       setBadges(processedBadges);
     } catch (err: unknown) {
-      const error = err as Error;
+      const error = err;
       console.error('뱃지 데이터 불러오기 실패');
-      if (axios.isAxiosError(error)) {
-        if (error.response) {
-          console.error('서버 응답 에러:', error.response.status, error.response.data);
-        } else if (error.request) {
-          console.error('요청은 전송됐지만 응답 없음:', error.request);
+      if (typeof error === 'object' && error && 'isAxiosError' in error && (error as any).isAxiosError) {
+        if ((error as any).response) {
+          console.error('서버 응답 에러:', (error as any).response.status, (error as any).response.data);
+        } else if ((error as any).request) {
+          console.error('요청은 전송됐지만 응답 없음:', (error as any).request);
         } else {
-          console.error('요청 설정 에러:', error.message);
+          console.error('요청 설정 에러:', (error as any).message);
         }
       } else {
         console.error('알 수 없는 오류:', error);
@@ -174,7 +173,7 @@ const BadgeModal = ({ isOpen, onClose }: BadgeModalProps) => {
             {earnedBadges.map((badge) => (
               <div 
                 key={badge.id}
-                className={`${badge.color} rounded-xl p-6 transform hover:scale-105 transition-all duration-200`}
+                className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-6 transform hover:scale-105 transition-all duration-200"
               >
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">

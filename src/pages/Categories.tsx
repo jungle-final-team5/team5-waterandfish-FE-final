@@ -49,7 +49,7 @@ const Categories = () => {
   const sortedCategories: Category[] = categories.slice().sort((a, b) => a.order_index - b.order_index);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100">
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
@@ -74,10 +74,10 @@ const Categories = () => {
           {sortedCategories.map((category) => (
             <Card
               key={category.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer relative"
+              tabIndex={0}
+              className="hover:shadow-lg transition-shadow cursor-pointer relative focus:outline-none focus:ring-4 focus:ring-violet-300 hover:ring-4 hover:ring-violet-200"
               onClick={() => navigate(`/category/${category.id}/chapters`)}
             >
-              {/* 기존 우측 상단 emoji span 제거 */}
               <CardHeader>
                 <CardTitle className="flex items-center space-x-3">
                   <span className="text-3xl">{category.emoji}</span>
@@ -89,9 +89,7 @@ const Categories = () => {
                 <div style={{ marginTop: 8, color: "#888" }}>
                 </div>
                 <div className="flex items-center justify-between">
-                  {/* 챕터 개수 표시는 카테고리 API에 없으므로 제거 또는 0으로 대체 */}
                   <span className="text-sm text-gray-500">
-                    {/* {category.total_chapters}개 챕터 */}
                   </span>
                   <Button
                     onClick={() => {
@@ -104,7 +102,7 @@ const Categories = () => {
                       }
                     }}
                     size="sm"
-                    className="..."
+                    className="bg-violet-700 hover:bg-violet-800 text-white"
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
                     {isCompleted.current ? '복습하기' : '시작하기'}
