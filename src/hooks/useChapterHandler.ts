@@ -14,11 +14,7 @@ export const useChapterHandler = () => {
     try {
       setConnectingChapter(chapterId);
       await API.post(`/progress/chapters/${chapterId}`);
-      // 추가: 학습 시작 시 status를 'study'로 업데이트
-      await API.post(`/progress/chapters/${chapterId}/lessons`, {
-        lesson_ids: lessonIds,
-        status: 'study',
-      });
+      // status를 'study'로 바꾸는 API 호출 부분 삭제
       try {
         const response = await API.get<{ success: boolean; data: { ws_urls: string[], lesson_mapper: { [key: string]: string } } }>(`/ml/deploy/${chapterId}`);
         if (response.data.success && response.data.data.ws_urls) {

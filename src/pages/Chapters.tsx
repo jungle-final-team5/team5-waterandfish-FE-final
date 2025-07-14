@@ -51,11 +51,7 @@ const Chapters = () => {
     }
 
     await API.post(`/progress/chapters/${chapter.id}`);
-    // 추가: 학습 시작 시 status를 'study'로 업데이트
-    await API.post(`/progress/chapters/${chapter.id}/lessons`, {
-      lesson_ids: lessonIds,
-      status: 'study',
-    });
+    // status를 'study'로 바꾸는 API 호출 부분 삭제
     await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
     navigate(path);
   };
