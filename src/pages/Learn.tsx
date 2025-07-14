@@ -30,9 +30,9 @@ interface Lesson extends LessonBase {
 const CORRECT_TARGET = 3;
 
 const Learn = () => {
-  const [animData, setAnimData] = useState(null);
-  const [currentFrame, setCurrentFrame] = useState(0);
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
+    const [videoSrc, setVideoSrc] = useState<string | null>(null);
+    const [isSlowMotion, setIsSlowMotion] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [currentResult, setCurrentResult] = useState<any>(null);
   const [displayConfidence, setDisplayConfidence] = useState<string>('');
@@ -435,32 +435,30 @@ const Learn = () => {
 
   // 애니메이션 데이터 로딩
   useEffect(() => {
+  
     const loadAnim = async () => {
       try {
-        const response = await API.get(`/anim/${lessonId}`);
-        const data: any = response.data;
-        setAnimData(data.data || data);
-      } catch (error) {
-        console.error('애니메이션 불러오는데 실패했습니다 : ', error);
+          const response = await API.get(`/anim/${lessonId}`, {
+        responseType: 'blob'
+      });
+    const videoBlob = new Blob([response.data], {type: 'video/webm'});
+      const videoUrl = URL.createObjectURL(videoBlob);
+
+      if(videoSrc)
+      {
+        URL.revokeObjectURL(videoSrc);
       }
+      setVideoSrc(videoUrl);
+    } catch (error) {
+      console.error('애니메이션 불러오는데 실패했습니다 : ', error);
+    }
     };
     if (lessonId) loadAnim();
   }, [lessonId]);
 
-  // 애니메이션 자동 재생
-  useEffect(() => {
-    let interval = null;
-    if (animData && animData.pose && animData.pose.length > 0) {
-      interval = setInterval(() => {
-        setCurrentFrame(prev =>
-          prev < animData.pose.length - 1 ? prev + 1 : 0
-        );
-      }, 1000 / 30);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [animData]);
+    const togglePlaybackSpeed = () => {
+  setIsSlowMotion(prev => !prev);
+};
 
 
   // 분류 결과 처리: 정답이면 카운트 증가, 3회 이상이면 완료
@@ -650,11 +648,21 @@ const Learn = () => {
           <div className="grid grid-cols-2 gap-12 items-start justify-center">
             {/* 애니메이션 영역 */}
             <div className="w-[680px] min-h-[600px] mx-auto mt-32">
-              <LearningDisplay
-                data={animData}
-                currentFrame={currentFrame}
-                totalFrame={animData?.pose ? animData.pose.length : 150}
-              />
+
+  {videoSrc ? (
+    <video
+      src={videoSrc}
+      autoPlay
+      loop
+      muted
+      playsInline
+      className="w-full h-auto"
+    />
+  ) : (
+    <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
+      <p>비디오 로딩 중...</p>
+    </div>
+  )}
             </div>
             {/* 캠 영역 */}
             <div className="mt-4 p-0 bg-gray-100 rounded-md flex flex-col items-center w-[480px] min-h-[360px] mx-auto">
@@ -699,6 +707,15 @@ const Learn = () => {
                   currentSign={lesson ?? undefined}
                   currentResult={displayConfidence}
                 />
+                                      <Button 
+      onClick={togglePlaybackSpeed} 
+      variant="outline" 
+      size="sm"
+      className="flex items-center"
+    >
+      {isSlowMotion ? '일반 속도' : '천천히 보기'} 
+      {isSlowMotion ? '(1x)' : '(0.5x)'}
+    </Button>
               </div>
             </div>
           </div>

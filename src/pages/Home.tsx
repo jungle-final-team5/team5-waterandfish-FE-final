@@ -524,18 +524,17 @@ const Dashboard: React.FC = () => {
               </div>
 
               {/* 오늘의 추천 수어 카드 */}
-              <div className="flex-1 bg-violet-600 rounded-lg p-6 text-white shadow-lg min-h-[240px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 cursor-pointer">
-                <div>
-                  <h2 className="text-xl font-bold flex items-center mb-2">
-                    <Calendar className="mr-2 text-purple-100" />오늘의 추천 수어
-                  </h2>
-                  <h3 className="text-3xl font-semibold mb-3">{recommendedSign ? recommendedSign.word : '...'}</h3>
-                  <p className="text-purple-100 mb-4 text-lg">{recommendedSign?.description || '수어지교에서 추천하는 수어를 배워보세요'}</p>
-                </div>
-                <div className="flex items-center justify-between mt-2">
-
+                <div className="flex-1 bg-violet-600 rounded-lg p-6 text-white shadow-lg min-h-[240px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 cursor-pointer">
+                  <div>
+                    <h2 className="text-xl font-bold flex items-center mb-2">
+                      <Calendar className="mr-2 text-purple-100" />오늘의 추천 수어
+                    </h2>
+                    <h3 className="text-3xl font-semibold mb-3">{recommendedSign ? recommendedSign.word : '...'}</h3>
+                    <p className="text-purple-100 mb-4 text-lg">{recommendedSign?.description || '수어지교에서 추천하는 수어를 배워보세요'}</p>
+                  </div>
+                  
                   <Button
-                    className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2 "
+                    className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
                     onClick={() => {
                       if (recommendedSign?.id) {
                         handleStartRecommendation(recommendedSign.id);
@@ -545,7 +544,7 @@ const Dashboard: React.FC = () => {
                   >
                     {connectingChapter === recommendedSign?.id ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2 "></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
                         연결 중...
                       </>
                     ) : (
@@ -555,9 +554,9 @@ const Dashboard: React.FC = () => {
                       </>
                     )}
                   </Button>
-
                 </div>
-              </div>
+
+
             </div>
 
             {/* 맞춤 추천 학습 */}
