@@ -19,6 +19,7 @@ import SystemStatus from '@/components/SystemStatus';
 import FeatureGuide from '@/components/FeatureGuide';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import { LandmarksData } from '@/services/SignClassifierClient';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 
 // 재시도 설정
 const RETRY_CONFIG = {
@@ -28,6 +29,7 @@ const RETRY_CONFIG = {
 };
 
 const LearnSession = () => {
+  const { checkBadges } = useBadgeSystem();
   const { categoryId, chapterId } = useParams();
   // ...existing code...
   const navigate = useNavigate();
@@ -572,6 +574,7 @@ useEffect(() => {
 
   if (sessionComplete) // 모든 내용이 완료 된 경우
   {
+    checkBadges("");
     navigate(`/complete/chapter/${chapterId}/${1}`);
   }
 

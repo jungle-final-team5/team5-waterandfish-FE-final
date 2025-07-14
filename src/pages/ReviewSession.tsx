@@ -19,6 +19,7 @@ import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
 import QuizTimer from '@/components/QuizTimer';
+import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 
 interface Lesson extends LessonBase {
   sign_text?: string;
@@ -32,6 +33,7 @@ const QUIZ_TIME_LIMIT = 15;
 
 // caution : 백엔드 api에 오타 수정 해야 이거 작동함. pr 잊지말고 해야 작동 보장함
 const ReviewSession = () => {
+  const { checkBadges } = useBadgeSystem();
   const [animData, setAnimData] = useState(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
@@ -298,6 +300,15 @@ const ReviewSession = () => {
     }
   }, [lessonIdx, lessons]);
 
+  const handleRepeatSign = useCallback(() => {
+    console.log("반복");
+    setIsQuizMode(false);
+    setCorrectCount(0);
+    setCurrentResult(null);
+    setIsRecording(true);
+
+  }, []);
+
   // 시간 초과 시 호출
   const handleTimeUp = useCallback(() => {
     console.log('⏰ 시간 초과! 오답 처리');
@@ -305,6 +316,7 @@ const ReviewSession = () => {
     setTimerActive(false);
     setFeedback('incorrect');
 
+    // 오답이면 다시해 이녀석아
     if (lesson) {
       setQuizResults(prev => [...prev, {
         signId: lesson.id,
@@ -313,11 +325,11 @@ const ReviewSession = () => {
       }]);
     }
 
-    // 3초 후 다음 문제로 이동
+    
     setTimeout(() => {
-      handleNextSign();
+      handleRepeatSign();
     }, 3000);
-  }, [lesson, handleNextSign]);
+  }, [lesson, handleRepeatSign]);
 
   // 퀴즈 시작 함수
   const handleStartQuiz = () => {
@@ -440,6 +452,7 @@ useEffect(() => {
 
   // 완료 화면
   if (isCompleted) {
+    checkBadges("");
     navigate(`/complete/chapter/${chapterId}/${3}`);
   }
 

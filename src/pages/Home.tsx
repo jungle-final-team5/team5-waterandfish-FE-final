@@ -72,7 +72,6 @@ const Home = () => {
   const { categories, categoriesLoading } = useLearningData();
   const { showStreakAchievement } = useNotifications();
   const { unreadCount } = useNotificationHistory();
-  const { checkBadges } = useBadgeSystem();
     const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { currentStreak } = useStreakData();
   const { logout } = useAuth();
