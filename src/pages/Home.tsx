@@ -375,23 +375,22 @@ const Dashboard: React.FC = () => {
     navigate(`/learn/word/${encodeURIComponent(selectedItem)}`);
   };
 
-  const handleCardClick = (cardType: string) => {
+  const handleCardClick = async (cardType: string) => {
     switch (cardType) {
       case 'recent':
-        // 최근학습 정보에 chapterId, modeNum이 있으면 해당 경로로 이동
         if (recentLearning) {
           const modeNum = recentLearning.modeNum;
-          const lessonIds = (findChapterById(recentLearning.chapterId)?.lessons || []).map((lesson: Lesson) => lesson.id);
+          const chapter = await findChapterById(recentLearning.chapterId);
+          const lessonIds = (chapter?.lessons || []).map((lesson: Lesson) => lesson.id);
           if (modeNum == '1') {
-            handleStartLearn(recentLearning.chapterId, lessonIds);
+            handleStartLearn(recentLearning.chapterId, lessonIds, '/home');
           } else if (recentLearning.modeNum == '2') {
-            handleStartQuiz(recentLearning.chapterId, lessonIds);
+            handleStartQuiz(recentLearning.chapterId, lessonIds, '/home');
           }
           else {
             alert(`유효하지 않은 최근학습입니다`);
           }
         } else {
-          // fallback: 카테고리 페이지로 이동
           navigate('/category');
         }
         break;
