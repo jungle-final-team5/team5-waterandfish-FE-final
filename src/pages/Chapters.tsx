@@ -56,7 +56,7 @@ const Chapters = () => {
     navigate(path);
   };
 
-  const handleStartLearn = async (chapterId: string, lessonIds: string[]) => {
+  const handleStartChapter = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 1;
     const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
     try {
@@ -98,8 +98,8 @@ const Chapters = () => {
     }
   };
 
-  const handleStartQuiz = async (chapterId: string, lessonIds: string[]) => {
-    const modeNum = 2;
+  const handleStartQuiz = async (chapterId: string, lessonIds: string[], modeNum: number) => {
+
     const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
     try {
       setConnectingChapter(chapterId);
@@ -269,7 +269,7 @@ const Chapters = () => {
                         <Button
                           className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-300"
                           onClick={() => {
-                            handleStartQuiz(chapter.id, lessonIds);
+                            handleStartQuiz(chapter.id, lessonIds, 2);
                           }}
                           disabled={connectingChapter === chapter.id}
                         >
@@ -410,7 +410,7 @@ const Chapters = () => {
                       <Button
                         className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-300"
                         onClick={() => {
-                          handleStartQuiz(chapter.id, lessonIds)
+                          handleStartQuiz(chapter.id, lessonIds, 2)
                         }}
                         disabled={connectingChapter === chapter.id}
                       >
@@ -431,7 +431,7 @@ const Chapters = () => {
                       <Button
                         className="bg-green-600 hover:bg-green-700"
                         onClick={async () => {
-                          // handleStartReview(chapter.id, lessonIds)
+                          handleStartQuiz(chapter.id, lessonIds, 3)
                         }}
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
