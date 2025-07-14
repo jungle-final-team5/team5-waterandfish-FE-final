@@ -148,24 +148,24 @@ const LearnSession = () => {
     console.log(`🔌 WebSocket 연결 상태: ${connectionStatus}, 연결된 소켓: ${wsList.length}개, isConnected: ${isWsConnected}`);
   }, [connectionStatus, wsList.length]);
 
-    // 이전 connectionId 추적을 위한 ref
-    const prevConnectionIdRef = useRef<string>('');
+  // 이전 connectionId 추적을 위한 ref
+  const prevConnectionIdRef = useRef<string>('');
 
-    // connectionId 변경 시 비디오 스트리밍 갱신
-    useEffect(() => {
-      // 실제로 connectionId가 변경되었을 때만 처리
-      if (currentConnectionId &&
-        currentConnectionId !== prevConnectionIdRef.current &&
-        prevConnectionIdRef.current !== '') {
-        console.log('[LearnSession] connectionId 변경 감지:', prevConnectionIdRef.current, '->', currentConnectionId);
-      }
-      // connectionId 업데이트
-      if (currentConnectionId) {
-        prevConnectionIdRef.current = currentConnectionId;
-      }
-    }, [currentConnectionId]);
+  // connectionId 변경 시 비디오 스트리밍 갱신
+  useEffect(() => {
+    // 실제로 connectionId가 변경되었을 때만 처리
+    if (currentConnectionId &&
+      currentConnectionId !== prevConnectionIdRef.current &&
+      prevConnectionIdRef.current !== '') {
+      console.log('[LearnSession] connectionId 변경 감지:', prevConnectionIdRef.current, '->', currentConnectionId);
+    }
+    // connectionId 업데이트
+    if (currentConnectionId) {
+      prevConnectionIdRef.current = currentConnectionId;
+    }
+  }, [currentConnectionId]);
 
-      // 현재 수어에 대한 ws url 출력
+  // 현재 수어에 대한 ws url 출력
   useEffect(() => {
     if (currentSignId) {
       console.log('[LearnSession] currentSignId:', currentSignId);
@@ -262,15 +262,15 @@ const LearnSession = () => {
   }, [wsList, isBufferingPaused]);
   //===============================================
 
-  
-  
+
+
   //===============================================
   // 랜드마크 버퍼링 및 전송 처리
   //===============================================
-  
+
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
     // 녹화 중일 때만 버퍼에 추가
@@ -283,7 +283,7 @@ const LearnSession = () => {
       console.log(`⚠️ 랜드마크 버퍼링 건너뜀 - 녹화: ${isRecording}, 연결: ${isConnected}`);
     }
   }, [isRecording, isConnected]);
-  
+
   // 랜드마크 버퍼링 및 전송 처리
   // MediaPipe holistic hook 사용
   const {
@@ -302,7 +302,7 @@ const LearnSession = () => {
     minTrackingConfidence: 0.5,
     enableLogging: false // MediaPipe 내부 로그 숨김
   });
-  
+
   useEffect(() => {
     // 녹화 중이고 연결된 상태일 때만 버퍼링 시작
     if (isRecording && isConnected) {

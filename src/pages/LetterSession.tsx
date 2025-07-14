@@ -16,6 +16,30 @@ const LetterSession = () => {
   const [isCameraInitializing, setIsCameraInitializing] = useState(true);
   const navigate = useNavigate();
   
+  function divwords(word){
+        decref.current.textContent = '';
+        setIsDone(false);
+        std.current
+        for(let i = 0;i<word.length;i++){
+            const char = word[i];
+            const code = char.charCodeAt(0);
+            if((code>=12593&&code<=12622) || (code >= 12623 && code <= 12643)) {
+                decref.current.textContent += char;
+                continue;
+            }
+            else if (code < 0xAC00 || code > 0xD7A3) continue; // 한글 아니면 패스
+
+            const offset = code - 0xAC00;
+            const cho = CHO[Math.floor(offset / (21 * 28))];
+            const jung = JUNG[Math.floor((offset % (21 * 28)) / 28)];
+            const jong = JONG[offset % 28];
+            decref.current.textContent += (doublesc[cho]||cho);
+            decref.current.textContent += (doublesc[jung]||jung);
+            if (jong) decref.current.textContent += (doublesc[jong] || jong);
+        }
+        pileref.current.textContent = '';
+    }
+
   const { setType,qOrs } = useParams();
   const [sets] = useState(() => {
     if (setType === 'consonant') {
@@ -23,9 +47,15 @@ const LetterSession = () => {
     } else if (setType === 'vowel') {
       return ['ㅏ', 'ㅑ', 'ㅓ', 'ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ'];
     } else {
-      return [];
+      return ["수어지교","기초연습"];
     }
   });
+  const CHO = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+  const JUNG = ["ㅏ","ㅐ","ㅑ","ㅒ","ㅓ","ㅔ","ㅕ","ㅖ","ㅗ","ㅘ","ㅙ","ㅚ","ㅛ","ㅜ","ㅝ","ㅞ","ㅟ","ㅠ","ㅡ","ㅢ","ㅣ"];
+  const JONG = ["", "ㄱ","ㄲ","ㄳ","ㄴ","ㄵ","ㄶ","ㄷ","ㄹ","ㄺ","ㄻ","ㄼ","ㄽ","ㄾ","ㄿ","ㅀ","ㅁ","ㅂ","ㅄ","ㅅ","ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+  const doublesc = {'ㄲ':'ㄱ'+'ㄱ','ㄳ':'ㄱ'+'ㅅ','ㄵ':'ㄴ'+'ㅈ','ㄶ':'ㄴ'+'ㅎ','ㄸ':'ㄷ'+'ㄷ','ㄺ':'ㄹ'+'ㄱ','ㄻ':'ㄹ'+'ㅁ',
+                    'ㄼ':'ㄹ'+'ㅂ','ㄽ':'ㄹ'+'ㅅ','ㄾ':'ㄹ'+'ㅌ','ㄿ':'ㄹ'+'ㅍ','ㅀ':'ㄹ'+'ㅎ','ㅄ':'ㅂ'+'ㅅ','ㅆ':'ㅅ'+'ㅅ','ㅉ':'ㅈ'+'ㅈ',
+                    'ㅘ':'ㅗ'+'ㅏ','ㅙ':'ㅗ'+'ㅐ','ㅝ':'ㅜ'+'ㅓ','ㅞ':'ㅜ'+'ㅔ'};
   const sendQuizResult = async () => {
     const passedLetters = JSON.parse(localStorage.getItem('passed') || '[]');
     const failedLetters = JSON.parse(localStorage.getItem('failed') || '[]');
@@ -527,7 +557,7 @@ useEffect(() => {
   useEffect(() => {
     if (!words) return;
     std.current = true;
-    divword(words);
+    divwords(words);
     
     if(qors.current){
       setTimeout(timedown, 1000);
@@ -558,7 +588,7 @@ useEffect(() => {
 
   const progress = (currentIndex / sets.length) * 100;
 
-  if(isDone && currentIndex === sets.length - 1)
+  if(isDone && currentIndex === sets.length)
   {
       return (
           <div className="flex items-center justify-center min-h-screen">
