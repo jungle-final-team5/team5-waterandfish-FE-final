@@ -15,7 +15,7 @@ import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
 import { Lesson as LessonBase } from '@/types/learning';
 import VideoInput from '@/components/VideoInput';
-import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
+import useWebsocket, { connectToWebSockets, disconnectWebSockets } from '@/hooks/useWebsocket';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
 import LearningDisplay from '@/components/LearningDisplay';
@@ -256,6 +256,7 @@ const Learn = () => {
       setFeedback(null);
       setCurrentResult(null);
       setIsWaitingForReset(false);
+      
     } else if (!isCompleted && feedback === null && !isWaitingForReset) {
       // 3회 미만이고 모달이 닫혔으며, 리셋 대기가 아닐 때만 분류 재시작
       setIsRecording(true);
@@ -281,6 +282,12 @@ const Learn = () => {
     setCurrentResult(null);
     setIsRecording(true);
     setIsWaitingForReset(false);
+  };
+
+  const handleGoHome = () => {
+    disconnectWebSockets();
+    console.log("HOME DONE..?");
+    navigate('/home');
   };
 
   // 데이터 로딩/에러 처리
@@ -323,7 +330,7 @@ const Learn = () => {
               <Button onClick={handleRetry} variant="outline">
                 다시하기
               </Button>
-              <Button onClick={() => navigate('/home')} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleGoHome} className="bg-blue-600 hover:bg-blue-700">
                 홈으로 돌아가기
               </Button>
             </div>
