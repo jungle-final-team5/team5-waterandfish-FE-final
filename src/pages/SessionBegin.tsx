@@ -40,8 +40,6 @@ const SessionBegin = () => {
       </div>
     );
   }
-  
-  
 
   // (배움/퀴즈) 페이지로 이동하여 해당하는 챕터의 (배움/퀴즈) 컨텐츠 시작
   const startContents = () => {
