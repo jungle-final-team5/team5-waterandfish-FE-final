@@ -463,7 +463,7 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
     setFeedback(null);
   } else {
     setSessionComplete(true);
-    
+      disconnectWebSockets();
     // 백엔드 퀴즈 제출 API 사용 (최신 결과 사용)
     try {
       const results = latestResults.map(result => ({
@@ -471,7 +471,8 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
         correct: result.correct,
         timeSpent: result.timeSpent
       }));
-      
+      console.log("yo");
+      console.log(results);
       await API.post(`/quiz/chapter/${chapterId}/submit`, {
         results: results
       });
