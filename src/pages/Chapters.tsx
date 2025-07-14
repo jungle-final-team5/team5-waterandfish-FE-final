@@ -50,8 +50,12 @@ const Chapters = () => {
       path = "/test/letter/word/study";
     }
 
-
     await API.post(`/progress/chapters/${chapter.id}`);
+    // 추가: 학습 시작 시 status를 'study'로 업데이트
+    await API.post(`/progress/chapters/${chapter.id}/lessons`, {
+      lesson_ids: lessonIds,
+      status: 'study',
+    });
     await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
     navigate(path);
   };
