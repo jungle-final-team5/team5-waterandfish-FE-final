@@ -186,7 +186,7 @@ const Chapters = () => {
   const sortedChapters = (categoryData.chapters as Chapter[]).slice(); // 정렬된 챕터 목록
   if (categoryData.title == "수어 기초") {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100">
         <header className="bg-white shadow-sm border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center space-x-4">
@@ -258,7 +258,7 @@ const Chapters = () => {
                           handleletter(chapter, lessonIds)
 
                         }}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
                       >
                         <>
                           <Play className="h-4 w-4 mr-2" />
@@ -267,10 +267,11 @@ const Chapters = () => {
                       </Button>
                       {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
                         <Button
-                          className="bg-green-600 hover:bg-green-700 text-white"
+                          className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-300"
                           onClick={() => {
                             handleStartQuiz(chapter.id, lessonIds);
                           }}
+                          disabled={connectingChapter === chapter.id}
                         >
                           <Pencil className="h-4 w-4 mr-2" />
                           퀴즈 풀기
@@ -388,11 +389,10 @@ const Chapters = () => {
                   <div className="flex space-x-3 items-center">
                     <Button
                       onClick={() => {
-                        handleStartChapter( chapter.id, lessonIds)
-
+                        handleStartLearn(chapter.id, lessonIds)
                       }}
                       disabled={connectingChapter === chapter.id}
-                      className="bg-violet-700 hover:bg-violet-800 text-white"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
                     >
                       {connectingChapter === chapter.id ? (
                         <>
@@ -408,7 +408,7 @@ const Chapters = () => {
                     </Button>
                     {(chapterStatus === 'study' || chapterStatus === 'quiz_wrong' || chapterStatus === 'reviewed') && (
                       <Button
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-300"
                         onClick={() => {
                           handleStartQuiz(chapter.id, lessonIds)
                         }}
@@ -421,7 +421,7 @@ const Chapters = () => {
                           </>
                         ) : (
                           <>
-                            <Play className="h-4 w-4 mr-2" />
+                            <Pencil className="h-4 w-4 mr-2" />
                             퀴즈풀기
                           </>
                         )}
