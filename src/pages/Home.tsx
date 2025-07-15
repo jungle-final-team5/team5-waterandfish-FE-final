@@ -152,7 +152,9 @@ const Dashboard: React.FC = () => {
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-
+  const [searchLessonIds, setSearchLessonIds] = useState<string[]>([]);
+  const [isEnteringLesson, setIsEnteringLesson] = useState(false);
+  const [placeholder, setPlaceholder] = useState('배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)');
   // 진도율 상태
   const [progressOverview, setProgressOverview] = useState<ProgressOverview | null>(null);
   const [progressLoading, setProgressLoading] = useState(true);
@@ -181,36 +183,10 @@ const Dashboard: React.FC = () => {
   const circumference = 2 * Math.PI * normalizedRadius;
   const progress = Math.max(0, Math.min(percent, 100));
   const offset = circumference - (progress / 100) * circumference;
-  const { connectedCount, totalConnections } = useWebsocket();
 
-  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz } = useChapterHandler();
+  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz, handleStartSingleLearn } = useChapterHandler();
 
-  const handleStartRecommendation = async (lessonId: string) => {
-    try {
-      setConnectingChapter(lessonId);
-      
-      // WebSocket 연결 시도
-      try {
-        const response = await API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`);
-        if (response.data.success && response.data.data.ws_url) {
-          await connectToWebSockets([response.data.data.ws_url]);
-          showStatus(); // 전역 상태 표시 활성화
-          navigate(`/learn/${lessonId}`);
-          return; // 성공적으로 처리되었으므로 함수 종료
-        }
-      } catch (wsError) {
-        console.warn('WebSocket 연결 실패:', wsError);
-        // WebSocket 연결 실패해도 페이지 이동은 계속 진행
-      }
-      
-      // WebSocket 연결 실패 시에도 페이지 이동
-      navigate(`/learn/${lessonId}`);
-    } catch (err) {
-      console.error('학습 시작 실패:', err);
-      setConnectingChapter(null);
-    }
-  };
-
+  
 
 
   // 시간대별 인사 메시지
@@ -328,6 +304,7 @@ const Dashboard: React.FC = () => {
         const { data } = await API.get<{ data: { lessons: RecommendedSign[] } }>('/search', { params: { q: query, k: 5 } });
         if (Array.isArray(data?.data?.lessons)) {
           setSearchResults(data.data.lessons.map((item) => item.word));
+          setSearchLessonIds(data.data.lessons.map((item) => item.id));
         } else {
           setSearchResults([]);
         }
@@ -346,11 +323,21 @@ const Dashboard: React.FC = () => {
     debouncedFetch(query);
   };
 
-  const handleSearchSelect = (selectedItem: string) => {
+  const handleSearchSelect = (selectedItem: string, index: number) => {
     setSearchQuery(selectedItem);
     setShowResults(false);
-    navigate(`/learn/word/${encodeURIComponent(selectedItem)}`);
+    handleStartSingleLearn(searchLessonIds[index]);
+    setIsEnteringLesson(true);
   };
+
+  useEffect(() => {
+    if (isEnteringLesson) {
+      setPlaceholder('연결 중...');
+    }
+    else {
+      setPlaceholder('배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)');
+    }
+  }, [isEnteringLesson]);
 
   const handleCardClick = async (cardType: string) => {
     switch (cardType) {
@@ -446,16 +433,23 @@ const Dashboard: React.FC = () => {
       {/* 중앙 검색 바 (Home.tsx 스타일) */}
       <div className="w-full max-w-2xl mx-auto mt-8 mb-8 relative transition-all duration-200 rounded-xl bg-white">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          {connectingChapter ? (
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2 "></div>
+            </div>
+          ) : (
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          )}
           <CustomInput
             type="text"
-            placeholder="배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)"
+            placeholder={placeholder}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               handleSearch(e.target.value);
             }}
             className="w-full pl-12 pr-4 py-4 text-lg border-2 !border-gray-200 focus:!border-transparent focus:ring-2 focus:ring-blue-400 rounded-xl h-14 transition-all"
+            disabled={isEnteringLesson}
           />
         </div>
         {showResults && searchResults.length > 0 && (
@@ -463,7 +457,7 @@ const Dashboard: React.FC = () => {
             {searchResults.map((result, index) => (
               <button
                 key={index}
-                onClick={() => handleSearchSelect(result)}
+                onClick={() => handleSearchSelect(result, index)}
                 className="w-full px-4 py-3 text-left hover:bg-blue-50 first:rounded-t-xl last:rounded-b-xl transition-colors"
               >
                 <div className="flex items-center justify-between">
@@ -537,7 +531,7 @@ const Dashboard: React.FC = () => {
                     className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
                     onClick={() => {
                       if (recommendedSign?.id) {
-                        handleStartRecommendation(recommendedSign.id);
+                        handleStartSingleLearn(recommendedSign.id);
                       }
                     }}
                     disabled={!recommendedSign?.id}
@@ -728,12 +722,12 @@ const Dashboard: React.FC = () => {
               <HomeOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">홈</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition-colors"
               onClick={() => navigate('/category')}>
               <BookOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">학습</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors"
+            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition-colors"
               onClick={() => navigate('/review')}>
               <ReloadOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">복습</span>

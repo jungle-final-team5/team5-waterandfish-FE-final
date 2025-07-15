@@ -50,8 +50,8 @@ const Chapters = () => {
       path = "/test/letter/word/study";
     }
 
-
     await API.post(`/progress/chapters/${chapter.id}`);
+    // status를 'study'로 바꾸는 API 호출 부분 삭제
     await API.post('/progress/lessons/events', { lesson_ids: lessonIds });
     navigate(path);
   };
