@@ -239,7 +239,7 @@ const LearnSession = () => {
       setIsQuizReady(false);
 
       if (lessons && currentSignIndex < lessons.length - 1) {
-        if (latestResults[latestResults.length - 1]?.correct) {
+        if (feedback === "correct") {
           setFeedback("correct");
           setCurrentSignIndex(prev => prev + 1);
           const nextLesson = lessons[currentSignIndex + 1];
@@ -255,20 +255,15 @@ const LearnSession = () => {
       }
     } else {
       // 학습 모드에서 퀴즈 모드로 전환
-      if (lessons && currentSignIndex < lessons.length - 1) {
-        setCurrentSignIndex(prev => prev);
-        setFeedback(null);
-        setIsRecording(true);
-        setTimerActive(true);
-        setTimeSpent(0);
-      } else {
-        setSessionComplete(true);
-      }
+      setFeedback(null);
+      setIsRecording(true);
+      setTimerActive(true);
+      setTimeSpent(0);
     }
     
     // 모드 토글
     setIsQuizMode(prev => !prev);
-  }, [isQuizMode, currentSignIndex, lessons, quizResults, setFeedback, setCurrentSign, setCurrentSignId, setSessionComplete, setTimerActive, setQuizStarted, setIsRecording, setIsQuizReady, setTimeSpent, disconnectWebSockets]);
+  }, [isQuizMode, currentSignIndex, lessons, quizResults, setFeedback, setCurrentSign, setCurrentSignId, setSessionComplete, setTimerActive, setQuizStarted, setIsRecording, setIsQuizReady, setTimeSpent, disconnectWebSockets, feedback]);
 
   useEffect(() => {
     setCurrentSign(lessons[currentSignIndex]);
@@ -391,7 +386,7 @@ const LearnSession = () => {
     API.post(`/progress/chapters/${chapterId}/lessons`,
       { lesson_ids: lessons.map(l => l.id), status: "study" })
       .then(() => {
-        navigate(`/complete/chapter/${chapterId}/${1}`);
+        navigate(`/complete/chapter/${chapterId}/${3}`);
       });
     // eslint-disable-next-line
   }, [sessionComplete]);
