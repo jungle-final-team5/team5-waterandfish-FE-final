@@ -9,9 +9,11 @@ import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [searchResults, setSearchResults] = useState<{ id: string; word: string }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isEnteringLesson, setIsEnteringLesson] = useState(false);
+  const [lessonMapper, setLessonMapper] = useState<{ [lessonId: string]: string }>({});
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const debouncedFetch = useRef(
@@ -23,9 +25,9 @@ const Index = () => {
       }
       setLoading(true);
       try {
-        const { data } = await API.get<{ success: boolean; data: { lessons: { word: string }[] } }>('/search', { params: { q: query, k: 5 } });
+        const { data } = await API.get<{ success: boolean; data: { lessons: { id: string; word: string }[] } }>('/search', { params: { q: query, k: 5 } });
         if (Array.isArray(data?.data?.lessons)) {
-          setSearchResults(data.data.lessons.map((item) => item.word));
+          setSearchResults(data.data.lessons);
         } else {
           setSearchResults([]);
         }
@@ -44,11 +46,21 @@ const Index = () => {
     debouncedFetch(query);
   };
 
-  const handleSearchSelect = (selectedItem: string) => {
-    setSearchQuery(selectedItem);
+  const handleSearchSelect = async (selected: { id: string; word: string }) => {
+    setSearchQuery(selected.word);
     setShowResults(false);
-    // 해당 키워드 학습 화면으로 이동
-    navigate(`/learn/word/${encodeURIComponent(selectedItem)}`);
+    setIsEnteringLesson(true);
+    try {
+      const { data } = await API.get<{ success: boolean; data: { ws_url: string } }>(`/ml/public/deploy/lesson/${selected.id}`);
+      const wsUrl = data.data.ws_url;
+      const newLessonMapper = { ...lessonMapper, [selected.id]: wsUrl };
+      setLessonMapper(newLessonMapper);
+      navigate(`/learn/${selected.id}`, { state: { lesson_mapper: newLessonMapper } });
+    } catch (e) {
+      // 에러 처리 (필요시 토스트 등)
+    } finally {
+      setIsEnteringLesson(false);
+    }
   };
 
   const handleLogin = () => {
@@ -111,20 +123,27 @@ const Index = () => {
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-12 pr-4 py-3 text-base border-2 border-gray-200 focus:border-violet-500 rounded-xl whitespace-nowrap"
+                disabled={isEnteringLesson}
               />
+              {isEnteringLesson && (
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-indigo-600"></div>
+                </div>
+              )}
             </div>
 
             {/* Search Results Dropdown */}
-            {showResults && searchResults.length > 0 && (
+            {showResults && searchResults.length > 0 && !isEnteringLesson && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-10">
                 {searchResults.map((result, index) => (
                   <button
-                    key={index}
+                    key={result.id}
                     onClick={() => handleSearchSelect(result)}
                     className="w-full px-4 py-3 text-left hover:bg-violet-50 first:rounded-t-xl last:rounded-b-xl transition-colors"
+                    disabled={isEnteringLesson}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-800">{result}</span>
+                      <span className="text-gray-800">{result.word}</span>
                       <ArrowRight className="h-4 w-4 text-gray-400" />
                     </div>
                   </button>
