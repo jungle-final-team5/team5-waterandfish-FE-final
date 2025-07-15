@@ -602,10 +602,10 @@ const handleTimeUp = useCallback(() => {
                 currentResult={displayConfidence}
               />
 
-              <StreamingControls
+              {/* <StreamingControls
                 connectionStatus={connectionStatus}
                 transitionSign={handleNextSign}
-              />
+              /> */}
 
               {/* 숨겨진 비디오 요소들 */}
               <div className="hidden">
