@@ -241,14 +241,12 @@ const LearnSession = () => {
       if (lessons && currentSignIndex < lessons.length - 1) {
         if (latestResults[latestResults.length - 1]?.correct) {
           setFeedback("correct");
-          setCurrentSignIndex(currentSignIndex + 1);
+          setCurrentSignIndex(prev => prev + 1);
           const nextLesson = lessons[currentSignIndex + 1];
-          setCurrentSign(nextLesson);
-          setCurrentSignId(nextLesson?.id || '');
+          
         } else {
           setFeedback("incorrect");
         }
-        alert("퀴즈 모드에서 학습 모드로 전환");
         setFeedback(null);
         setIsRecording(true);
       } else {
@@ -258,8 +256,7 @@ const LearnSession = () => {
     } else {
       // 학습 모드에서 퀴즈 모드로 전환
       if (lessons && currentSignIndex < lessons.length - 1) {
-        alert("학습 모드에서 퀴즈 모드로 전환");
-        setCurrentSignIndex(currentSignIndex);
+        setCurrentSignIndex(prev => prev);
         setFeedback(null);
         setIsRecording(true);
         setTimerActive(true);
@@ -273,11 +270,11 @@ const LearnSession = () => {
     setIsQuizMode(prev => !prev);
   }, [isQuizMode, currentSignIndex, lessons, quizResults, setFeedback, setCurrentSign, setCurrentSignId, setSessionComplete, setTimerActive, setQuizStarted, setIsRecording, setIsQuizReady, setTimeSpent, disconnectWebSockets]);
 
-
-
   useEffect(() => {
-    alert(`isQuizMode: ${isQuizMode}`);
-  }, [isQuizMode]);
+    setCurrentSign(lessons[currentSignIndex]);
+    setCurrentSignId(lessons[currentSignIndex]?.id || '');
+  }, [currentSignIndex, lessons, setCurrentSign, setCurrentSignId]);
+
 
   // FeedbackDisplay 완료 콜백 함수. Feedback 복구 시 해당 메서드 실행하게끔 조치
   const handleFeedbackComplete = () => {
