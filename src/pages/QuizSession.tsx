@@ -68,6 +68,7 @@ const QuizSession = () => {
   const currentSign = lessons[currentSignIndex];
   const currentSignId = lessons[currentSignIndex]?.id;
   const [isRecording, setIsRecording] = useState(false);
+  const [isRequestedBadge, setIsRequestedBadge] = useState<boolean>(false);
 
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
@@ -771,7 +772,12 @@ const handleTimeUp = useCallback(() => {
     const wrongCount = totalQuestions - correctCount;
 
     // 퀴즈 결과 데이터와 함께 SessionComplete 페이지로 이동
-    checkBadges("");
+    
+    if(!isRequestedBadge)
+    {
+      checkBadges("");
+      setIsRequestedBadge(true);
+    }
     navigate(`/complete/chapter/${chapterId}/${2}`, {
       state: {
         totalQuestions: lessons.length,

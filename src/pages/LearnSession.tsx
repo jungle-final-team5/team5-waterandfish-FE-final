@@ -24,6 +24,7 @@ const RETRY_CONFIG = {
 };
 
 const LearnSession = () => {
+  const [isRequestedBadge, setIsRequestedBadge] = useState<boolean>(false);
   const { checkBadges } = useBadgeSystem();
   const { categoryId, chapterId } = useParams();
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -518,7 +519,13 @@ const LearnSession = () => {
 
   if (sessionComplete) // 모든 내용이 완료 된 경우
   {
-    checkBadges("");
+    
+    if(!isRequestedBadge)
+    {
+      checkBadges("");
+      setIsRequestedBadge(true);
+    }
+    
     navigate(`/complete/chapter/${chapterId}/${1}`);
   }
 

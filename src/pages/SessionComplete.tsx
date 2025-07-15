@@ -6,6 +6,7 @@ import { useLearningData } from "@/hooks/useLearningData";
 import { Chapter, Lesson } from "@/types/learning";
 import API from "@/components/AxiosInstance";
 import { connectToWebSockets } from "@/hooks/useWebsocket";
+import { useToast } from "@/hooks/use-toast";
 
 
 const SessionComplete = () => {
@@ -15,6 +16,7 @@ const SessionComplete = () => {
   const { chapterId: paramChapterId, modeNum: num } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
   const { categories, findChapterById } = useLearningData();
   const chapterId = paramChapterId;
   const [chapterName, setChapterName] = useState<string>('여기에 챕터 이름');
@@ -22,6 +24,24 @@ const SessionComplete = () => {
   const { totalQuestions, correctCount, wrongCount } = location.state || {};
   const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
   const lessonIds = (findChapterById(chapterId)?.lessons || []).map((lesson: Lesson) => lesson.id);
+
+  const handlePerfectQuiz = async () => {
+    toast({ title: "완벽해요", description: "단 한 개도 틀린게 없네요! 대단합니다!!" });
+  }
+
+  const handlePerfectReview = async () => {
+    toast({ title: "깔끔한 리뷰!", description: "이 챕터의 모든 수어를 마스터했습니다!!" });
+  }
+
+useEffect(() => {
+  if (modeNum === 2 && wrongCount === 0) {
+    handlePerfectQuiz();
+  }
+  
+  if (modeNum === 3) {
+    handlePerfectReview();
+  }
+}, [modeNum, wrongCount]);
 
   const handleStartQuiz = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 2;
@@ -118,6 +138,7 @@ const SessionComplete = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-2">퀴즈 완료!</h2>
             <p className="text-gray-600 mb-6">{chapterName} 퀴즈를 끝내셨어요.</p>
             {/* 잘했는지 못했는지 모르니 중립적으로 작성하기*/}
+            {}
           </>
           }
 

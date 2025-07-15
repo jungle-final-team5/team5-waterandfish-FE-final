@@ -22,6 +22,7 @@ import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/
 import { ClassificationResult, signClassifierClient, LandmarksData } from '@/services/SignClassifierClient';
 import StreamingControls from '@/components/StreamingControls';
 import SessionHeader from '@/components/SessionHeader';
+import { update } from 'lodash';
 
 interface Lesson extends LessonBase {
   sign_text?: string;
@@ -33,6 +34,8 @@ const CORRECT_TARGET = 3;
 
 const Learn = () => {
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
+  const [videoProgress, setVideoProgress] = useState<number>(0);
+  const exampleVideoRef = useRef<HTMLVideoElement>(null);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [isSlowMotion, setIsSlowMotion] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -282,6 +285,22 @@ const Learn = () => {
 
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+const updateVideoProgress = () => {
+  if (exampleVideoRef.current) {
+    const currentTime = exampleVideoRef.current.currentTime;
+    const duration = exampleVideoRef.current.duration;
+    
+    // NaN 체크 추가
+    if (!isNaN(currentTime) && !isNaN(duration) && duration > 0) {
+      const progress = (currentTime / duration) * 100;
+      setVideoProgress(progress);
+    }
+  } else {
+    console.log('exampleVideoRef.current is null');
+  }
+};
+
 
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
@@ -645,14 +664,29 @@ useEffect(() => {
 
       <div className="grid lg:grid-cols-2 gap-12">
         {videoSrc ? (
-          <video
-            src={videoSrc}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-auto"
-          />
+                         <div className="relative">
+<video
+  ref={exampleVideoRef}
+  src={videoSrc}
+  autoPlay
+  loop
+  muted
+  playsInline
+  className="w-full h-auto"
+  onTimeUpdate={updateVideoProgress}
+/>
+  
+  {/* 프로그레스 바 */}
+  <div className="w-full h-1 bg-gray-200 mt-2">
+    <div 
+      className="h-full bg-blue-500 transition-all duration-300"
+      style={{ width: `${videoProgress}%` }}
+    ></div>
+  </div>
+</div>
+
+
+          
         ) : (
           <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
             <p>비디오 로딩 중...</p>
