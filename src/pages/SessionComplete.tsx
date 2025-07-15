@@ -7,6 +7,7 @@ import { Chapter, Lesson } from "@/types/learning";
 import API from "@/components/AxiosInstance";
 import { connectToWebSockets } from "@/hooks/useWebsocket";
 import { useToast } from "@/hooks/use-toast";
+import { useBadgeSystem } from "@/hooks/useBadgeSystem";
 
 
 const SessionComplete = () => {
@@ -14,6 +15,8 @@ const SessionComplete = () => {
   // modeNum 2. 퀴즈 모드
   // modeNum 3. 복습 모드
   const { chapterId: paramChapterId, modeNum: num } = useParams();
+  const { checkBadges } = useBadgeSystem();
+  const [badgeData, setBadgeData] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -103,7 +106,40 @@ useEffect(() => {
     };
     fetchChapterData();
 
+ const fetchBadges = async () => {
+    try {
+      // 두 번?
+      await checkBadges("");
+      const badgeResponse = await checkBadges("");
+      console.log("뱃지 응답:", badgeResponse);
+      
+      // newly_awarded_badges 배열이 있고 비어있지 않은 경우에만 설정
+      if (badgeResponse.newly_awarded_badges && badgeResponse.newly_awarded_badges.length > 0) {
+        setBadgeData(badgeResponse.newly_awarded_badges);
+      }
+    } catch (error) {
+      console.error("뱃지 확인 중 오류 발생:", error);
+    }
+  };
+  
+  fetchBadges();
+
   }, []);
+
+
+// badgeData가 변경될 때 toast를 표시하는 useEffect 수정
+useEffect(() => {
+  if (badgeData && Array.isArray(badgeData) && badgeData.length > 0) {
+    // 배열인 경우 각 뱃지에 대해 toast 표시
+    badgeData.forEach(badge => {
+      toast({
+        title: `새 뱃지 획득: ${badge.name || '새 뱃지'}`,
+        description: badge.description || '축하합니다! 새로운 뱃지를 획득했습니다.',
+        duration: 5000
+      });
+    });
+  }
+}, [badgeData, toast]);
 
   return (
     <div className="min-h-screen bg-gray-50">
