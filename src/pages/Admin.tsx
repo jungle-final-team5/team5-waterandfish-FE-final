@@ -4,13 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Plus, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Video } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningDataAdmin';
 import { CategoryModal } from '@/components/CategoryModal';
 import { ChapterModal } from '@/components/ChapterModal';
+import { VideoUploadModal } from '@/components/VideoUploadModal';
 import { Category, Chapter } from '@/types/learning';
 import API from '@/components/AxiosInstance';
 import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -18,10 +20,12 @@ const Admin = () => {
   
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [chapterModalOpen, setChapterModalOpen] = useState(false);
+  const [videoUploadModalOpen, setVideoUploadModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingChapter, setEditingChapter] = useState<{ chapter: Chapter; categoryId: string } | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
-
+  const { toast } = useToast();
+  
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
     setCategoryModalOpen(true);
@@ -68,10 +72,16 @@ const Admin = () => {
                 <p className="text-sm text-gray-600">카테고리와 챕터를 관리하세요</p>
               </div>
             </div>
-            <Button onClick={() => setCategoryModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              카테고리 추가
-            </Button>
+            <div className="flex space-x-2">
+              <Button onClick={() => setVideoUploadModalOpen(true)} variant="outline">
+                <Video className="h-4 w-4 mr-2" />
+                수어 영상 업로드
+              </Button>
+              <Button onClick={() => setCategoryModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                카테고리 추가
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -219,6 +229,18 @@ const Admin = () => {
             await API.post(`/chapters/${chapterId}/lessons/connect`,{"chapter":chapterId, "lesson": lessonIds});
           }
           handleChapterModalClose();
+        }}
+      />
+            <VideoUploadModal
+        open={videoUploadModalOpen}
+        onClose={() => setVideoUploadModalOpen(false)}
+        onSave={(videoData) => {
+          // TODO: 실제 비디오 저장 로직 구현
+          toast({
+            title: "영상 업로드 완료",
+            description: `"${videoData.label}" 영상이 성공적으로 업로드되었습니다.`,
+          });
+          setVideoUploadModalOpen(false);
         }}
       />
     </div>
