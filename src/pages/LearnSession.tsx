@@ -387,7 +387,7 @@ const LearnSession = () => {
             <p>비디오 로딩 중...</p>
           </div>
         )}
-        <div className="mt-4 p-3 bg-gray-100 rounded-md">
+        <div className="mt-12 p-3 bg-gray-100 rounded-md">
 
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">
@@ -400,20 +400,24 @@ const LearnSession = () => {
               currentSign={currentLessonSign}
               currentResult={displayConfidence}
             />
-            <Button
-              onClick={togglePlaybackSpeed}
-              variant="outline"
-              size="sm"
-              className="flex items-center"
-            >
-              {isSlowMotion ? '일반 속도' : '천천히 보기'}
-              {isSlowMotion ? '(1x)' : '(0.5x)'}
-            </Button>
+            <div className="flex items-center justify-center gap-x-2 w-full mt-16">
+              <Button
+                onClick={togglePlaybackSpeed}
+                variant="outline"
+                size="sm"
+                className="flex items-center h-12 px-8 text-lg font-semibold rounded-md border border-gray-300"
+              >
+                {isSlowMotion ? '일반 속도' : '천천히 보기'}
+                {isSlowMotion ? '(1x)' : '(0.5x)'}
+              </Button>
 
-            <StreamingControls
-              connectionStatus={connectionStatus}
-              transitionSign={handleNextSign}
-            />
+              <StreamingControls
+                connectionStatus={connectionStatus}
+                transitionSign={handleNextSign}
+                className="h-12"
+                buttonClassName="h-12 px-8 text-lg font-semibold rounded-md border border-gray-300"
+              />
+            </div>
 
             {/* 숨겨진 비디오 요소들 */}
             <div className="hidden">

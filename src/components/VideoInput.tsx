@@ -128,7 +128,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
   }, []); // 빈 의존성 배열로 변경하여 무한 루프 방지
 
   return (
-    <Card className={className}>
+    <Card className={`${className} overflow-hidden`}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           
@@ -151,7 +151,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
       <CardContent>
 
         {/* 비디오 영역 */}
-        <div className="relative w-[640px] h-[480px] mx-auto">
+        <div className="relative w-full h-full mx-auto overflow-hidden">
           <video
             ref={videoRef}
             autoPlay
@@ -159,7 +159,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
             muted
             width={width}
             height={height}
-            className={`w-full h-full bg-gray-900 rounded-lg object-cover ${
+            className={`w-full h-full bg-gray-900 rounded-lg max-w-full max-h-full object-contain ${
               isStreaming ? '' : 'opacity-50'
             }`}
             style={{ aspectRatio: `${width}/${height}`, transform: 'scaleX(-1)' }}
