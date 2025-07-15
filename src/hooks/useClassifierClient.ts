@@ -35,10 +35,23 @@ export const useClassifierClient = () => {
     const [displayConfidence, setDisplayConfidence] = useState<string>('');
     const [maxConfidence, setMaxConfidence] = useState<number>(0);
     const [isBufferingPaused, setIsBufferingPaused] = useState<boolean>(false);
+    const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
     // refs
     const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const studyListRef = useRef<string[]>([]);
+
+    // 초기화 로직
+    useEffect(() => {
+        // location.state에서 lesson_mapper가 있으면 초기화
+        if (location.state?.lesson_mapper && 
+            Object.keys(location.state.lesson_mapper).length > 0 &&
+            typeof location.state.lesson_mapper === 'object') {
+            setLessonMapper(location.state.lesson_mapper);
+            console.log('[LearnSession] lesson_mapper 초기화 완료:', Object.keys(location.state.lesson_mapper).length, '개 항목');
+        }
+        setIsInitialized(true);
+    }, [location.state?.lesson_mapper]);
 
     // lesson_mapper 재시도 함수
     const retryLessonMapper = useCallback(async () => {
@@ -59,7 +72,9 @@ export const useClassifierClient = () => {
 
         retryTimeoutRef.current = setTimeout(() => {
             // 이전 페이지로 돌아가서 다시 데이터 받아오기
-            if (location.state?.lesson_mapper && Object.keys(location.state.lesson_mapper).length > 0) {
+            if (location.state?.lesson_mapper && 
+                Object.keys(location.state.lesson_mapper).length > 0 &&
+                typeof location.state.lesson_mapper === 'object') {
                 setLessonMapper(location.state.lesson_mapper);
                 setRetryAttempts(prev => ({ ...prev, lessonMapper: 0 }));
                 // WebSocket 연결도 성공했거나 재시도가 필요없으면 전체 재시도 상태 해제
@@ -68,6 +83,7 @@ export const useClassifierClient = () => {
                 }
                 console.log('[LearnSession] lesson_mapper 재시도 성공');
             } else {
+                console.warn('[LearnSession] location.state에 유효한 lesson_mapper가 없음:', location.state?.lesson_mapper);
                 setRetryAttempts(prev => ({ ...prev, lessonMapper: prev.lessonMapper + 1 }));
                 retryLessonMapper();
             }
@@ -136,6 +152,11 @@ export const useClassifierClient = () => {
 
     // 현재 수어에 대한 ws url 출력
     useEffect(() => {
+        // 초기화가 완료되지 않았으면 처리하지 않음
+        if (!isInitialized) {
+            return;
+        }
+
         if (currentSignId) {
             console.log('[LearnSession] currentSignId:', currentSignId);
             const wsUrl = lessonMapper[currentSignId] || '';
@@ -155,12 +176,16 @@ export const useClassifierClient = () => {
             } else {
                 console.warn('[LearnSession] currentSignId에 대한 WebSocket URL이 없음:', currentSignId);
                 // lesson_mapper에 해당 ID가 없으면 lesson_mapper 재시도
-                if (Object.keys(lessonMapper).length === 0) {
+                // 단, lesson_mapper가 비어있고 location.state에 lesson_mapper가 있는 경우에만 재시도
+                if (Object.keys(lessonMapper).length === 0 && location.state?.lesson_mapper) {
+                    console.log('[LearnSession] lesson_mapper가 비어있고 location.state에 lesson_mapper가 있음, 재시도 시작');
                     retryLessonMapper();
+                } else if (Object.keys(lessonMapper).length === 0) {
+                    console.warn('[LearnSession] lesson_mapper가 비어있고 location.state에도 lesson_mapper가 없음');
                 }
             }
         }
-    }, [currentSignId, lessonMapper, retryWsConnection, retryLessonMapper, getConnectionByUrl]);
+    }, [currentSignId, lessonMapper, retryWsConnection, retryLessonMapper, getConnectionByUrl, location.state, isInitialized]);
 
     // 소켓 메시지 수신 처리
     useEffect(() => {
@@ -253,6 +278,7 @@ export const useClassifierClient = () => {
         displayConfidence,
         maxConfidence,
         isBufferingPaused,
+        isInitialized,
         studyList: studyListRef.current,
         
         // 상태 설정 함수들
