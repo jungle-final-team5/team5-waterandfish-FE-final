@@ -1,18 +1,16 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import API from '@/components/AxiosInstance';
+import QuizTimer from '@/components/QuizTimer';
+import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
+import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
+
+import { ArrowLeft, } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, CheckCircle, BookOpen, LucidePersonStanding } from 'lucide-react';
-import FeedbackDisplay from '@/components/FeedbackDisplay';
-import API from '@/components/AxiosInstance';
-import { useLearningData } from '@/hooks/useLearningData';
 import { Lesson as LessonBase } from '@/types/learning';
-import VideoInput from '@/components/VideoInput';
-import useWebsocket, { connectToWebSockets } from '@/hooks/useWebsocket';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
-import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
-import QuizTimer from '@/components/QuizTimer';
-import { useBadgeSystem } from '@/hooks/useBadgeSystem';
+
 
 interface Lesson extends LessonBase {
     sign_text?: string;
@@ -20,10 +18,18 @@ interface Lesson extends LessonBase {
     chapter_id?: string;
 }
 
+// 0은 Learn 수행, 1은 Quiz 수행, 2는 다음 단어로 넘어감
+enum correctStatus {
+  LEARN_TURN = 0,
+  QUIZ_TURN = 1,
+  SWITCH_NEXT = 2
+}
+
+
 const CORRECT_CNT_SINGLE_LESSON = 2;
 const QUIZ_TIME_LIMIT = 15;
-// 7월 11일, 기존 검색-수어 Based Review System 구축
-// caution : 백엔드 api에 오타 수정 해야 이거 작동함. pr 잊지말고 해야 작동 보장함
+
+
 const ReviewSession = () => {
     const [videoSrc, setVideoSrc] = useState<string | null>(null);
     const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
@@ -31,8 +37,7 @@ const ReviewSession = () => {
     const [currentResult, setCurrentResult] = useState<any>(null);
     const [displayConfidence, setDisplayConfidence] = useState<string>('');
     const [transmissionCount, setTransmissionCount] = useState(0);
-    const [correctCount, setCorrectCount] = useState(0);
-    const [incorrectCount, setIncorrectCount] = useState(0);
+    const [correctCount, setCorrectCount] = useState(correctStatus.LEARN_TURN);
     const [isCompleted, setIsCompleted] = useState(false);
     const [isWaitingForReset, setIsWaitingForReset] = useState(false);
     const [isSlowMotion, setIsSlowMotion] = useState(false);
@@ -56,10 +61,125 @@ const ReviewSession = () => {
     >([]);
     const [isQuizReady, setIsQuizReady] = useState(false); // 퀴즈 준비 상태 추가
     const [timeSpent, setTimeSpent] = useState(0); // 실제 사용한 시간 추적
+    const { connectionStatus, wsList, sendMessage } = useWebsocket();
 
-    // 복습하기 대상 챕터의 진행 상태를 불러온다.
-    // TODO : 백엔드에서 review를 해야하는 단어로 필터링을 변경해야 함. 현재는 특별히 필터링이 없는 것으로 추정
-    // TODO? : 복습하기 진입 전 복습해야 할 대상 단어들 목록을 조회 할텐데, 그 조회 결과를 그대로 쓸 수 있을지에 대한 고민
+    // 영상의 재생 속도를 조정한다.
+     const togglePlaybackSpeed = () => {
+        setIsSlowMotion((prev) => !prev);
+    };
+
+    // MediaPipe + WebSocket 연동
+    const handleLandmarksDetected = useCallback(
+        (landmarks: any) => {
+            if (wsUrl) {
+                sendMessage(JSON.stringify({ type: 'landmarks', data: landmarks }));
+                setTransmissionCount((prev) => prev + 1);
+            }
+        },
+        [sendMessage, wsUrl],
+    );
+
+    const DEBUG_MAKECORRECT = () => {
+        setFeedback('correct');
+    };
+
+    // useMediaPipeHolistic 훅
+    const {
+        videoRef,
+        canvasRef,
+        isInitialized,
+        isProcessing,
+        lastLandmarks,
+        startCamera,
+        stopCamera,
+        retryInitialization,
+        error: mediaPipeError,
+    } = useMediaPipeHolistic({
+        onLandmarks: handleLandmarksDetected,
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.5,
+        enableLogging: false,
+    });
+
+    // TODO : 구조는 동일하되 내용 개선 필요
+    const handleFeedbackComplete = useCallback(() => {
+        setCorrectCount((prev) => {
+            let next = prev;
+            if (feedback === 'correct') next = prev + 1;
+
+            if (next === correctStatus.SWITCH_NEXT) {
+                setIsQuizMode(false);
+                setLessonIdx((prev_value) => prev_value + 1);
+            }
+            if (next === correctStatus.QUIZ_TURN) {
+                setIsQuizMode(true);
+                handleStartQuiz();
+            } else {
+                setIsQuizMode(false);
+            }
+            return next;
+        });
+        setFeedback(null);
+        setCurrentResult(null);
+        if (feedback === 'correct') {
+            setIsWaitingForReset(true); // 정답 후에는 리셋 대기
+        }
+    }, [feedback]);
+
+    const handleRepeatSign = useCallback(() => {
+        console.log('문제를 틀렸으니 다시 해야 합니다.');
+        setIsQuizMode(false);
+        setCorrectCount(correctStatus.LEARN_TURN);
+        setCurrentResult(null);
+        setIsRecording(true);
+    }, []);
+
+    // 시간 초과 시 호출
+    const handleTimeUp = useCallback(() => {
+        console.log('⏰ 시간 초과! 오답 처리');
+        setIsRecording(false);
+        setTimerActive(false);
+        setFeedback('incorrect');
+
+        // 오답이면 다시해 이녀석아
+        if (lesson) {
+            setQuizResults((prev) => [
+                ...prev,
+                {
+                    signId: lesson.id,
+                    correct: false,
+                    timeSpent: QUIZ_TIME_LIMIT,
+                },
+            ]);
+        }
+
+        setTimeout(() => {
+            handleRepeatSign();
+        }, 3000);
+    }, [lesson, handleRepeatSign]);
+
+    // 퀴즈 시작 함수
+    const handleStartQuiz = () => {
+        if (lesson) {
+            console.log('🎯 퀴즈 시작:', lesson.word);
+            setIsQuizReady(true);
+            setIsRecording(true);
+            setTimeSpent(0); // 시간 리셋
+
+            // 타이머 시작을 약간 지연시켜 상태 업데이트가 완료된 후 시작
+            setTimeout(() => {
+                setTimerActive(true);
+                console.log('⏰ 타이머 활성화됨');
+            }, 100);
+        }
+    };
+
+    /* --------------------- 여기부터 useEffect --------------------- */
+
+    // 복습하기 대상 챕터의 진행 상태를 불러온다. [완료]
     useEffect(() => {
         setLessonLoading(true);
         API.get<{ success: boolean; data: Lesson[] }>(`/progress/failures/${chapterId}`)
@@ -102,7 +222,8 @@ const ReviewSession = () => {
             connectToWebSockets([wsUrl]);
         }
     }, [wsUrl]);
-    const { connectionStatus, wsList, sendMessage } = useWebsocket();
+
+    
 
     // 애니메이션 데이터 로딩 [완료]
     useEffect(() => {
@@ -132,46 +253,7 @@ const ReviewSession = () => {
         }
     }, [isSlowMotion, videoSrc]);
 
-    const togglePlaybackSpeed = () => {
-        setIsSlowMotion((prev) => !prev);
-    };
-
-    // MediaPipe + WebSocket 연동
-    const handleLandmarksDetected = useCallback(
-        (landmarks: any) => {
-            if (wsUrl) {
-                sendMessage(JSON.stringify({ type: 'landmarks', data: landmarks }));
-                setTransmissionCount((prev) => prev + 1);
-            }
-        },
-        [sendMessage, wsUrl],
-    );
-
-    const DEBUG_MAKECORRECT = () => {
-        // 디버깅용
-        setFeedback('correct');
-    };
-
-    // useMediaPipeHolistic 훅
-    const {
-        videoRef,
-        canvasRef,
-        isInitialized,
-        isProcessing,
-        lastLandmarks,
-        startCamera,
-        stopCamera,
-        retryInitialization,
-        error: mediaPipeError,
-    } = useMediaPipeHolistic({
-        onLandmarks: handleLandmarksDetected,
-        modelComplexity: 1,
-        smoothLandmarks: true,
-        enableSegmentation: false,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.5,
-        enableLogging: false,
-    });
+   
 
     // 최근 학습 반영: 세션 진입 시점에 호출
     useEffect(() => {
@@ -268,98 +350,6 @@ const ReviewSession = () => {
         }
     }, [videoSrc, isSlowMotion]);
 
-    // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당) [Review 전용 로직 반영 완료]
-    // TODO : 구조는 동일하되 내용 개선 필요
-    const handleFeedbackComplete = useCallback(() => {
-        setCorrectCount((correctCount) => {
-            let next = prev;
-            if (feedback === 'correct') next = prev + 1;
-
-            if (next === 2) {
-                setIsQuizMode(false);
-                setLessonIdx((prev_value) => prev_value + 1);
-            }
-            if (next === 1) {
-                setIsQuizMode(true);
-                handleStartQuiz();
-            } else {
-                setIsQuizMode(false);
-            }
-            return next;
-        });
-        setFeedback(null);
-        setCurrentResult(null);
-        if (feedback === 'correct') {
-            setIsWaitingForReset(true); // 정답 후에는 리셋 대기
-        }
-    }, [feedback]);
-
-    const handleNextSign = useCallback(async () => {
-        console.log('🔄 다음 수어로 이동:', lessonIdx + 1);
-        //setIsMovingNextSign(false);
-
-        // 타이머 상태 초기화
-        setTimerActive(false);
-
-        setIsRecording(false);
-        setIsQuizReady(false);
-
-        if (lessons && lessonIdx < lessons.length - 1) {
-            setLessonIdx(lessonIdx + 1);
-            setFeedback(null);
-        } else {
-            setIsCompleted(true);
-        }
-    }, [lessonIdx, lessons]);
-
-    const handleRepeatSign = useCallback(() => {
-        console.log('반복');
-        setIsQuizMode(false);
-        setCorrectCount(0);
-        setCurrentResult(null);
-        setIsRecording(true);
-    }, []);
-
-    // 시간 초과 시 호출
-    const handleTimeUp = useCallback(() => {
-        console.log('⏰ 시간 초과! 오답 처리');
-        setIsRecording(false);
-        setTimerActive(false);
-        setFeedback('incorrect');
-
-        // 오답이면 다시해 이녀석아
-        if (lesson) {
-            setQuizResults((prev) => [
-                ...prev,
-                {
-                    signId: lesson.id,
-                    correct: false,
-                    timeSpent: QUIZ_TIME_LIMIT,
-                },
-            ]);
-        }
-
-        setTimeout(() => {
-            handleRepeatSign();
-        }, 3000);
-    }, [lesson, handleRepeatSign]);
-
-    // 퀴즈 시작 함수
-    const handleStartQuiz = () => {
-        if (lesson) {
-            console.log('🎯 퀴즈 시작:', lesson.word);
-            setIsQuizReady(true);
-            setIsRecording(true);
-            setTimeSpent(0); // 시간 리셋
-
-            // 타이머 시작을 약간 지연시켜 상태 업데이트가 완료된 후 시작
-            setTimeout(() => {
-                setTimerActive(true);
-                console.log('⏰ 타이머 활성화됨');
-            }, 100);
-        }
-    };
-
     // 정답/오답 모달이 뜨면 3초(정답) 또는 2초(오답) 뒤 자동으로 닫힘
     useEffect(() => {
         if (feedback === 'correct' || feedback === 'incorrect') {
@@ -382,7 +372,6 @@ const ReviewSession = () => {
         }
     }, [lessonIdx, lessons]);
 
-    // 수행 중 카운트 변동 시 자동 실행
     // TODO : 결과가 DB에 반영되도록 하는 내용 추가 필요
     useEffect(() => {
         if (correctCount >= CORRECT_CNT_SINGLE_LESSON) {
@@ -395,7 +384,7 @@ const ReviewSession = () => {
                 setIsWaitingForReset(false);
                 console.log('레슨들에 대한 내용을 모두 마쳤다.');
             } else {
-                setCorrectCount(0);
+                setCorrectCount(correctStatus.LEARN_TURN);
                 // setIsRecording(true);
                 setCurrentResult(null);
                 setFeedback(null);
@@ -431,16 +420,6 @@ const ReviewSession = () => {
             }
         }
     }, [isWaitingForReset, lastLandmarks, currentResult, lesson]);
-
-    // 다시하기 핸들러
-    const handleRetry = () => {
-        setCorrectCount(0);
-        setIsCompleted(false);
-        setFeedback(null);
-        setCurrentResult(null);
-        setIsRecording(true);
-        setIsWaitingForReset(false);
-    };
 
     // 데이터 로딩/에러 처리
     if (lessonLoading || wsUrlLoading) {
