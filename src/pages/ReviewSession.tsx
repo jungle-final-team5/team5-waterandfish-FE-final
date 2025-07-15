@@ -33,6 +33,8 @@ const LearnSession = () => {
   const QUIZ_TIME_LIMIT = 15;
   const [quizResults, setQuizResults] = useState<{ signId: string, correct: boolean, timeSpent: number }[]>([]);
   const [timeSpent, setTimeSpent] = useState(0); // 실제 사용한 시간 추적
+  const [quizStarted, setQuizStarted] = useState(false);
+  const [isQuizReady, setIsQuizReady] = useState(false); // 퀴즈 준비 상태 추가
 
   // useClassifierClient 훅 사용
   const {
@@ -224,22 +226,61 @@ const LearnSession = () => {
   //===============================================
   // LearnSession 컴포넌트 관련 처리
   //===============================================
-
-  // 다음 수어(레슨)으로 넘어가는 내용
-  // handleNextSign optionally takes an argument (e.g., updatedResults), but can be called with or without it
-  const handleNextSign = async (updatedResults?: any) => {
+    // 다음 수어(레슨)으로 넘어가는 내용
+  const handleNextSign = useCallback(async (latestResults = quizResults) => {
     setIsMovingNextSign(false);
-    if (lessons && currentSignIndex < lessons.length - 1) {
-      setCurrentSignIndex(currentSignIndex + 1);
-      setFeedback(null);
+    
+    // 현재 isQuizMode 상태를 기반으로 로직 처리
+    if (isQuizMode) {
+      // 퀴즈 모드에서 학습 모드로 전환
+      setTimerActive(false);
+      setQuizStarted(false);
+      setIsRecording(false);
+      setIsQuizReady(false);
+
+      if (lessons && currentSignIndex < lessons.length - 1) {
+        if (latestResults[latestResults.length - 1]?.correct) {
+          setFeedback("correct");
+          setCurrentSignIndex(currentSignIndex + 1);
+          const nextLesson = lessons[currentSignIndex + 1];
+          setCurrentSign(nextLesson);
+          setCurrentSignId(nextLesson?.id || '');
+        } else {
+          setFeedback("incorrect");
+        }
+        alert("퀴즈 모드에서 학습 모드로 전환");
+        setFeedback(null);
+        setIsRecording(true);
+      } else {
+        setSessionComplete(true);
+        disconnectWebSockets();
+      }
     } else {
-      setSessionComplete(true);
+      // 학습 모드에서 퀴즈 모드로 전환
+      if (lessons && currentSignIndex < lessons.length - 1) {
+        alert("학습 모드에서 퀴즈 모드로 전환");
+        setCurrentSignIndex(currentSignIndex);
+        setFeedback(null);
+        setIsRecording(true);
+        setTimerActive(true);
+        setTimeSpent(0);
+      } else {
+        setSessionComplete(true);
+      }
     }
-  };
+    
+    // 모드 토글
+    setIsQuizMode(prev => !prev);
+  }, [isQuizMode, currentSignIndex, lessons, quizResults, setFeedback, setCurrentSign, setCurrentSignId, setSessionComplete, setTimerActive, setQuizStarted, setIsRecording, setIsQuizReady, setTimeSpent, disconnectWebSockets]);
+
+
+
+  useEffect(() => {
+    alert(`isQuizMode: ${isQuizMode}`);
+  }, [isQuizMode]);
 
   // FeedbackDisplay 완료 콜백 함수. Feedback 복구 시 해당 메서드 실행하게끔 조치
   const handleFeedbackComplete = () => {
-    setFeedback("correct");
     console.log('🎉 FeedbackDisplay 완료, 다음 수어로 이동');
     handleNextSign();
   };
@@ -295,9 +336,6 @@ const LearnSession = () => {
 
         return updatedResults;
       });
-
-      console.log(currentSign.id);
-      console.log("틀린거 저장 완료하다");
     }
   }, [currentSign]);
 
@@ -367,7 +405,7 @@ const LearnSession = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
-        isQuizMode={false}
+        isQuizMode={isQuizMode}
         currentSign={"쑤퍼노바"}
         chapter={"chaptar"}
         currentSignIndex={1}
