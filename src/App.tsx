@@ -28,6 +28,7 @@ import ReviewSession from "./pages/ReviewSession";
 import MediaPipeSession from "./pages/MediaPipeSession";
 import SessionBegin from "./pages/SessionBegin";
 import SessionComplete from "./pages/SessionComplete";
+import LocationContext from "@/contexts/LocationContext";
 
 const queryClient = new QueryClient();
 
@@ -43,29 +44,31 @@ const App = () => (
           showToggleButton={true}
         >
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-              <Route path="/category" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
-              <Route path="/category/:categoryId/chapters" element={<ProtectedRoute><Chapters /></ProtectedRoute>} />
-              <Route path="/learn/:lessonId" element={<Learn />} />
-              <Route path="/learn/chapter/:chapterId/guide/:modeNum" element={<ProtectedRoute><SessionBegin /></ProtectedRoute>} />
-              <Route path="/learn/chapter/:chapterId" element={<ProtectedRoute><LearnSession /></ProtectedRoute>} />
-              <Route path="/quiz/chapter/:chapterId" element={<ProtectedRoute><QuizSession /></ProtectedRoute>} />
-              <Route path="/review/chapter/:chapterId" element={<ProtectedRoute><ReviewSession /></ProtectedRoute>} />
-              <Route path="/quiz/chapter/:chapterId/review" element={<ProtectedRoute><QuizReview /></ProtectedRoute>} /> 
-              <Route path="/test/letter/:setType/:qOrs" element={<ProtectedRoute><LetterSession /></ProtectedRoute>}/>
-              <Route path="/complete/chapter/:chapterId/:modeNum" element={<ProtectedRoute><SessionComplete /></ProtectedRoute>}/>
-              <Route path="/review" element={<ProtectedRoute><Review /></ProtectedRoute>} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/Admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-              <Route path="/test/mediapipe" element={<ProtectedRoute><MediaPipeSession /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <LocationContext.Provider value={{ location: '', setLocation: () => { } }}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                <Route path="/category" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
+                <Route path="/category/:categoryId/chapters" element={<ProtectedRoute><Chapters /></ProtectedRoute>} />
+                <Route path="/learn/:lessonId" element={<Learn />} />
+                <Route path="/learn/chapter/:chapterId/guide/:modeNum" element={<ProtectedRoute><SessionBegin /></ProtectedRoute>} />
+                <Route path="/learn/chapter/:chapterId" element={<ProtectedRoute><LearnSession /></ProtectedRoute>} />
+                <Route path="/quiz/chapter/:chapterId" element={<ProtectedRoute><QuizSession /></ProtectedRoute>} />
+                <Route path="/review/chapter/:chapterId" element={<ProtectedRoute><ReviewSession /></ProtectedRoute>} />
+                <Route path="/quiz/chapter/:chapterId/review" element={<ProtectedRoute><QuizReview /></ProtectedRoute>} />
+                <Route path="/test/letter/:setType/:qOrs" element={<ProtectedRoute><LetterSession /></ProtectedRoute>} />
+                <Route path="/complete/chapter/:chapterId/:modeNum" element={<ProtectedRoute><SessionComplete /></ProtectedRoute>} />
+                <Route path="/review" element={<ProtectedRoute><Review /></ProtectedRoute>} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/Admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                <Route path="/test/mediapipe" element={<ProtectedRoute><MediaPipeSession /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </LocationContext.Provider>
           </BrowserRouter>
         </GlobalWebSocketProvider>
       </AuthProvider>
