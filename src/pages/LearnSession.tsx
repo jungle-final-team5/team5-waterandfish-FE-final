@@ -518,16 +518,18 @@ const LearnSession = () => {
 
   // 세션 완료 시 레슨 status 업데이트, 뱃지 체크, navigate를 순차적으로 처리
   useEffect(() => {
-    if (sessionComplete) {
-      disconnectWebSockets();
-      API.post(`/progress/chapters/${chapterId}/lessons`,
-        { lesson_ids: lessons.map(l => l.id), status: "study" })
-        .then(() => {
-          checkBadges("");
-          navigate(`/complete/chapter/${chapterId}/${1}`);
-        });
-    }
-  }, [sessionComplete, lessons, chapterId, navigate, checkBadges]);
+    if (!sessionComplete) return;
+    if (!lessons || lessons.length === 0 || !chapterId) return;
+
+    disconnectWebSockets();
+    API.post(`/progress/chapters/${chapterId}/lessons`,
+      { lesson_ids: lessons.map(l => l.id), status: "study" })
+      .then(() => {
+        checkBadges("");
+        navigate(`/complete/chapter/${chapterId}/${1}`);
+      });
+    // eslint-disable-next-line
+  }, [sessionComplete]);
 
   //===============================================
 

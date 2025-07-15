@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import API from '@/components/AxiosInstance';
+import { useAuth } from '@/hooks/useAuth';
 
 // GET /user/profile 또는 /user/me
 interface UserProfile {
@@ -43,6 +44,7 @@ const Profile = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { logout } = useAuth();
 
   // 사용자 정보 로드
   useEffect(() => {
@@ -179,6 +181,7 @@ const handleProfileUpdate = async (e: React.FormEvent) => {
         description: "계정이 성공적으로 삭제되었습니다.",
       });
       localStorage.clear();
+      logout(); // 인증 상태 false로 명확히 변경
       setTimeout(() => {
         navigate('/');
       }, 1500);
