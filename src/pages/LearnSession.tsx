@@ -24,8 +24,6 @@ const RETRY_CONFIG = {
 };
 
 const LearnSession = () => {
-  const [isRequestedBadge, setIsRequestedBadge] = useState<boolean>(false);
-  const { checkBadges } = useBadgeSystem();
   const { categoryId, chapterId } = useParams();
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [isSlowMotion, setIsSlowMotion] = useState(false);
@@ -520,13 +518,7 @@ const LearnSession = () => {
   // 세션 완료 시 레슨 status 업데이트, 뱃지 체크, navigate를 순차적으로 처리
   if (sessionComplete) // 모든 내용이 완료 된 경우
   {
-    
-    if(!isRequestedBadge)
-    {
-      checkBadges("");
-      setIsRequestedBadge(true);
-    }
-    
+    // 뱃지 체크는 SessionComplete에서 단 한 번 다루는 걸로 옮김
     navigate(`/complete/chapter/${chapterId}/${1}`);
   }
 
@@ -539,7 +531,6 @@ const LearnSession = () => {
     API.post(`/progress/chapters/${chapterId}/lessons`,
       { lesson_ids: lessons.map(l => l.id), status: "study" })
       .then(() => {
-        checkBadges("");
         navigate(`/complete/chapter/${chapterId}/${1}`);
       });
     // eslint-disable-next-line

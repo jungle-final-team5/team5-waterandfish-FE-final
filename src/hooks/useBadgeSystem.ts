@@ -34,15 +34,6 @@ export interface BadgeCheckResponse {
 export const useBadgeSystem = () => {
   const { showBadgeEarned } = useNotifications();
   const [loading, setLoading] = useState<boolean>(false);
-  const [learningStats, setLearningStats] = useState<LearningStats>({
-    totalLessonsCompleted: 0,
-    consecutiveDays: 7,
-    correctAnswers: 15,
-    categoriesCompleted: 1,
-    chaptersCompleted: 2,
-    reviewsCompleted: 50,
-    fastAnswers: 25
-  });
 
   // API를 통해 뱃지 확인 및 획득
   const checkBadges = useCallback(async (action: string) => {
@@ -51,19 +42,6 @@ export const useBadgeSystem = () => {
     const response = await API.post<BadgeCheckResponse>('/badge/check-badges', {
       input_str: action // 또는 원하는 문자열 값
     });      
-      const { earnedBadges, updatedStats } = response.data;
-      
-      // 획득한 뱃지가 있으면 알림 표시
-      if (earnedBadges && earnedBadges.length > 0) {
-        earnedBadges.forEach(badge => {
-          showBadgeEarned(badge.name, badge.description);
-        });
-      }
-      
-      // 통계 업데이트가 있으면 적용
-      if (updatedStats) {
-        setLearningStats(prev => ({ ...prev, ...updatedStats }));
-      }
       
       return response.data;
     } catch (error) {
