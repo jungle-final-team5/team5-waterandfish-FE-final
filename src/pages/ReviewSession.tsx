@@ -306,12 +306,9 @@ const LearnSession = () => {
     if (chapterId) {
       const loadChapter = async () => {
         try {
-          const chapData = await findHierarchyByChapterId(chapterId);
-          const categoryData = await findCategoryById(chapData.category_id);
-          console.log(categoryData);
-
-          console.log(chapData.lessons);
-          setLessons(chapData.lessons);
+          const wrongLessonsData = await API.get<{ success: boolean; data: Lesson[] }>(`/progress/failures/${chapterId}`);
+          const wrongLessons = wrongLessonsData.data.data;
+          setLessons(wrongLessons);
         } catch (error) {
           console.error('챕터 데이터 로드 실패:', error);
         }

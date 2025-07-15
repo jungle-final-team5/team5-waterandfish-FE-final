@@ -338,7 +338,7 @@ console.log('MediaPipe Hands instance created via global script');
             } else if (gesture == 'ㅠ' && decref.current?.textContent?.charAt(0) == 'ㅅ') {
               drawWarningMessage(canvasCtx, canvasElement, '손가락을 벌려주세요');
             } else if (gesture == 'ㅅ' && decref.current?.textContent?.charAt(0) == 'ㅠ') {
-              drawWarningMessage(canvasCtx, canvasElement, '손가락을 벌려주세요');
+              drawWarningMessage(canvasCtx, canvasElement, '손가락을 모아주세요');
             }
           } else {
             drawOverlayMessage(
