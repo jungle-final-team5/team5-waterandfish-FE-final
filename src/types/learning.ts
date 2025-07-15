@@ -1,13 +1,15 @@
 export interface Lesson {
   id: string;
   word: string;
-  category: string;
+  category?: string;
   chapter_title?: string; // 챕터명 추가
-  type: 'letter' | 'word' | 'sentence';
+  type?: 'letter' | 'word' | 'sentence';
   difficulty?: 'easy' | 'medium' | 'hard';
   videoUrl?: string;
   description?: string;
   status?: string; // "not_started" | "study" | "reviewed" | "quiz_wrong" 등
+  modelInfo?: string;
+  url?: string;
 }
 
 export interface Chapter {

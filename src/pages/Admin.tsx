@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { CategoryModal } from '@/components/CategoryModal';
 import { ChapterModal } from '@/components/ChapterModal';
 import { VideoUploadModal } from '@/components/VideoUploadModal';
 import { Category, Chapter } from '@/types/learning';
+import LessonManageModal from '@/components/LessonManageModal';
 import API from '@/components/AxiosInstance';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,7 @@ const Admin = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingChapter, setEditingChapter] = useState<{ chapter: Chapter; categoryId: string } | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [lessonManageModalOpen, setLessonManageModalOpen] = useState(false);
   const { toast } = useToast();
   
   const handleEditCategory = (category: Category) => {
@@ -73,6 +74,12 @@ const Admin = () => {
               </div>
             </div>
             <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setLessonManageModalOpen(true)}
+              >
+                레슨 관리
+              </Button>
               <Button onClick={() => setVideoUploadModalOpen(true)} variant="outline">
                 <Video className="h-4 w-4 mr-2" />
                 수어 영상 업로드
@@ -206,17 +213,24 @@ const Admin = () => {
           handleCategoryModalClose();
         }}
       />
-
+      <LessonManageModal
+        open={lessonManageModalOpen}
+        onClose={() => setLessonManageModalOpen(false)}
+      />
       <ChapterModal
         open={chapterModalOpen}
         onClose={handleChapterModalClose}
         chapter={editingChapter?.chapter}
         categoryId={editingChapter?.categoryId || selectedCategoryId}
-        onSave={async (chapterData) => {
+        onSave={async (chapterData, options) => {
+          // options?.onlyLessonAdd === true 이면 수어만 추가하는 경우로 간주
           if (editingChapter) {
             updateChapter(editingChapter.categoryId, editingChapter.chapter.id, chapterData);
             const lessonIds = chapterData.signs.map(sign => sign.id);
             await API.post(`/chapters/${editingChapter.chapter.id}/lessons/connect`,{"chapter":editingChapter.chapter.id, "lesson": lessonIds});
+            if (!options?.onlyLessonAdd) {
+              handleChapterModalClose();
+            }
           } else {
             const chapterRes = await API.post<Chapter>("/chapters", {
                 categoryid: selectedCategoryId,
@@ -227,8 +241,8 @@ const Admin = () => {
             addChapter(selectedCategoryId, chapterData,chapterId);
             const lessonIds = chapterData.signs.map(sign => sign.id);
             await API.post(`/chapters/${chapterId}/lessons/connect`,{"chapter":chapterId, "lesson": lessonIds});
+            handleChapterModalClose();
           }
-          handleChapterModalClose();
         }}
       />
             <VideoUploadModal

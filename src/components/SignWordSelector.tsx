@@ -34,7 +34,7 @@ import API from './AxiosInstance';
 
 interface SignWordSelectorProps {
   selectedSigns: Lesson[];
-  onSelectionChange: (signs: Lesson[]) => void;
+  onSelectionChange: (signs: Lesson[], isNewSignAdded?: boolean) => void;
   categoryId: string;
   lessons: Lesson[];
   chapterTitle?: string;
@@ -50,6 +50,8 @@ export const SignWordSelector: React.FC<SignWordSelectorProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [newWord, setNewWord] = useState('');
   const [newDifficulty, setNewDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [modelInfo, setModelInfo] = useState('');
 
   const filteredSigns = Array.isArray(lessons)
     ? lessons.filter(sign =>
@@ -70,27 +72,6 @@ export const SignWordSelector: React.FC<SignWordSelectorProps> = ({
     }
   };
 
-  const addNewSign = async () => {
-    if (newWord.trim()) {
-    try {
-      const payload = {
-        sign: newWord.trim(),
-        description: "", // 필요시 입력값 추가
-        type: "word", // 또는 "letter", "sentence" 등
-        order: 0, // 순서 지정 필요시
-        chapter: chapterTitle // chapter의 title(이름)이어야 함
-        // url: "미디어 URL", // 필요시 추가
-      };
-      const res = await API.post('/lessons', payload);
-      const newSign = res.data as Lesson; // 서버에서 반환된 lesson 객체
-      onSelectionChange([...selectedSigns, newSign]);
-      setNewWord('');
-    } catch (e) {
-      alert("단어 생성 실패");
-      console.error(e);
-    }
-  }
-  };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -123,31 +104,6 @@ export const SignWordSelector: React.FC<SignWordSelectorProps> = ({
         />
       </div>
 
-      {/* 새 단어 추가 */}
-      <Card className="border-dashed">
-        <CardContent className="p-4">
-          <div className="flex space-x-2">
-            <Input
-              placeholder="새 수어 단어 추가..."
-              value={newWord}
-              onChange={(e) => setNewWord(e.target.value)}
-              className="flex-1"
-            />
-            <select
-              value={newDifficulty}
-              onChange={(e) => setNewDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-              className="px-3 py-2 border rounded-md"
-            >
-              <option value="easy">쉬움</option>
-              <option value="medium">보통</option>
-              <option value="hard">어려움</option>
-            </select>
-            <Button onClick={addNewSign} disabled={!newWord.trim()}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* 선택된 수어 목록 */}
       {selectedSigns.length > 0 && (
