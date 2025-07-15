@@ -5,12 +5,13 @@ import { useLearningData } from '@/hooks/useLearningData';
 import { useVideoStreaming } from '@/hooks/useVideoStreaming';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
+import { useClassifierClient } from '@/hooks/useClassifierClient';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import QuizTimer from '@/components/QuizTimer';
 import SessionHeader from '@/components/SessionHeader';
 import API from '@/components/AxiosInstance';
 import { Chapter } from '@/types/learning';
-import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
+import { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
 import VideoInput from '@/components/VideoInput';
 import StreamingControls from '@/components/StreamingControls';
 
@@ -26,34 +27,44 @@ const QuizSession = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
-  const [lesson_mapper, setLessonMapper] = useState<{ [key: string]: string }>(location.state?.lesson_mapper || {});
-  const [currentWsUrl, setCurrentWsUrl] = useState<string>('');
-  const [currentConnectionId, setCurrentConnectionId] = useState<string>('');
-
-  // 재시도 관련 상태
-  const [retryAttempts, setRetryAttempts] = useState({
-    lessonMapper: 0,
-    wsConnection: 0,
-  });
-  const [isRetrying, setIsRetrying] = useState(false);
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const studyListRef = useRef<string[]>([]);
-
-  // WebSocket 훅
-  const { connectionStatus, wsList, sendMessage } = useWebsocket();
+  // useClassifierClient 훅 사용
+  const {
+    isRetrying,
+    isConnected,
+    currentConnectionId,
+    currentWsUrl,
+    lessonMapper,
+    currentSignId,
+    currentSign,
+    currentResult,
+    feedback,
+    displayConfidence,
+    maxConfidence,
+    isBufferingPaused,
+    studyList,
+    setCurrentSignId,
+    setCurrentSign,
+    setLessonMapper,
+    setFeedback,
+    setDisplayConfidence,
+    setMaxConfidence,
+    setIsBufferingPaused,
+    retryLessonMapper,
+    retryWsConnection,
+    connectionStatus,
+    wsList,
+    sendMessage,
+  } = useClassifierClient();
 
   // 분류 로그 및 결과 수신 처리
   const [logs, setLogs] = useState<any[]>([]);
-  const [displayConfidence, setDisplayConfidence] = useState<string>('');
 
   const { showStatus } = useGlobalWebSocketStatus();
 
-  const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isTransmitting, setIsTransmitting] = useState(false);
-  const [currentResult, setCurrentResult] = useState<ClassificationResult | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [maxConfidence, setMaxConfidence] = useState(0.0);
   const animationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const prevConnectionIdRef = useRef<string>('');
 
   const { findCategoryById, findChapterById, findHierarchyByChapterId } = useLearningData();
 
@@ -63,12 +74,9 @@ const QuizSession = () => {
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [lessons, setLessons] = useState<any[]>([]);
-  const currentSign = lessons[currentSignIndex];
-  const currentSignId = lessons[currentSignIndex]?.id;
   const [isRecording, setIsRecording] = useState(false);
   const [isRequestedBadge, setIsRequestedBadge] = useState<boolean>(false);
 
-  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
 
   // 퀴즈 타이머 관련 (위로 이동)
@@ -77,7 +85,6 @@ const QuizSession = () => {
   const [quizResults, setQuizResults] = useState<{ signId: string, correct: boolean, timeSpent: number }[]>([]);
   const [isQuizReady, setIsQuizReady] = useState(false); // 퀴즈 준비 상태 추가
   const [timeSpent, setTimeSpent] = useState(0); // 실제 사용한 시간 추적
-  const [isBufferingPaused, setIsBufferingPaused] = useState(false);
   // 랜드마크 버퍼링 관련 상태
   const [landmarksBuffer, setLandmarksBuffer] = useState<LandmarksData[]>([]);
   const bufferIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -85,198 +92,7 @@ const QuizSession = () => {
   const QUIZ_TIME_LIMIT = 15;
 
   //===============================================
-  // 분류 서버 관련 훅
-  //===============================================
-
-  // lesson_mapper 재시도 함수
-  const retryLessonMapper = useCallback(async () => {
-    if (retryAttempts.lessonMapper >= RETRY_CONFIG.maxAttempts) {
-      console.error('[LearnSession] lesson_mapper 재시도 횟수 초과');
-      alert('데이터를 불러오는데 실패했습니다. 페이지를 새로고침하거나 다시 시도해주세요.');
-      setIsRetrying(false);
-      return;
-    }
-
-    setIsRetrying(true);
-    const delay = Math.min(
-      RETRY_CONFIG.initialDelay * Math.pow(2, retryAttempts.lessonMapper),
-      RETRY_CONFIG.maxDelay
-    );
-
-    console.log(`[LearnSession] lesson_mapper 재시도 ${retryAttempts.lessonMapper + 1}/${RETRY_CONFIG.maxAttempts} (${delay}ms 후)`);
-
-    retryTimeoutRef.current = setTimeout(() => {
-      // 이전 페이지로 돌아가서 다시 데이터 받아오기
-      if (location.state?.lesson_mapper && Object.keys(location.state.lesson_mapper).length > 0) {
-        setLessonMapper(location.state.lesson_mapper);
-        setRetryAttempts(prev => ({ ...prev, lessonMapper: 0 }));
-        // WebSocket 연결도 성공했거나 재시도가 필요없으면 전체 재시도 상태 해제
-        if (retryAttempts.wsConnection === 0 && currentConnectionId) {
-          setIsRetrying(false);
-        }
-        console.log('[LearnSession] lesson_mapper 재시도 성공');
-      } else {
-        setRetryAttempts(prev => ({ ...prev, lessonMapper: prev.lessonMapper + 1 }));
-        retryLessonMapper();
-      }
-    }, delay);
-  }, [retryAttempts.lessonMapper, retryAttempts.wsConnection, location.state, currentConnectionId]);
-
-  // WebSocket 연결 재시도 함수
-  const retryWsConnection = useCallback(async (targetUrl: string) => {
-    if (retryAttempts.wsConnection >= RETRY_CONFIG.maxAttempts) {
-      console.error('[LearnSession] WebSocket 연결 재시도 횟수 초과');
-      alert('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
-      navigate("/");
-      setIsRetrying(false);
-      return;
-    }
-
-    setIsRetrying(true);
-    const delay = Math.min(
-      RETRY_CONFIG.initialDelay * Math.pow(2, retryAttempts.wsConnection),
-      RETRY_CONFIG.maxDelay
-    );
-
-    console.log(`[LearnSession] WebSocket 연결 재시도 ${retryAttempts.wsConnection + 1}/${RETRY_CONFIG.maxAttempts} (${delay}ms 후)`);
-
-    retryTimeoutRef.current = setTimeout(() => {
-      const connection = getConnectionByUrl(targetUrl);
-      if (connection) {
-        setCurrentConnectionId(connection.id);
-        setRetryAttempts(prev => ({ ...prev, wsConnection: 0 }));
-        // lesson_mapper도 성공했거나 재시도가 필요없으면 전체 재시도 상태 해제
-        if (retryAttempts.lessonMapper === 0 && Object.keys(lesson_mapper).length > 0) {
-          setIsRetrying(false);
-        }
-        console.log('[LearnSession] WebSocket 연결 재시도 성공:', connection.id);
-      } else {
-        setRetryAttempts(prev => ({ ...prev, wsConnection: prev.wsConnection + 1 }));
-        retryWsConnection(targetUrl);
-      }
-    }, delay);
-  }, [retryAttempts.wsConnection, retryAttempts.lessonMapper, lesson_mapper]);
-
-  // WebSocket 연결 상태 모니터링
-  useEffect(() => {
-    // connectionStatus가 변경될 때마다 isConnected 업데이트
-    const isWsConnected = connectionStatus === 'connected' && wsList.length > 0;
-    setIsConnected(isWsConnected);
-    console.log(`🔌 WebSocket 연결 상태: ${connectionStatus}, 연결된 소켓: ${wsList.length}개, isConnected: ${isWsConnected}`);
-  }, [connectionStatus, wsList.length]);
-
-  // 이전 connectionId 추적을 위한 ref
-  const prevConnectionIdRef = useRef<string>('');
-
-  // connectionId 변경 시 비디오 스트리밍 갱신
-  useEffect(() => {
-    // 실제로 connectionId가 변경되었을 때만 처리
-    if (currentConnectionId &&
-      currentConnectionId !== prevConnectionIdRef.current &&
-      prevConnectionIdRef.current !== '') {
-      console.log('[LearnSession] connectionId 변경 감지:', prevConnectionIdRef.current, '->', currentConnectionId);
-    }
-    // connectionId 업데이트
-    if (currentConnectionId) {
-      prevConnectionIdRef.current = currentConnectionId;
-    }
-  }, [currentConnectionId]);
-
-  // 현재 수어에 대한 ws url 출력
-  useEffect(() => {
-    if (currentSignId) {
-      console.log('[LearnSession] currentSignId:', currentSignId);
-      const wsUrl = lesson_mapper[currentSignId] || '';
-      setCurrentWsUrl(wsUrl);
-      console.log('[LearnSession] currentWsUrl:', wsUrl);
-
-      if (wsUrl) {
-        const connection = getConnectionByUrl(wsUrl);
-        if (connection) {
-          setCurrentConnectionId(connection.id);
-          setRetryAttempts(prev => ({ ...prev, wsConnection: 0 })); // 성공 시 재시도 카운터 리셋
-          console.log('[LearnSession] currentConnectionId:', connection.id);
-        } else {
-          console.warn(`[LearnSession] No connection found for targetUrl: ${wsUrl}, 재시도 시작`);
-          retryWsConnection(wsUrl);
-        }
-      } else {
-        console.warn('[LearnSession] currentSignId에 대한 WebSocket URL이 없음:', currentSignId);
-        // lesson_mapper에 해당 ID가 없으면 lesson_mapper 재시도
-        if (Object.keys(lesson_mapper).length === 0) {
-          retryLessonMapper();
-        }
-      }
-    }
-  }, [currentSignId, lesson_mapper, retryWsConnection, retryLessonMapper]);
-
-  // 소켓 메시지 수신 처리
-  useEffect(() => {
-    if (wsList && wsList.length > 0) {
-      // 각 소켓에 대해 핸들러 등록
-      const handlers: { ws: WebSocket; fn: (e: MessageEvent) => void }[] = [];
-      setMaxConfidence(0);
-
-      wsList.forEach(ws => {
-        const handleMessage = (event: MessageEvent) => {
-          try {
-            const msg = JSON.parse(event.data);
-            switch (msg.type) {
-              case 'classification_result': {
-
-                // 버퍼링 일시정지 중에 None 감지 시 버퍼링 재개
-                if (isBufferingPaused && msg.data && msg.data.prediction !== "None") {
-                  setDisplayConfidence("빠른 동작 감지");
-                  return;
-                } else if (isBufferingPaused && msg.data && msg.data.prediction === "None") {
-                  setIsBufferingPaused(false);
-                  return;
-                }
-
-
-                console.log('받은 분류 결과:', msg.data);
-                if (feedback && msg.data.prediction === "None") {
-                  setCurrentResult(msg.data);
-                  break;
-                }
-                const { prediction, confidence, probabilities } = msg.data;
-                const target = currentSign?.word;
-                let percent: number | undefined = undefined;
-                if (prediction === target) {
-                  percent = confidence * 100;
-                } else if (probabilities && target && probabilities[target] != null) {
-                  percent = probabilities[target] * 100;
-                }
-                if (percent != null) {
-                  setDisplayConfidence(`${percent.toFixed(1)}%`);
-                }
-                setCurrentResult(msg.data);
-                if (percent >= 80.0) {
-                  setFeedback("correct");
-                  studyListRef.current.push(currentSign.id);
-                  console.log("PASSED");
-                }
-                break;
-              }
-              default:
-                break;
-            }
-          } catch (e) {
-            console.error('WebSocket 메시지 파싱 오류:', e);
-          }
-        };
-        ws.addEventListener('message', handleMessage);
-        handlers.push({ ws, fn: handleMessage });
-      });
-
-      // 정리: 컴포넌트 언마운트 혹은 wsList 변경 시 리스너 해제
-      return () => {
-        handlers.forEach(({ ws, fn }) => {
-          ws.removeEventListener('message', fn);
-        });
-      };
-    }
-  }, [wsList, isBufferingPaused]);
+  // 랜드마크 버퍼링 및 전송 처리
   //===============================================
 
   //===============================================
@@ -460,6 +276,10 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
   if (lessons && currentSignIndex < lessons.length - 1) {
     setCurrentSignIndex(currentSignIndex + 1);
     setFeedback(null);
+    // 다음 수어로 업데이트
+    const nextLesson = lessons[currentSignIndex + 1];
+    setCurrentSign(nextLesson);
+    setCurrentSignId(nextLesson?.id || '');
   } else {
     setSessionComplete(true);
       disconnectWebSockets();
@@ -511,8 +331,7 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
   useEffect(() => {
     if (currentSignId) {
       console.log('[QuizSession] currentSignId:', currentSignId);
-      const wsUrl = lesson_mapper[currentSignId] || '';
-      setCurrentWsUrl(wsUrl);
+      const wsUrl = lessonMapper[currentSignId] || '';
       console.log('[QuizSession] currentWsUrl:', wsUrl);
 
       if (wsUrl) {
@@ -522,8 +341,6 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
         // 연결 상태 확인
         const connection = getConnectionByUrl(wsUrl);
         if (connection) {
-          setCurrentConnectionId(connection.id);
-          setRetryAttempts(prev => ({ ...prev, wsConnection: 0 }));
           console.log('[QuizSession] currentConnectionId:', connection.id);
         } else {
           console.warn(`[QuizSession] No connection found for targetUrl: ${wsUrl}, 재시도 시작`);
@@ -533,108 +350,51 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
         console.warn('[QuizSession] currentSignId에 대한 WebSocket URL이 없음:', currentSignId);
       }
     }
-  }, [currentSignId, lesson_mapper, retryWsConnection, retryLessonMapper]);
+  }, [currentSignId, lessonMapper, retryWsConnection, retryLessonMapper]);
 
-  // WebSocket 연결 상태 업데이트
+  // 퀴즈 모드에서 정답 판정 (80% 이상이면 정답)
   useEffect(() => {
-    if (wsList && wsList.length > 0) {
-      setIsConnected(true);
-      setIsConnecting(false);
-    } else {
-      setIsConnected(false);
-      setIsConnecting(true);
-    }
-  }, [wsList]);
-
-  // WebSocket 메시지 처리
-  useEffect(() => {
-    if (wsList && wsList.length > 0) {
-      const handlers: { ws: WebSocket; fn: (e: MessageEvent) => void }[] = [];
-      setMaxConfidence(0);
-
-      wsList.forEach(ws => {
-        const handleMessage = (event: MessageEvent) => {
-          try {
-            const msg = JSON.parse(event.data);
-            switch (msg.type) {
-              case 'classification_result': {
-                console.log('받은 분류 결과:', msg.data);
-
-                // 퀴즈가 시작된 상태에서만 분류 결과 처리
-                if (!timerActive) {
-                  console.log('퀴즈가 시작되지 않았으므로 분류 결과 무시');
-                  break;
-                }
-
-                if (feedback && msg.data.prediction === "None") {
-                  setCurrentResult(msg.data);
-                  break;
-                }
-                const { prediction, confidence, probabilities } = msg.data;
-                const target = currentSign?.word;
-                let percent: number | undefined = undefined;
-                if (prediction === target) {
-                  percent = confidence * 100;
-                } else if (probabilities && target && probabilities[target] != null) {
-                  percent = probabilities[target] * 100;
-                }
-                if (percent != null) {
-                  setDisplayConfidence(`${percent.toFixed(1)}%`);
-                }
-                setCurrentResult(msg.data);
-
-                // 퀴즈 모드에서 정답 판정 (80% 이상이면 정답)
-                if (percent >= 80.0) {
-                  console.log("✅ 정답! 시간 내에 성공");
-                  setTimerActive(false);
-                  setFeedback("correct");
-                  studyListRef.current.push(currentSign.id);
-
-                  
-
-                  // 퀴즈 결과 저장 (정답)
-                  if (currentSign) {
-    // 새 결과 객체 생성
-    const newResult = {
-      signId: currentSign.id,
-      correct: true,
-      timeSpent: QUIZ_TIME_LIMIT - timeSpent
-    };
-    
-    // 상태 업데이트와 동시에 로컬 변수에도 저장
-    setQuizResults(prev => {
-      const updatedResults = [...prev, newResult];
+    if (currentResult && timerActive && currentResult.prediction === currentSign?.word) {
+      const { confidence, probabilities } = currentResult;
+      const target = currentSign?.word;
+      let percent: number | undefined = undefined;
       
-      // 상태 업데이트 후 3초 뒤에 다음 문제로 이동
-      setTimeout(() => {
-        console.log("업데이트된 퀴즈 결과 (정답):", updatedResults);
-        handleNextSign(updatedResults); // 업데이트된 결과를 인자로 전달
-      }, 3000);
+      if (currentResult.prediction === target) {
+        percent = confidence * 100;
+      } else if (probabilities && target && probabilities[target] != null) {
+        percent = probabilities[target] * 100;
+      }
       
-      return updatedResults;
-    });
-  }
-                }
-                break;
-              }
-              default:
-                break;
-            }
-          } catch (e) {
-            console.error('WebSocket 메시지 파싱 오류:', e);
-          }
-        };
-        ws.addEventListener('message', handleMessage);
-        handlers.push({ ws, fn: handleMessage });
-      });
+      if (percent >= 80.0) {
+        console.log("✅ 정답! 시간 내에 성공");
+        setTimerActive(false);
+        setFeedback("correct");
 
-      return () => {
-        handlers.forEach(({ ws, fn }) => {
-          ws.removeEventListener('message', fn);
-        });
-      };
+        // 퀴즈 결과 저장 (정답)
+        if (currentSign) {
+          // 새 결과 객체 생성
+          const newResult = {
+            signId: currentSign.id,
+            correct: true,
+            timeSpent: QUIZ_TIME_LIMIT - timeSpent
+          };
+          
+          // 상태 업데이트와 동시에 로컬 변수에도 저장
+          setQuizResults(prev => {
+            const updatedResults = [...prev, newResult];
+            
+            // 상태 업데이트 후 3초 뒤에 다음 문제로 이동
+            setTimeout(() => {
+              console.log("업데이트된 퀴즈 결과 (정답):", updatedResults);
+              handleNextSign(updatedResults); // 업데이트된 결과를 인자로 전달
+            }, 3000);
+            
+            return updatedResults;
+          });
+        }
+      }
     }
-  }, [wsList]);
+  }, [currentResult, timerActive, currentSign, timeSpent, handleNextSign]);
 
   // 챕터 아이디를 통해 챕터 첫 준비
   useEffect(() => {
@@ -647,20 +407,20 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
           console.log(chapData.lessons);
           setLessons(chapData.lessons);
 
-          // lesson_mapper도 함께 로드
+          // lessonMapper도 함께 로드
           if (chapData.lesson_mapper) {
             setLessonMapper(chapData.lesson_mapper);
-            console.log('[QuizSession] lesson_mapper 로드됨:', chapData.lesson_mapper);
+            console.log('[QuizSession] lessonMapper 로드됨:', chapData.lesson_mapper);
           } else {
-            // lesson_mapper가 없으면 별도로 로드
+            // lessonMapper가 없으면 별도로 로드
             try {
               const mapperResponse = await API.get(`/chapters/${chapterId}/lesson_mapper`);
               if (mapperResponse.data && Object.keys(mapperResponse.data).length > 0) {
                 setLessonMapper(mapperResponse.data as { [key: string]: string });
-                console.log('[QuizSession] lesson_mapper 별도 로드 성공:', mapperResponse.data);
+                console.log('[QuizSession] lessonMapper 별도 로드 성공:', mapperResponse.data);
               }
             } catch (error) {
-              console.error('[QuizSession] lesson_mapper 로드 실패:', error);
+              console.error('[QuizSession] lessonMapper 로드 실패:', error);
             }
           }
         } catch (error) {
@@ -675,15 +435,16 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
   useEffect(() => {
     setCurrentSignIndex(0);
     setFeedback(null);
-    setCurrentResult(null);
-
-    return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-        retryTimeoutRef.current = null;
-      }
-    };
   }, []);
+
+  // lessons 배열이 변경될 때마다 현재 수어 업데이트
+  useEffect(() => {
+    if (lessons && lessons.length > 0) {
+      const currentLesson = lessons[currentSignIndex];
+      setCurrentSign(currentLesson);
+      setCurrentSignId(currentLesson?.id || '');
+    }
+  }, [lessons, currentSignIndex]);
 
 
 // 시간 초과 시 호출

@@ -83,12 +83,14 @@ const SessionBegin = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
           {/* 가이드 정보 (왼쪽) */}
           <div className="space-y-6">
 
             {/* 학습 전 준비사항 */}
             <Card className="border border-gray-300 rounded-xl">
               <CardHeader>
+
                 <CardTitle className="flex items-center text-2xl">
                   <AlertCircle className="h-6 w-6 mr-2 text-orange-600" />
                   {modeNum === 1 && ('학습 시작 전 준비사항')}
@@ -97,32 +99,34 @@ const SessionBegin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <Camera className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="space-y-6">
+                  <div className="flex items-start space-x-4">
+                    <Camera className="h-6 w-6 text-blue-600 mt-1 animate-pulse" />
                     <div>
                       <h4 className="font-semibold text-lg text-gray-900">카메라 준비</h4>
                       <p className="text-base text-gray-600">
+
                         웹캠과 적정 거리(약 1-1.5m)를 유지하세요. 상체가 모두 보이도록 위치를 조정해주세요.
                       </p>
                     </div>
                   </div>
-
-                  <div className="flex items-start space-x-3">
-                    <Users className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start space-x-4">
+                    <Users className="h-6 w-6 text-green-600 mt-1" />
                     <div>
                       <h4 className="font-semibold text-lg text-gray-900">조용한 환경</h4>
                       <p className="text-base text-gray-600">
+
                         정확한 인식을 위해 주변에 다른 사람이 없는 공간에서 진행해주세요.
                       </p>
                     </div>
                   </div>
-
-                  <div className="flex items-start space-x-3">
-                    <Lightbulb className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div className="flex items-start space-x-4">
+                    <Lightbulb className="h-6 w-6 text-yellow-600 mt-1" />
                     <div>
+
                       <h4 className="font-semibold text-lg text-gray-900">충분한 조명</h4>
                       <p className="text-base text-gray-600">
+
                         손의 움직임이 선명하게 보일 수 있도록 충분한 조명을 확보해주세요.
                       </p>
                     </div>
@@ -130,7 +134,6 @@ const SessionBegin = () => {
                 </div>
               </CardContent>
             </Card>
-
             {/* 학습 팁 */}
             <Card className="border border-gray-300 rounded-xl">
               <CardHeader>
@@ -155,6 +158,7 @@ const SessionBegin = () => {
                       </li>
                       <li className="flex items-start">
                         <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+
                         설명 기능을 활용해 동작의 의미를 이해해보세요
                       </li>
                     </>
@@ -162,6 +166,7 @@ const SessionBegin = () => {
                   {modeNum == 2 && (
                     <>
                       <li className="flex items-start">
+
                         <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                         시간 제한이 있으니 미리 동작을 연습해두세요
                       </li>
@@ -171,6 +176,7 @@ const SessionBegin = () => {
                       </li>
                       <li className="flex items-start">
                         <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+
                         틀린 문제는 자동으로 복습 목록에 추가됩니다
                       </li>
                     </>
@@ -187,10 +193,12 @@ const SessionBegin = () => {
                       </li>
                       <li className="flex items-start">
                         <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+
                         죄송해요 말밖에 할게 없네요 해브어 굿 데이
                       </li>
                     </>
                   )}
+
 
                 </ul>
               </CardContent>
@@ -200,6 +208,7 @@ const SessionBegin = () => {
             <Card className="border border-gray-300 rounded-xl">
               <CardContent className="py-8 px-4">
                 <div className="text-center space-y-4">
+
                   {connectedCount !== totalCount && (
                     <>
                       <div className="flex items-center justify-center mb-2">
@@ -213,13 +222,16 @@ const SessionBegin = () => {
                   {connectedCount === totalCount && (
                     <>
                       <div className="flex items-center justify-center mb-2">
+
                         <CheckCircle className="h-6 w-6 text-green-600" />
+
                       </div>
                       <p className="text-gray-600">
                         수어 분류 서버에 연결되었습니다
                       </p>
                     </>
                   )}
+
                 </div>
               </CardContent>
             </Card>
@@ -240,6 +252,7 @@ const SessionBegin = () => {
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
+
 
         </div>
       </main>
