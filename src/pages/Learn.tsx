@@ -8,7 +8,7 @@ import {
   CheckCircle,
   BookOpen
 } from 'lucide-react';
-import WebcamView from '@/components/WebcamView';
+ 
 import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
@@ -22,6 +22,7 @@ import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/
 import { ClassificationResult, signClassifierClient, LandmarksData } from '@/services/SignClassifierClient';
 import StreamingControls from '@/components/StreamingControls';
 import SessionHeader from '@/components/SessionHeader';
+import { update } from 'lodash';
 
 interface Lesson extends LessonBase {
   sign_text?: string;
@@ -33,6 +34,8 @@ const CORRECT_TARGET = 3;
 
 const Learn = () => {
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
+  const [videoProgress, setVideoProgress] = useState<number>(0);
+  const exampleVideoRef = useRef<HTMLVideoElement>(null);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [isSlowMotion, setIsSlowMotion] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -283,6 +286,22 @@ const Learn = () => {
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+const updateVideoProgress = () => {
+  if (exampleVideoRef.current) {
+    const currentTime = exampleVideoRef.current.currentTime;
+    const duration = exampleVideoRef.current.duration;
+    
+    // NaN 체크 추가
+    if (!isNaN(currentTime) && !isNaN(duration) && duration > 0) {
+      const progress = (currentTime / duration) * 100;
+      setVideoProgress(progress);
+    }
+  } else {
+    console.log('exampleVideoRef.current is null');
+  }
+};
+
+
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
     // 녹화 중일 때만 버퍼에 추가
@@ -475,9 +494,60 @@ const Learn = () => {
     if (lessonId) loadAnim();
   }, [lessonId]);
 
-  const togglePlaybackSpeed = () => {
-    setIsSlowMotion(prev => !prev);
-  };
+const togglePlaybackSpeed = () => {
+  setIsSlowMotion(prev => !prev);
+};
+
+useEffect(() => {
+  const videoElement = document.querySelector('video[src]') as HTMLVideoElement;
+  if (videoElement) {
+    videoElement.playbackRate = isSlowMotion ? 0.5 : 1.0;
+  }
+}, [isSlowMotion, videoSrc]);
+  // 분류 결과 처리: 정답이면 카운트 증가, 3회 이상이면 완료
+  useEffect(() => {
+    if (!wsUrl) return;
+    if (wsList && wsList.length > 0) {
+      const handlers = wsList.map(ws => {
+        const fn = (event: MessageEvent) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (feedback !== null) return; // 모달 떠 있으면 결과 무시
+            if (msg.type === 'classification_result') {
+              setCurrentResult(msg.data);
+              const { prediction, confidence, probabilities } = msg.data;
+              const target = lesson?.sign_text;
+              let percent: number | undefined = undefined;
+              if (prediction === target) {
+                percent = confidence * 100;
+              } else if (probabilities && target && probabilities[target] != null) {
+                percent = probabilities[target] * 100;
+              }
+              if (percent != null) {
+                setDisplayConfidence(`${percent.toFixed(1)}%`);
+              }
+              // 정답 시
+              if (percent != null && percent >= 80.0 && prediction === target && feedback !== 'correct') {
+                setFeedback('correct');
+                setIsRecording(false); // 분류 멈춤, 캠은 계속
+              } else if (
+                prediction && prediction !== target && prediction !== 'None' && percent != null && percent >= 80.0 && feedback !== 'incorrect'
+              ) {
+                // None이 아니고, 정답도 아니고, 신뢰도 80% 이상일 때만 오답
+                setFeedback('incorrect');
+                setIsRecording(false);
+              }
+            }
+          } catch (e) { }
+        };
+        ws.addEventListener('message', fn);
+        return { ws, fn };
+      });
+      return () => {
+        handlers.forEach(({ ws, fn }) => ws.removeEventListener('message', fn));
+      };
+    }
+  }, [wsList, wsUrl, lesson, feedback]);
 
   // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당)
   const handleFeedbackComplete = useCallback(() => {
@@ -599,14 +669,29 @@ const Learn = () => {
 
       <div className="grid lg:grid-cols-2 gap-12">
         {videoSrc ? (
-          <video
-            src={videoSrc}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-auto"
-          />
+                         <div className="relative">
+<video
+  ref={exampleVideoRef}
+  src={videoSrc}
+  autoPlay
+  loop
+  muted
+  playsInline
+  className="w-full h-auto"
+  onTimeUpdate={updateVideoProgress}
+/>
+  
+  {/* 프로그레스 바 */}
+  <div className="w-full h-1 bg-gray-200 mt-2">
+    <div 
+      className="h-full bg-blue-500 transition-all duration-300"
+      style={{ width: `${videoProgress}%` }}
+    ></div>
+  </div>
+</div>
+
+
+          
         ) : (
           <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
             <p>비디오 로딩 중...</p>

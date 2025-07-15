@@ -24,7 +24,6 @@ const RETRY_CONFIG = {
 };
 
 const LearnSession = () => {
-  const { checkBadges } = useBadgeSystem();
   const { categoryId, chapterId } = useParams();
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [isSlowMotion, setIsSlowMotion] = useState(false);
@@ -517,17 +516,25 @@ const LearnSession = () => {
   }, [lessons]);
 
   // 세션 완료 시 레슨 status 업데이트, 뱃지 체크, navigate를 순차적으로 처리
+  if (sessionComplete) // 모든 내용이 완료 된 경우
+  {
+    // 뱃지 체크는 SessionComplete에서 단 한 번 다루는 걸로 옮김
+    navigate(`/complete/chapter/${chapterId}/${1}`);
+  }
+
+  // sessionComplete 시 소켓 연결 해제, 동시에 챕터 단위 진행도 업데이트
   useEffect(() => {
-    if (sessionComplete) {
-      disconnectWebSockets();
-      API.post(`/progress/chapters/${chapterId}/lessons`,
-        { lesson_ids: lessons.map(l => l.id), status: "study" })
-        .then(() => {
-          checkBadges("");
-          navigate(`/complete/chapter/${chapterId}/${1}`);
-        });
-    }
-  }, [sessionComplete, lessons, chapterId, navigate, checkBadges]);
+    if (!sessionComplete) return;
+    if (!lessons || lessons.length === 0 || !chapterId) return;
+
+    disconnectWebSockets();
+    API.post(`/progress/chapters/${chapterId}/lessons`,
+      { lesson_ids: lessons.map(l => l.id), status: "study" })
+      .then(() => {
+        navigate(`/complete/chapter/${chapterId}/${1}`);
+      });
+    // eslint-disable-next-line
+  }, [sessionComplete]);
 
   //===============================================
 

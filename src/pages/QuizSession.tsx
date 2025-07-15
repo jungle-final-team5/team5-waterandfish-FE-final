@@ -13,7 +13,6 @@ import { Chapter } from '@/types/learning';
 import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
 import VideoInput from '@/components/VideoInput';
 import StreamingControls from '@/components/StreamingControls';
-import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 
 // 재시도 설정
 const RETRY_CONFIG = {
@@ -23,7 +22,6 @@ const RETRY_CONFIG = {
 };
 
 const QuizSession = () => {
-  const { checkBadges } = useBadgeSystem();
   const { categoryId, chapterId, sessionType } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +66,7 @@ const QuizSession = () => {
   const currentSign = lessons[currentSignIndex];
   const currentSignId = lessons[currentSignIndex]?.id;
   const [isRecording, setIsRecording] = useState(false);
+  const [isRequestedBadge, setIsRequestedBadge] = useState<boolean>(false);
 
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [sessionComplete, setSessionComplete] = useState(false);
@@ -770,8 +769,7 @@ const handleTimeUp = useCallback(() => {
     const correctCount = quizResults.filter(result => result.correct).length;
     const wrongCount = totalQuestions - correctCount;
 
-    // 퀴즈 결과 데이터와 함께 SessionComplete 페이지로 이동
-    checkBadges("");
+    // 뱃지 체크는 SessionComplete에서 단 한 번 다루는 걸로 옮김
     navigate(`/complete/chapter/${chapterId}/${2}`, {
       state: {
         totalQuestions: lessons.length,

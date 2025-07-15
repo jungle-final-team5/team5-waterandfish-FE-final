@@ -684,9 +684,9 @@ useEffect(() => {
                 <CardTitle>현재 문제</CardTitle>
               </CardHeader>
               <CardContent>
-                <div ref={decref} className="text-5xl text-center font-bold" />
-                <div ref={timeref} className="text-center text-gray-600 mt-2" />
-                <div ref={pileref} className="text-center text-3xl mt-4" />
+                <div ref={decref} className="text-8xl text-center font-bold" />
+                <div ref={timeref} className="text-center text-8xl font-extrabold text-gray-800 mt-2" />
+                <div ref={pileref} className="text-center text-6xl mt-4" />
               </CardContent>
             </Card>
           </div>):(<div className="space-y-6">
