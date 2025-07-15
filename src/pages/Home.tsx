@@ -343,7 +343,18 @@ const Dashboard: React.FC = () => {
     switch (cardType) {
       case 'recent':
         if (recentLearning) {
-          const modeNum = recentLearning.modeNum;
+          if(recentLearning.chapter == "자음"){
+            const chapter = await findChapterById(recentLearning.chapterId);
+            const lessonIds = (chapter?.lessons || []).map((lesson: Lesson) => lesson.id);
+            await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'study' });
+            navigate('/test/letter/consonant/study');
+          }else if (recentLearning.chapter == "모음"){
+            const chapter = await findChapterById(recentLearning.chapterId);
+            const lessonIds = (chapter?.lessons || []).map((lesson: Lesson) => lesson.id);
+            await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'study' });
+            navigate('/test/letter/vowel/study');
+          }else
+          {const modeNum = recentLearning.modeNum;
           const chapter = await findChapterById(recentLearning.chapterId);
           const lessonIds = (chapter?.lessons || []).map((lesson: Lesson) => lesson.id);
           if (modeNum == '1') {
@@ -353,7 +364,7 @@ const Dashboard: React.FC = () => {
           }
           else {
             alert(`유효하지 않은 최근학습입니다`);
-          }
+          }}
         } else {
           navigate('/category');
         }
