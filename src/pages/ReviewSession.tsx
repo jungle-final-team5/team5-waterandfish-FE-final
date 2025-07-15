@@ -33,7 +33,7 @@ const QUIZ_TIME_LIMIT = 15;
 const ReviewSession = () => {
   const { checkBadges } = useBadgeSystem();
     const [videoSrc, setVideoSrc] = useState<string | null>(null);
-
+  const [isRequestedBadge, setIsRequestedBadge] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [currentResult, setCurrentResult] = useState<any>(null);
@@ -462,7 +462,11 @@ useEffect(() => {
 
   // 완료 화면
   if (isCompleted) {
-    checkBadges("");
+    if(!isRequestedBadge)
+    {
+      checkBadges("");
+      setIsRequestedBadge(true);
+    }
     navigate(`/complete/chapter/${chapterId}/${3}`);
   }
 
