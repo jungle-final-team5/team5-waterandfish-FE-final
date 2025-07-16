@@ -14,7 +14,7 @@ interface ChapterModalProps {
   onClose: () => void;
   chapter?: Chapter | null;
   categoryId: string;
-  onSave: (data: { title: string; type: 'word' | 'sentence'; signs: Lesson[] }) => void;
+  onSave: (data: { title: string; type: 'word' | 'sentence'; signs: Lesson[] }, options?: { onlyLessonAdd?: boolean }) => void;
 }
 interface LessonResponse {
   lessons: Lesson[];
@@ -143,7 +143,15 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
               <FormLabel>수어 선택</FormLabel>
               <SignWordSelector
                 selectedSigns={selectedSigns}
-                onSelectionChange={setSelectedSigns}
+                onSelectionChange={(signs, isNewSignAdded) => {
+                  setSelectedSigns(signs);
+                  if (isNewSignAdded) {
+                    onSave({
+                      ...form.getValues(),
+                      signs,
+                    }, { onlyLessonAdd: true });
+                  }
+                }}
                 categoryId={categoryId}
                 lessons={allSigns || []}
                 chapterTitle={form.watch('title')}
