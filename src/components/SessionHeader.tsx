@@ -3,7 +3,7 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Clock } from 'lucide-react';
 
 interface SessionHeaderProps {
-  isQuizMode: boolean;
+  currentMode: string;
   currentSign: any;
   chapter: any;
   currentSignIndex: number;
@@ -13,7 +13,7 @@ interface SessionHeaderProps {
 }
 
 const SessionHeader = ({ 
-  isQuizMode, 
+  currentMode, 
   currentSign, 
   chapter, 
   currentSignIndex, 
@@ -36,7 +36,7 @@ const SessionHeader = ({
             </Button>
             <div>
               <h1 className="text-xl font-bold text-gray-800">
-                {isQuizMode ? '퀴즈' : '학습'}: {currentSign?.word || '로딩 중...'}
+                {currentMode} : {currentSign?.word || '로딩 중...'}
               </h1>
               <p className="text-sm text-gray-600">
                 {chapter?.title} • {currentSignIndex + 1}/{chapter?.lessons?.length || 0}
@@ -44,12 +44,10 @@ const SessionHeader = ({
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            {isQuizMode && (
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-gray-600">퀴즈 모드</span>
+                <span className="text-sm text-gray-600">{currentMode} 모드</span>
               </div>
-            )}
             <div className="w-32">
               <Progress value={progress} className="h-2" />
             </div>

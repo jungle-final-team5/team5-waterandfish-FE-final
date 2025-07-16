@@ -616,7 +616,7 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-gray-50">
         <SessionHeader
-        isQuizMode={false}
+        currentMode={"지화 복습"}
         currentSign={"쑤퍼노바"}
         chapter={"chaptar"}
         currentSignIndex={1}
