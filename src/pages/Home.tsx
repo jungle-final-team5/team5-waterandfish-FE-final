@@ -539,7 +539,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   
                   <Button
-                    className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
+                    className="bg-white text-violet-600 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
                     onClick={() => {
                       if (recommendedSign?.id) {
                         handleStartSingleLearn(recommendedSign.id);

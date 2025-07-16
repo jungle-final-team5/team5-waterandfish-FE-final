@@ -116,7 +116,14 @@ const Index = () => {
           {/* Search Section */}
           <div className="max-w-2xl mx-auto mb-8 relative">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              {/* 로딩 중이면 스피너, 아니면 돋보기 아이콘 */}
+              {isEnteringLesson ? (
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-indigo-600"></div>
+                </div>
+              ) : (
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              )}
               <Input
                 type="text"
                 placeholder="배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)"
@@ -125,11 +132,6 @@ const Index = () => {
                 className="pl-12 pr-4 py-3 text-base border-2 border-gray-200 focus:border-violet-500 rounded-xl whitespace-nowrap"
                 disabled={isEnteringLesson}
               />
-              {isEnteringLesson && (
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-indigo-600"></div>
-                </div>
-              )}
             </div>
 
             {/* Search Results Dropdown */}
