@@ -6,7 +6,7 @@ test('SessionHeader가 정상적으로 렌더링된다', () => {
     <SessionHeader
       currentMode={"테스트 모드!"}
       currentSign="테스트"
-      chapter="테스트 챕터"
+      chapterId={""}
       currentSignIndex={1}
       progress={1}
       categoryId={undefined}

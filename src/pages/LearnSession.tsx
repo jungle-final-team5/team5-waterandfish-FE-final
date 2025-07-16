@@ -333,10 +333,10 @@ const LearnSession = () => {
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
         currentMode={"학습"}
-        currentSign={"쑤퍼노바"}
-        chapter={"chaptar"}
-        currentSignIndex={1}
-        progress={1}
+        currentSign={currentLessonSign?.word}
+        chapterId={chapterId}
+        currentSignIndex={currentSignIndex}
+        progress={currentSignIndex/(lessons.length - 1)}
         categoryId={undefined}
         navigate={navigate}
       />

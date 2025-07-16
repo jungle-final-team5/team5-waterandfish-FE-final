@@ -422,8 +422,8 @@ const Learn = () => {
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
         currentMode={"단일 학습"}
-        currentSign={"쑤퍼노바"}
-        chapter={"chaptar"}
+        currentSign={lesson?.word}
+        chapterId={""}
         currentSignIndex={1}
         progress={progress}
         categoryId={undefined}

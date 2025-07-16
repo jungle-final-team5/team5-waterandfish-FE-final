@@ -519,8 +519,8 @@ const handleTimeUp = useCallback(() => {
 
       <SessionHeader
         currentMode={"퀴즈"}
-        currentSign={currentSign}
-        chapter={chapter}
+        currentSign={currentSign?.word}
+        chapterId={chapterId}
         currentSignIndex={currentSignIndex}
         progress={progress}
         categoryId={categoryId}
