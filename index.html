@@ -1,7 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+  <meta charset="UTF-8" />
+  <!-- MediaPipe Hands 리소스 로컬 preload -->
+  <link rel="preload" href="/hands.js" as="script">
+  <link rel="preload" href="/camera_utils.js" as="script">
+  <link rel="preload" href="/hand_landmark_full.tflite" as="fetch" type="application/octet-stream">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>수어지교</title>
     <meta name="description" content="상호작용 수어 서비스" />
