@@ -518,9 +518,9 @@ const handleTimeUp = useCallback(() => {
     <div className="min-h-screen bg-gray-50">
 
       <SessionHeader
-        isQuizMode={true}
-        currentSign={currentSign}
-        chapter={chapter}
+        currentMode={"퀴즈"}
+        currentSign={currentSign?.word}
+        chapterId={chapterId}
         currentSignIndex={currentSignIndex}
         progress={progress}
         categoryId={categoryId}

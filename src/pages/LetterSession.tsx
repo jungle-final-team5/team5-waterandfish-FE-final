@@ -667,9 +667,9 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-gray-50">
         <SessionHeader
-        isQuizMode={false}
-        currentSign={"쑤퍼노바"}
-        chapter={"chaptar"}
+        currentMode={"지화 학습"}
+        currentSign={"기초 논하기"}
+        chapterId={""}
         currentSignIndex={1}
         progress={progress}
         categoryId={undefined}

@@ -397,17 +397,18 @@ const LearnSession = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
-        isQuizMode={isQuizMode}
-        currentSign={"쑤퍼노바"}
-        chapter={"chaptar"}
-        currentSignIndex={1}
-        progress={1}
+        currentMode={"복습"}
+        currentSign={currentLessonSign.word}
+        chapterId={chapterId}
+        currentSignIndex={currentSignIndex}
+        progress={currentSignIndex/(lessons.length - 1)}
         categoryId={undefined}
         navigate={navigate}
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
-
+      <div className="mt-12 p-3 bg-gray-100 rounded-md">
+        <div className="space-y-4">
         {!isQuizMode && (
           videoSrc ? (
             <video
@@ -433,6 +434,7 @@ const LearnSession = () => {
               isActive={timerActive}
               onTimeChange={setTimeSpent}
             />
+            
             <div className="grid lg:grid-cols-2 gap-12">
               {/* 맞춰야 할 단어 표시 (애니메이션 자리) */}
               <div className="flex items-center justify-center bg-white rounded-lg shadow-lg p-8">
@@ -458,8 +460,8 @@ const LearnSession = () => {
             </div>
           </div>
         )}
-
-
+        </div>
+        </div>
         <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
           {/* 비디오 입력 영역 */}

@@ -332,16 +332,18 @@ const LearnSession = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
-        isQuizMode={false}
-        currentSign={"쑤퍼노바"}
-        chapter={"chaptar"}
-        currentSignIndex={1}
-        progress={1}
+        currentMode={"학습"}
+        currentSign={currentLessonSign?.word}
+        chapterId={chapterId}
+        currentSignIndex={currentSignIndex}
+        progress={currentSignIndex/(lessons.length - 1)}
         categoryId={undefined}
         navigate={navigate}
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
+      <div className="mt-12 p-3 bg-gray-100 rounded-md">
+        <div className="space-y-4">
         {videoSrc ? (
           <video
             src={videoSrc}
@@ -356,6 +358,8 @@ const LearnSession = () => {
             <p>비디오 로딩 중...</p>
           </div>
         )}
+        </div>
+        </div>
         <div className="mt-12 p-3 bg-gray-100 rounded-md">
 
           {/* 비디오 입력 영역 */}
