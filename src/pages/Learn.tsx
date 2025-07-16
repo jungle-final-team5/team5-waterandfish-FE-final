@@ -393,7 +393,7 @@ const Learn = () => {
                   홈으로
                 </Button>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-800">{lesson?.sign_text ?? lessonId ?? ''}</h1>
+                  <h1 className="text-xl font-bold text-gray-800">{lesson?.word ?? lessonId ?? ''}</h1>
                 </div>
               </div>
             </div>
@@ -422,7 +422,7 @@ const Learn = () => {
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
         currentMode={"단일 학습"}
-        currentSign={lesson?.word}
+        
         chapterId={""}
         currentSignIndex={1}
         progress={progress}
@@ -431,6 +431,8 @@ const Learn = () => {
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
+              <div className="mt-12 p-3 bg-gray-100 rounded-md">
+        <div className="space-y-4">
         {videoSrc ? (
           <div className="relative">
             <video
@@ -452,12 +454,16 @@ const Learn = () => {
               ></div>
             </div>
           </div>
+          
 
         ) : (
           <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
             <p>비디오 로딩 중...</p>
           </div>
         )}
+        </div>
+        </div>
+        
         <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
           {/* 비디오 입력 영역 */}

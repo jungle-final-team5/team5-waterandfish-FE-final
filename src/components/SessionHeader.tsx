@@ -3,10 +3,10 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import API from './AxiosInstance';
+import { useLearningData } from '@/hooks/useLearningData';
 
 interface SessionHeaderProps {
   currentMode: string;
-  currentSign: string;
   chapterId: string;
   currentSignIndex: number;
   progress: number;
@@ -15,8 +15,7 @@ interface SessionHeaderProps {
 }
 
 const SessionHeader = ({ 
-  currentMode, 
-  currentSign, 
+  currentMode,  
   chapterId,
   currentSignIndex, 
   progress, 
@@ -24,15 +23,18 @@ const SessionHeader = ({
   navigate 
 }: SessionHeaderProps) => {
   const [curChapter, setCurChapter] = useState<any>(null);
+  const { findHierarchyByChapterId } = useLearningData();
 
   useEffect(() => {
     const loadChapter = async () => {
       try {
               if (chapterId !== "") {
-        const chapterInfo = await API.get(`/chapters/${chapterId}`);
+        const chapterInfo = await findHierarchyByChapterId(chapterId);
         console.log("chapter information");
         console.log(chapterInfo);
         setCurChapter(chapterInfo);
+        // lessons[배열], title로 다 해먹을 수 있겠다.
+
       }
       }
       catch (error) {
@@ -59,10 +61,10 @@ const SessionHeader = ({
             </Button>
             <div>
               <h1 className="text-xl font-bold text-gray-800">
-                {currentMode} : {currentSign || '로딩 중...'}
+                {currentMode} : {"단어 입장"}
               </h1>
               <p className="text-sm text-gray-600">
-                {curChapter?.data.data.type}
+                
               </p>
             </div>
           </div>
