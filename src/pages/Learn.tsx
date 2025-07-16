@@ -265,7 +265,7 @@ const Learn = () => {
   useEffect(() => {
     if (!lessonId) return;
     setWsUrlLoading(true);
-    API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/public/deploy/lesson/${lessonId}`)
+    API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/public/deploy/lesson/${lessonId}`)
       .then(res => {
         setWsUrl(res.data.data.ws_url);
         // Home.tsx처럼 lesson_mapper에 직접 할당
