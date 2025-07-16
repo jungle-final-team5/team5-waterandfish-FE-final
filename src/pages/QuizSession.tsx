@@ -236,31 +236,6 @@ const QuizSession = () => {
   // 퀴즈 관련 처리
   //===============================================
 
-const beforeNavigate = useCallback(async () => {
-      
-      disconnectWebSockets();
-
-      // 백엔드 퀴즈 제출 API 사용
-      const results = quizResults.map(result => ({
-        lessonId: result.signId,
-        correct: result.correct,
-        timeSpent: result.timeSpent
-      }));
-      console.log("run!");
-      console.log(results);
-
-      API.post(`/quiz/chapter/${chapterId}/submit`, {
-        results: results
-      }).then((response: any) => {
-        console.log('퀴즈 결과 제출 완료:', response.data);
-        if (response.data.data.chapter_completed) {
-          console.log('챕터 완료!');
-        }
-      }).catch((error) => {
-        console.error('퀴즈 결과 제출 실패:', error);
-      });
-    
-}, [sessionComplete, quizResults, chapterId]);
 
 // handleNextSign 함수 수정
 const handleNextSign = useCallback(async (latestResults = quizResults) => {
@@ -290,7 +265,6 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
         correct: result.correct,
         timeSpent: result.timeSpent
       }));
-      console.log("yo");
       console.log(results);
       await API.post(`/quiz/chapter/${chapterId}/submit`, {
         results: results

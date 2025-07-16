@@ -16,12 +16,12 @@ import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import { Button } from '@/components/ui/button';
 import { useClassifierClient } from '@/hooks/useClassifierClient';
+import { useAnimation } from '@/hooks/useAnimation';
 
 
 
 const LearnSession = () => {
   const { categoryId, chapterId } = useParams();
-  const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [isSlowMotion, setIsSlowMotion] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -70,6 +70,12 @@ const LearnSession = () => {
   const currentLessonSignId = lessons[currentSignIndex]?.id;
   const [isRecording, setIsRecording] = useState(false);
 
+  // 애니메이션 훅 사용
+  const { videoSrc } = useAnimation({
+    lessonId: currentLessonSignId,
+    isSlowMotion
+  });
+
   const [sessionComplete, setSessionComplete] = useState(false);
 
   // 랜드마크 버퍼링 관련 상태
@@ -96,13 +102,6 @@ const LearnSession = () => {
   const togglePlaybackSpeed = () => {
     setIsSlowMotion(prev => !prev);
   };
-
-  useEffect(() => {
-    const videoElement = document.querySelector('video[src]') as HTMLVideoElement;
-    if (videoElement) {
-      videoElement.playbackRate = isSlowMotion ? 0.5 : 1.0;
-    }
-  }, [isSlowMotion, videoSrc]);
   
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
@@ -262,37 +261,7 @@ const LearnSession = () => {
     };
   }, [isInitialized]);
 
-  //===============================================
-  // 애니메이션 처리
-  //===============================================
 
-  // 애니메이션 재생 루틴
-  const loadAnim = async () => {
-    try {
-      const id = currentLessonSign?.id;
-      if (!id) return;
-      
-      console.log(id);
-      const response = await API.get(`/anim/${id}`, {
-        responseType: 'blob'
-      });
-
-      const videoBlob = new Blob([response.data as BlobPart], { type: 'video/webm' });
-      const videoUrl = URL.createObjectURL(videoBlob);
-
-      if (videoSrc) {
-        URL.revokeObjectURL(videoSrc);
-      }
-      setVideoSrc(videoUrl);
-    } catch (error) {
-      console.error('애니메이션 불러오는데 실패했습니다 : ', error);
-    }
-  };
-
-  // 수어 변경 시점마다 애니메이션 자동 변경
-  useEffect(() => {
-    loadAnim();
-  }, [currentLessonSign]);
 
   // 챕터 아이디를 통해 챕터 첫 준비
   useEffect(() => {

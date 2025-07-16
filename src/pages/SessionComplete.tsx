@@ -9,7 +9,7 @@ import { connectToWebSockets } from "@/hooks/useWebsocket";
 import { useToast } from "@/hooks/use-toast";
 import { useBadgeSystem } from "@/hooks/useBadgeSystem";
 import confetti from 'canvas-confetti';
-
+import { useChapterHandler } from "@/hooks/useChapterHandler";
 
 const SessionComplete = () => {
   // modeNum 1. 기본 학습
@@ -29,6 +29,7 @@ const SessionComplete = () => {
   const { totalQuestions, correctCount, wrongCount } = location.state || {};
   const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
   const lessonIds = lessons.map((lesson: Lesson) => lesson.id); // 수정: lessons 상태에서 lessonIds 추출
+  const { handleStartReview } = useChapterHandler();
 
   const handlePerfectQuiz = async () => {
     toast({ title: "완벽해요", description: "단 한 개도 틀린게 없네요! 대단합니다!!" });
@@ -38,15 +39,15 @@ const SessionComplete = () => {
     toast({ title: "깔끔한 리뷰!", description: "이 챕터의 모든 수어를 마스터했습니다!!" });
   }
 
-useEffect(() => {
-  if (modeNum === 2 && wrongCount === 0) {
-    handlePerfectQuiz();
-  }
-  
-  if (modeNum === 3) {
-    handlePerfectReview();
-  }
-}, [modeNum, wrongCount]);
+  useEffect(() => {
+    if (modeNum === 2 && wrongCount === 0) {
+      handlePerfectQuiz();
+    }
+
+    if (modeNum === 3) {
+      handlePerfectReview();
+    }
+  }, [modeNum, wrongCount]);
 
   const handleStartQuiz = async (chapterId: string, lessonIds: string[]) => {
     const modeNum = 2;
@@ -116,53 +117,53 @@ useEffect(() => {
     };
     fetchChapterData();
 
- const fetchBadges = async () => {
-    try {
-      // 두 번?
-      await checkBadges("");
-      const badgeResponse = await checkBadges("");
-      console.log("뱃지 응답:", badgeResponse);
-      
-      // newly_awarded_badges 배열이 있고 비어있지 않은 경우에만 설정
-      if (badgeResponse.newly_awarded_badges && badgeResponse.newly_awarded_badges.length > 0) {
-        setBadgeData(badgeResponse.newly_awarded_badges);
+    const fetchBadges = async () => {
+      try {
+        // 두 번?
+        await checkBadges("");
+        const badgeResponse = await checkBadges("");
+        console.log("뱃지 응답:", badgeResponse);
+
+        // newly_awarded_badges 배열이 있고 비어있지 않은 경우에만 설정
+        if (badgeResponse.newly_awarded_badges && badgeResponse.newly_awarded_badges.length > 0) {
+          setBadgeData(badgeResponse.newly_awarded_badges);
+        }
+      } catch (error) {
+        console.error("뱃지 확인 중 오류 발생:", error);
       }
-    } catch (error) {
-      console.error("뱃지 확인 중 오류 발생:", error);
-    }
-  };
-  
-  fetchBadges();
+    };
+
+    fetchBadges();
 
   }, []);
 
 
-// badgeData가 변경될 때 toast를 표시하는 useEffect 수정
-useEffect(() => {
-  if (badgeData && Array.isArray(badgeData) && badgeData.length > 0) {
-    // 배열인 경우 각 뱃지에 대해 toast 표시
-    badgeData.forEach(badge => {
-      toast({
-        title: `새 뱃지 획득: ${badge.name || '새 뱃지'}`,
-        description: badge.description || '축하합니다! 새로운 뱃지를 획득했습니다.',
-        duration: 5000
+  // badgeData가 변경될 때 toast를 표시하는 useEffect 수정
+  useEffect(() => {
+    if (badgeData && Array.isArray(badgeData) && badgeData.length > 0) {
+      // 배열인 경우 각 뱃지에 대해 toast 표시
+      badgeData.forEach(badge => {
+        toast({
+          title: `새 뱃지 획득: ${badge.name || '새 뱃지'}`,
+          description: badge.description || '축하합니다! 새로운 뱃지를 획득했습니다.',
+          duration: 5000
+        });
       });
-    });
-  }
-}, [badgeData, toast]);
+    }
+  }, [badgeData, toast]);
 
   // 반짝이 SVG 컴포넌트
   const Sparkle = ({ style }: { style: React.CSSProperties }) => (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style={style} className="absolute z-20 pointer-events-none animate-sparkle">
       <g filter="url(#glow)">
-        <path d="M16 2 L18 14 L30 16 L18 18 L16 30 L14 18 L2 16 L14 14 Z" fill="#facc15"/>
+        <path d="M16 2 L18 14 L30 16 L18 18 L16 30 L14 18 L2 16 L14 14 Z" fill="#facc15" />
       </g>
       <defs>
         <filter id="glow" x="-10" y="-10" width="52" height="52" filterUnits="userSpaceOnUse">
-          <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+          <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
           <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
       </defs>
@@ -227,15 +228,15 @@ useEffect(() => {
           {/* 완료 메시지 */}
           {modeNum === 1 && <>
             <h2 className="text-3xl font-extrabold text-purple-700 mb-2 animate-fade-in">학습 완료!</h2>
-            <p className="text-gray-700 mb-6 animate-fade-in-slow">{chapterName}의 학습을 완료했습니다!<br/>수고하셨어요! 👏</p>
+            <p className="text-gray-700 mb-6 animate-fade-in-slow">{chapterName}의 학습을 완료했습니다!<br />수고하셨어요! 👏</p>
           </>}
           {modeNum === 2 && <>
             <h2 className="text-3xl font-extrabold text-green-700 mb-2 animate-fade-in">퀴즈 완료!</h2>
-            <p className="text-gray-700 mb-6 animate-fade-in-slow">{chapterName}의 퀴즈를 완료했습니다!<br/>수고하셨어요! 🥳</p>
+            <p className="text-gray-700 mb-6 animate-fade-in-slow">{chapterName}의 퀴즈를 완료했습니다!<br />수고하셨어요! 🥳</p>
           </>}
           {modeNum === 3 && <>
             <h2 className="text-3xl font-extrabold text-blue-700 mb-2 animate-fade-in">복습 완료!</h2>
-            <p className="text-gray-700 mb-6 animate-fade-in-slow">{chapterName}의 복습을 완료했습니다!<br/>완벽한 마무리! 💯</p>
+            <p className="text-gray-700 mb-6 animate-fade-in-slow">{chapterName}의 복습을 완료했습니다!<br />완벽한 마무리! 💯</p>
           </>}
           {/* 틀린 문제 표시 */}
           {modeNum === 2 &&
@@ -271,11 +272,25 @@ useEffect(() => {
                 )}
               </Button>}
             {modeNum === 2 && (
-              <Button onClick={() => navigate(`/learn/chapter/${chapterId}/guide/3`)}
+              <Button
+                onClick={() => {
+                  handleStartReview(chapterId, lessonIds)
+                }}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
-                연이어 복습하기
+                {connectingChapter === chapterId ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    연결 중...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5 mr-2" />
+                    복습하기
+                  </>
+                )}
               </Button>
             )}
+
             <Button onClick={() => navigate('/home')}
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
               홈으로 돌아가기
