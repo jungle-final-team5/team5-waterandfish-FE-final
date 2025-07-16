@@ -34,6 +34,7 @@ interface Lesson extends LessonBase {
 const CORRECT_TARGET = 3;
 
 const Learn = () => {
+  const [progress, setProgress] = useState<number>(0);
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
   const [videoProgress, setVideoProgress] = useState<number>(0);
   const exampleVideoRef = useRef<HTMLVideoElement>(null);
@@ -265,7 +266,7 @@ const Learn = () => {
   useEffect(() => {
     if (!lessonId) return;
     setWsUrlLoading(true);
-    API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/public/deploy/lesson/${lessonId}`)
+    API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/public/deploy/lesson/${lessonId}`)
       .then(res => {
         setWsUrl(res.data.data.ws_url);
         // Home.tsx처럼 lesson_mapper에 직접 할당
@@ -348,6 +349,8 @@ const Learn = () => {
       // 3회 미만이고 모달이 닫혔으며, 리셋 대기가 아닐 때만 분류 재시작
       setIsRecording(true);
     }
+
+    setProgress(correctCount * 33.3);
   }, [correctCount, isCompleted, feedback, isWaitingForReset, setFeedback]);
 
   // 다시하기 핸들러
@@ -418,11 +421,11 @@ const Learn = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
-        isQuizMode={false}
-        currentSign={"쑤퍼노바"}
-        chapter={"chaptar"}
+        currentMode={"단일 학습"}
+        currentSign={lesson?.word}
+        chapterId={""}
         currentSignIndex={1}
-        progress={1}
+        progress={progress}
         categoryId={undefined}
         navigate={navigate}
       />

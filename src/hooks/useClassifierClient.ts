@@ -274,6 +274,7 @@ export const useClassifierClient = () => {
         currentSignId,
         currentSign,
         currentResult,
+        setCurrentResult,
         feedback,
         displayConfidence,
         maxConfidence,

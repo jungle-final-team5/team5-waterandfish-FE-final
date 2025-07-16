@@ -31,7 +31,7 @@ const Chapters = () => {
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
-  const { connectingChapter, handleStartLearn, handleStartQuiz } = useChapterHandler();
+  const { connectingChapter, handleStartLearn, handleStartQuiz, handleStartReview } = useChapterHandler();
   // 전역 WebSocket 상태 관리
   const { showStatus } = useGlobalWebSocketStatus();
   const { connectionStatus, wsList } = useWebsocket();
@@ -350,14 +350,24 @@ const Chapters = () => {
                     )}
                     {chapterStatus === 'quiz_wrong' && (
                       <Button
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={async () => {
-                          navigate(`/learn/chapter/${chapter.id}/guide/3`, { state: { origin: `/category/${categoryId}/chapters` } });
-                        }}
-                      >
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        복습하기
-                      </Button>
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        handleStartReview(chapter.id, lessonIds, `/category/${categoryId}/chapters`);
+                      }}
+                      disabled={connectingChapter === chapter.id}
+                    >
+                      {connectingChapter === chapter.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          연결 중...
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="h-4 w-4 mr-2" />
+                          복습하기
+                        </>
+                      )}
+                    </Button>
                     )}
                   </div>
                 </CardContent>
