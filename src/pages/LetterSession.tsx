@@ -738,7 +738,7 @@ useEffect(() => {
                           )}
                         </svg>
                         <div ref={timeref} className="absolute text-[7rem] font-extrabold text-gray-800 text-center select-none w-full h-full flex items-center justify-center">
-                          {/* 카운트다운 숫자 */}
+                          {timerValue}
                         </div>
                       </div>
                     </div>
