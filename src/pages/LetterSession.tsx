@@ -12,6 +12,8 @@ import { Hands } from '@mediapipe/hands';
 import { set } from 'lodash';
 
 const LetterSession = () => {
+  // 원형 프로그레스바용 상태 추가
+  const [timerValue, setTimerValue] = useState(10);
   const [gesture, setGesture] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraInitializing, setIsCameraInitializing] = useState(true);
@@ -112,6 +114,7 @@ const LetterSession = () => {
   const resultRef = useRef<HTMLDivElement | null>(null);
   const decref = useRef<HTMLDivElement | null>(null);
   const pileref = useRef<HTMLDivElement | null>(null);
+  const [combinedWord, setCombinedWord] = useState('');
 
   const ges = useRef<string | null>(null);
   const pges = useRef<string | null>(null);
@@ -119,6 +122,139 @@ const LetterSession = () => {
   const navigated = useRef<boolean>(false);
 
   const [words, setWords] = useState('');
+
+  // 한글 조합 함수
+  const combineHangul = (chars: string[]): string => {
+    let result = '';
+    let choBuffer: string | null = null;
+    let jungBuffer: string | null = null;
+    let jongBuffer: string | null = null;
+    
+    // 실제 종성 배열 (빈 문자열 제외)
+    const actualJong = JONG.slice(1);
+    
+    for (let i = 0; i < chars.length; i++) {
+      const c = chars[i];
+      const nextChar = i + 1 < chars.length ? chars[i + 1] : null;
+      
+      // 초성과 종성이 겹치는 문자들 처리
+      if (CHO.includes(c)) {
+        // 초성+중성 상태에서 오는 자음 처리
+        if (choBuffer && jungBuffer && actualJong.includes(c)) {
+          // 다음 문자가 중성이면 현재 자음을 새로운 음절의 초성으로 처리
+          if (nextChar && JUNG.includes(nextChar)) {
+            // 기존 음절 완성 (받침 없이)
+            const choIdx = CHO.indexOf(choBuffer);
+            const jungIdx = JUNG.indexOf(jungBuffer);
+            if (choIdx !== -1 && jungIdx !== -1) {
+              const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28;
+              result += String.fromCharCode(code);
+            } else {
+              result += choBuffer + jungBuffer;
+            }
+            // 새로운 음절 시작
+            choBuffer = c;
+            jungBuffer = null;
+            jongBuffer = null;
+          } else {
+            // 다음 문자가 중성이 아니면 받침으로 처리
+            jongBuffer = c;
+            // 종성이 들어오면 바로 음절 완성
+            const choIdx = CHO.indexOf(choBuffer);
+            const jungIdx = JUNG.indexOf(jungBuffer);
+            const jongIdx = JONG.indexOf(jongBuffer);
+            if (choIdx !== -1 && jungIdx !== -1 && jongIdx !== -1) {
+              const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28 + jongIdx;
+              result += String.fromCharCode(code);
+            } else {
+              result += choBuffer + jungBuffer + jongBuffer;
+            }
+            choBuffer = null;
+            jungBuffer = null;
+            jongBuffer = null;
+          }
+        } else {
+          // 일반적인 초성 처리
+          // 이전 조합이 있으면 flush
+          if (choBuffer && jungBuffer) {
+            const choIdx = CHO.indexOf(choBuffer);
+            const jungIdx = JUNG.indexOf(jungBuffer);
+            const jongIdx = jongBuffer ? JONG.indexOf(jongBuffer) : 0;
+            if (choIdx !== -1 && jungIdx !== -1) {
+              const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28 + jongIdx;
+              result += String.fromCharCode(code);
+            } else {
+              result += choBuffer + jungBuffer + (jongBuffer || '');
+            }
+            choBuffer = null;
+            jungBuffer = null;
+            jongBuffer = null;
+          }
+          choBuffer = c;
+        }
+        
+      } else if (JUNG.includes(c)) {
+        if (choBuffer) {
+          // 이전 조합이 있으면 flush
+          if (jungBuffer) {
+            const choIdx = CHO.indexOf(choBuffer);
+            const jungIdx = JUNG.indexOf(jungBuffer);
+            const jongIdx = jongBuffer ? JONG.indexOf(jongBuffer) : 0;
+            if (choIdx !== -1 && jungIdx !== -1) {
+              const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28 + jongIdx;
+              result += String.fromCharCode(code);
+            } else {
+              result += choBuffer + jungBuffer + (jongBuffer || '');
+            }
+            choBuffer = null;
+            jungBuffer = null;
+            jongBuffer = null;
+          }
+          jungBuffer = c;
+        } else {
+          // 초성 없이 중성만 있으면 바로 출력
+          result += c;
+        }
+        
+      } else {
+        // 기타 문자는 바로 출력
+        result += c;
+      }
+    }
+    
+    // 마지막 flush
+    if (choBuffer && jungBuffer) {
+      const choIdx = CHO.indexOf(choBuffer);
+      const jungIdx = JUNG.indexOf(jungBuffer);
+      const jongIdx = jongBuffer ? JONG.indexOf(jongBuffer) : 0;
+      if (choIdx !== -1 && jungIdx !== -1) {
+        const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28 + jongIdx;
+        result += String.fromCharCode(code);
+      } else {
+        result += choBuffer + jungBuffer + (jongBuffer || '');
+      }
+    } else if (choBuffer) {
+      result += choBuffer;
+    } else if (jungBuffer) {
+      result += jungBuffer;
+    }
+    
+    return result;
+  };
+
+  // pileref 실시간 한글 조합
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (pileref.current) {
+        const rawText = pileref.current.textContent || '';
+        const chars = rawText.split('');
+        const combinedText = combineHangul(chars);
+        setCombinedWord(combinedText);
+      }
+    }, 300);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // 카메라 관련 refs 추가
   const handsRef = useRef<any | null>(null);
@@ -431,8 +567,8 @@ console.log('MediaPipe Hands instance created via global script');
 
 
   const timedown = () => {
-    if (times.current === 1) {
-      times.current -= 1;
+    if (times.current === 0) {
+      setTimerValue(times.current);
       std.current = false;
       navigated.current = true;
       if (decref.current) decref.current.textContent = '실패';
@@ -448,15 +584,15 @@ console.log('MediaPipe Hands instance created via global script');
 
       setIsDone(true);
       setTimeout(handleNext, 2000);
-    } else if (times.current > 1) {
+    } else if (times.current > 0) {
       times.current -= 1;
+      setTimerValue(times.current);
       if (timeref.current) {
         timeref.current.textContent = times.current.toString();
       }
-    }
-
-    if (std.current) {
-      setTimeout(timedown, 1000);
+      if (std.current && times.current >= 0) {
+        setTimeout(timedown, 1000);
+      }
     }
   };
 
@@ -599,7 +735,8 @@ useEffect(() => {
     if (!words) return;
     std.current = true;
     divwords(words);
-    
+    setTimerValue(10);
+    times.current = 10;
     if(qors){
       setTimeout(timedown, 1000);
     }
@@ -678,51 +815,95 @@ useEffect(() => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {qors?(<div className="space-y-6">
-            <Card>
+          {/* 왼쪽 영역: 문제/연습 카드 */}
+          <div className="space-y-6 flex justify-center">
+            <Card style={{ width: '100%', maxWidth: 700 }}>
               <CardHeader>
-                <CardTitle>현재 문제</CardTitle>
+                {qors ? (
+                  <CardTitle>현재 문제</CardTitle>
+                ) : (
+                  setType === 'consonant' ? <CardTitle>자음 연습</CardTitle> : <CardTitle>모음 연습</CardTitle>
+                )}
+                {!qors && (
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-[800ms] ease-linear"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    {gestureRecognitionActive && (
+                      <div className="text-xs text-center mt-1 text-gray-500">
+                        인식 중...
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
-                <div ref={decref} className="text-8xl text-center font-bold" />
-                <div ref={timeref} className="text-center text-8xl font-extrabold text-gray-800 mt-2" />
-                <div ref={pileref} className="text-center text-6xl mt-4" />
+                {qors ? (
+                  <>
+                    <div className="flex items-center justify-center w-full mb-8" style={{ minHeight: '180px' }}>
+                      <div ref={decref} className="text-[7rem] text-center font-bold" style={{ minWidth: '180px', minHeight: '180px', lineHeight: '180px' }} />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="relative flex items-center justify-center w-64 h-64 mt-2">
+                        <svg className="absolute top-0 left-0 w-64 h-64" viewBox="0 0 256 256">
+                          <circle
+                            cx="128"
+                            cy="128"
+                            r="112"
+                            fill="none"
+                            stroke="#e5e7eb"
+                            strokeWidth="24"
+                          />
+                          {timerValue > 0 && (
+                            <circle
+                              cx="128"
+                              cy="128"
+                              r="112"
+                              fill="none"
+                              stroke="#2563eb"
+                              strokeWidth="24"
+                              strokeDasharray={2 * Math.PI * 112}
+                              strokeDashoffset={2 * Math.PI * 112 * (1 - (timerValue - 1) / 9)}
+                              style={{ transition: 'stroke-dashoffset 1s linear' }}
+                            />
+                          )}
+                        </svg>
+                        <div ref={timeref} className="absolute text-[7rem] font-extrabold text-gray-800 text-center select-none w-full h-full flex items-center justify-center">
+                          {timerValue}
+                        </div>
+                      </div>
+                    </div>
+                    <div ref={pileref} className="text-center text-6xl mt-4" />
+                    {/* 조합된 한글 단어 표시 */}
+                    {combinedWord && (
+                      <div className="text-center text-4xl mt-4 p-4 bg-green-100 rounded-lg border-2 border-green-300">
+                        <span className="text-green-700 font-bold">조합된 단어: {combinedWord}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div ref={decref} className="text-5xl text-center font-bold" />
+                    <LetterDisplay isVowel={setType !== 'consonant'} progress={currentIndex + 1} />
+                    <div ref={pileref} className="text-center text-3xl mt-4" />
+                    {/* 조합된 한글 단어 표시 */}
+                    {combinedWord && (
+                      <div className="text-center text-2xl mt-4 p-3 bg-green-100 rounded-lg border-2 border-green-300">
+                        <span className="text-green-700 font-bold">조합된 단어: {combinedWord}</span>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
-          </div>):(<div className="space-y-6">
-            <Card>
-              <CardHeader>
-                {setType === 'consonant'?(<CardTitle>자음 연습</CardTitle>):
-                (<CardTitle>모음 연습</CardTitle>)}
-{/* 빈 트랙은 항상 */}
-<div className="mt-2">
-  <div className="w-full bg-gray-200 rounded-full h-2.5">
-    {/* 채워지는 부분은 progressPercent에 따라 넓이만 변함 */}
-    <div
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-[800ms] ease-linear"
-      style={{ width: `${progressPercent}%` }}
-    />
-  </div>
+          </div>
 
-  {/* 인식 중 텍스트만 활성 상태에서 노출 */}
-  {gestureRecognitionActive && (
-    <div className="text-xs text-center mt-1 text-gray-500">
-      인식 중...
-    </div>
-  )}
-  </div>
-                                
-              </CardHeader>
-              <CardContent>
-                <div ref={decref} className="text-5xl text-center font-bold" />
-                  <LetterDisplay isVowel={setType !== 'consonant'} progress={currentIndex + 1}/>
-                <div ref={pileref} className="text-center text-3xl mt-4" />
-              </CardContent>
-            </Card>
-          </div>)}
-
-          <div className="space-y-6">
-            <Card>
+          {/* 오른쪽 영역: 손 모양 인식 카드 */}
+          <div className="space-y-6 flex justify-center">
+            <Card style={{ width: '100%', maxWidth: 700 }}>
               <CardHeader>
                 <CardTitle>손 모양 인식</CardTitle>
               </CardHeader>
@@ -733,7 +914,6 @@ useEffect(() => {
                     <p className="text-gray-600">카메라 초기화 중...</p>
                   </div>
                 )}
-                
                 {cameraError && (
                   <div className="text-center py-8">
                     <p className="text-red-600 mb-4">{cameraError}</p>
@@ -742,33 +922,35 @@ useEffect(() => {
                     </Button>
                   </div>
                 )}
-                
-                <>
-                  <video 
-                    ref={videoRef} 
-                    style={{ display: 'none' }} 
-                    autoPlay 
-                    muted 
-                    playsInline 
-                    width="640" 
-                    height="480" 
-                  />
-                  <canvas 
-                    ref={canvasRef} 
-                    width="640" 
-                    height="480" 
-                    className="border border-gray-300"  
-                    style={{ 
-                      transform: 'scaleX(-1)',
-                      visibility: !isCameraInitializing && !cameraError ? 'visible' : 'hidden'
-                    }}
-                  />
-                  <div 
-                    ref={resultRef} 
-                    className="text-center text-xl mt-4"
-                    style={{ visibility: !isCameraInitializing && !cameraError ? 'visible' : 'hidden' }}
-                  />
-                </>
+                <video
+                  ref={videoRef}
+                  style={{ display: 'none' }}
+                  autoPlay
+                  muted
+                  playsInline
+                  width="640"
+                  height="480"
+                />
+                <canvas
+                  ref={canvasRef}
+                  width="640"
+                  height="480"
+                  className="border border-gray-300"
+                  style={{
+                    transform: 'scaleX(-1)',
+                    visibility: !isCameraInitializing && !cameraError ? 'visible' : 'hidden'
+                  }}
+                />
+                {/* resultRef 영역을 맨 아래로 이동 */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-8 w-full flex justify-center">
+                  <div className="text-center" style={{ width: '610px' }}>
+                    <div
+                      ref={resultRef}
+                      className="text-center text-4xl mt-4 text-blue-800 font-bold"
+                      style={{ visibility: !isCameraInitializing && !cameraError ? 'visible' : 'hidden', width: '100%' }}
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

@@ -21,14 +21,12 @@ const imagePath = useMemo(() => {
 
   return (
     <div className={styles['learning-display']} style={{ '--progress': progress } as React.CSSProperties}>
-      <div className="space-y-4">
-        <div className="flex justify-center">
-          <img 
-            src={imagePath} 
-            alt={`${isVowel ? '모음' : '자음'} 학습 이미지 ${Math.floor(progress)}`} 
-            className="max-w-full h-auto rounded-lg shadow-md"
-          />
-        </div>
+      <div className="flex justify-center items-center min-h-[390px] w-full">
+        <img 
+          src={imagePath} 
+          alt={`${isVowel ? '모음' : '자음'} 학습 이미지 ${Math.floor(progress)}`} 
+          className="max-w-[395px] h-[395px] rounded-lg shadow-md"
+        />
       </div>
     </div>
   );
