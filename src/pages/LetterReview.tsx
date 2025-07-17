@@ -190,8 +190,8 @@ const LetterReview = () => {
       }
       
       
-      // 약간의 지연을 두어 정리가 완료되도록 함
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      //   await new Promise(resolve => setTimeout(resolve, 500));
+      // await new Promise(resolve => setTimeout(resolve, 3000));
           console.log('MediaPipe Hands dynamic load via hands.js');
       // ESM entrypoint인 hands.js를 직접 불러와 실제 클래스 가져오기 (CDN)
 // 전역으로 로드된 Hands 생성자 사용
@@ -201,8 +201,8 @@ if (typeof HandsConstructor !== 'function') {
   throw new Error('MediaPipe Hands 생성자를 찾을 수 없습니다 (global)');
 }
 const hands = new HandsConstructor({
-  locateFile: (file: string) =>
-  {
+  locateFile: (file: string) => {
+    // 모든 리소스를 로컬(public)에서 불러옴
     return `/${file}`;
   },
    
@@ -576,7 +576,7 @@ useEffect(() => {
     const timer = setTimeout(() => {
       console.log('카메라 초기화 시작');
       initializeCamera();
-    }, 300); // 더 긴 지연 시간
+    }, 100); // 더 긴 지연 시간
 
     // 컴포넌트 언마운트 시 정리
     return () => {
