@@ -187,16 +187,20 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
         </div>
       </CardContent>
 
-            {/* 현재 수어 텍스트 표시 */}
-       <div className="mt-2 mb-4 mx-4 bg-blue-50 p-6 rounded-lg border border-blue-200 shadow-sm">
-        <div className="text-center">
-          <p className="text-sm text-blue-600 mb-3">따라해보세요</p>
-          <h2 className="text-3xl font-bold text-blue-800">
-            {/* 여기에 피드백 바 만들거임! */}
-            "{currentSign?.word}" | "{currentResult}"
-          </h2>
-        </div>
-      </div>
+{/* 현재 수어 텍스트 표시 */}
+<div className="mt-12 mb-4 mx-4 bg-blue-50 p-6 rounded-lg border border-blue-200 shadow-sm relative overflow-hidden">
+  {/* 차오르는 배경 */}
+  <div 
+    className="absolute top-0 left-0 h-full bg-blue-200 transition-all duration-300 ease-out"
+    style={{ width: `${parseFloat(currentResult) || 0}%` }}
+  ></div>
+  <div className="relative z-10 text-left">
+
+    <h2 className="text-6xl font-itelic text-blue-900">
+      {currentResult}
+    </h2>
+  </div>
+</div>
     </Card>
   );
 };
