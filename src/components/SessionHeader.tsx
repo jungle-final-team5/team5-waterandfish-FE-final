@@ -14,6 +14,8 @@ interface SessionHeaderProps {
   progress: number;
   categoryId: string | undefined;
   navigate: (path: string) => void;
+  feedback: string | null;
+  
 }
 
 
@@ -23,11 +25,17 @@ const SessionHeader = ({
   currentSignIndex, 
   progress, 
   categoryId, 
-  navigate 
+  navigate,
+  feedback
 }: SessionHeaderProps) => {
   const [curChapter, setCurChapter] = useState<any>(null);
   const { findHierarchyByChapterId } = useLearningData();
-
+  // feedback을 feedbackState로 변환
+  const getFeedbackState = () => {
+    if (feedback === 'correct') return 'correct';
+    if (feedback === 'incorrect') return 'incorrect';
+    return 'default';
+  };
   useEffect(() => {
     const loadChapter = async () => {
       try {
@@ -72,10 +80,11 @@ return (
         {/* 중앙에 SlideScale 배치 */}
         <div className="flex-1 flex justify-center">
           {curChapter?.lessons && (
-            <SlideScale 
-              words={curChapter.lessons.map((lesson: any) => lesson.word)} 
-              currentIndex={currentSignIndex} 
-            />
+<SlideScale 
+  words={curChapter.lessons.map((lesson: any) => lesson.word)} 
+  currentIndex={currentSignIndex}
+  feedbackState={getFeedbackState()} // 'default', 'correct', 'incorrect' 중 하나
+/>
           )}
         </div>
         

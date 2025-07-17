@@ -524,6 +524,7 @@ const handleTimeUp = useCallback(() => {
         progress={progress}
         categoryId={categoryId}
         navigate={navigate}
+        feedback={feedback}
       />
 
       <main className="container mx-auto px-4 py-8">

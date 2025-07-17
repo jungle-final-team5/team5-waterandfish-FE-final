@@ -422,12 +422,12 @@ const Learn = () => {
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
         currentMode={"단일 학습"}
-        
         chapterId={""}
         currentSignIndex={1}
         progress={progress}
         categoryId={undefined}
         navigate={navigate}
+        feedback={feedback}
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
