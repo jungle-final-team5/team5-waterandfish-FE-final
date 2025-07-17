@@ -341,7 +341,7 @@ const LearnSession = () => {
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
-      <div className="mt-12 p-3 bg-gray-100 rounded-md">
+      <div className="mt-4 p-3 bg-gray-100 rounded-md">
         <div className="space-y-4">
         {videoSrc ? (
           <video
@@ -359,7 +359,7 @@ const LearnSession = () => {
         )}
         </div>
         </div>
-        <div className="mt-12 p-3 bg-gray-100 rounded-md">
+        <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">
