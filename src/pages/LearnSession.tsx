@@ -358,22 +358,8 @@ const LearnSession = () => {
             <p>비디오 로딩 중...</p>
           </div>
         )}
-        </div>
-        </div>
-        <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
-          {/* 비디오 입력 영역 */}
-          <div className="space-y-4">
-            <VideoInput
-              width={640}
-              height={480}
-              autoStart={true}
-              showControls={true}
-              className="h-full"
-              currentSign={currentLessonSign}
-              currentResult={displayConfidence}
-            />
-            <div className="flex items-center justify-center gap-x-2 w-full mt-16">
+                    <div className="flex items-center justify-center gap-x-2 w-full mt-16">
               <Button
                 onClick={togglePlaybackSpeed}
                 variant="outline"
@@ -391,6 +377,22 @@ const LearnSession = () => {
                 buttonClassName="h-12 px-8 text-lg font-semibold rounded-md border border-gray-300"
               />
             </div>
+        </div>
+        </div>
+
+        <div className="mt-4 p-3 bg-gray-100 rounded-md">
+
+          {/* 비디오 입력 영역 */}
+          <div className="space-y-4">
+            <VideoInput
+              width={640}
+              height={480}
+              autoStart={true}
+              showControls={true}
+              className="h-full"
+              currentSign={currentLessonSign}
+              currentResult={displayConfidence}
+            />
 
             {/* 숨겨진 비디오 요소들 */}
             <div className="hidden">
@@ -404,8 +406,8 @@ const LearnSession = () => {
               <canvas ref={canvasRef} />
             </div>
           </div>
-
         </div>
+
         {/* 피드백 표시 */}
         {feedback && (
           <div className="mt-8">

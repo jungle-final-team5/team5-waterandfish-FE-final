@@ -14,6 +14,7 @@ import { Chapter } from '@/types/learning';
 import { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
 import VideoInput from '@/components/VideoInput';
 import StreamingControls from '@/components/StreamingControls';
+import { Button } from '@/components/ui/button';
 
 // 재시도 설정
 const RETRY_CONFIG = {
@@ -24,6 +25,7 @@ const RETRY_CONFIG = {
 
 const QuizSession = () => {
   const { categoryId, chapterId, sessionType } = useParams();
+  const [isSlowMotion, setIsSlowMotion] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
@@ -114,6 +116,10 @@ const QuizSession = () => {
       console.log(`⚠️ 랜드마크 버퍼링 건너뜀 - 녹화: ${isRecording}, 연결: ${isConnected}`);
     }
   }, [isRecording, isConnected]);
+
+    const togglePlaybackSpeed = () => {
+    setIsSlowMotion(prev => !prev);
+  };
 
   // 랜드마크 버퍼링 및 전송 처리
   // MediaPipe holistic hook 사용
@@ -516,7 +522,6 @@ const handleTimeUp = useCallback(() => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       <SessionHeader
         currentMode={"퀴즈"}
         chapterId={chapterId}
@@ -527,8 +532,8 @@ const handleTimeUp = useCallback(() => {
         feedback={feedback}
       />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto">
+      
+
           {/* 퀴즈 타이머 */}
           {isQuizReady && (
             <div className="mb-6">
@@ -540,11 +545,12 @@ const handleTimeUp = useCallback(() => {
               />
             </div>
           )}
+      <div className="grid lg:grid-cols-2 gap-12">
+      <div className="mt-4 p-3 bg-gray-100 rounded-md">
+        
 
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* 맞춰야 할 단어 표시 (애니메이션 자리) */}
-            <div className="flex items-center justify-center bg-white rounded-lg shadow-lg p-8">
-              <div className="text-center">
+            <div className="flex items-center justify-center bg-white rounded-lg shadow-lg p-8 w-full h-full">
+              <div className="text-center w-full">
                 <h2 className="text-3xl font-bold text-blue-600 mb-4">
                   이 수어를 맞춰보세요!
                 </h2>
@@ -562,8 +568,12 @@ const handleTimeUp = useCallback(() => {
                   </div>
                 )}
               </div>
+            
             </div>
+            </div>
+    
 
+            <div className="mt-4 p-3 bg-gray-100 rounded-md">
             {/* 웹캠 및 분류 결과 */}
             <div className="space-y-4">
               <VideoInput
@@ -576,10 +586,7 @@ const handleTimeUp = useCallback(() => {
                 currentResult={displayConfidence}
               />
 
-              {/* <StreamingControls
-                connectionStatus={connectionStatus}
-                transitionSign={handleNextSign}
-              /> */}
+
 
               {/* 숨겨진 비디오 요소들 */}
               <div className="hidden">
@@ -609,7 +616,6 @@ const handleTimeUp = useCallback(() => {
             </div>
           )}
         </div>
-      </main>
     </div>
   );
 };
