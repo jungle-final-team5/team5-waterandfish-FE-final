@@ -114,6 +114,7 @@ const LetterSession = () => {
   const resultRef = useRef<HTMLDivElement | null>(null);
   const decref = useRef<HTMLDivElement | null>(null);
   const pileref = useRef<HTMLDivElement | null>(null);
+  const [combinedWord, setCombinedWord] = useState('');
 
   const ges = useRef<string | null>(null);
   const pges = useRef<string | null>(null);
@@ -121,6 +122,139 @@ const LetterSession = () => {
   const navigated = useRef<boolean>(false);
 
   const [words, setWords] = useState('');
+
+  // 한글 조합 함수
+  const combineHangul = (chars: string[]): string => {
+    let result = '';
+    let choBuffer: string | null = null;
+    let jungBuffer: string | null = null;
+    let jongBuffer: string | null = null;
+    
+    // 실제 종성 배열 (빈 문자열 제외)
+    const actualJong = JONG.slice(1);
+    
+    for (let i = 0; i < chars.length; i++) {
+      const c = chars[i];
+      const nextChar = i + 1 < chars.length ? chars[i + 1] : null;
+      
+      // 초성과 종성이 겹치는 문자들 처리
+      if (CHO.includes(c)) {
+        // 초성+중성 상태에서 오는 자음 처리
+        if (choBuffer && jungBuffer && actualJong.includes(c)) {
+          // 다음 문자가 중성이면 현재 자음을 새로운 음절의 초성으로 처리
+          if (nextChar && JUNG.includes(nextChar)) {
+            // 기존 음절 완성 (받침 없이)
+            const choIdx = CHO.indexOf(choBuffer);
+            const jungIdx = JUNG.indexOf(jungBuffer);
+            if (choIdx !== -1 && jungIdx !== -1) {
+              const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28;
+              result += String.fromCharCode(code);
+            } else {
+              result += choBuffer + jungBuffer;
+            }
+            // 새로운 음절 시작
+            choBuffer = c;
+            jungBuffer = null;
+            jongBuffer = null;
+          } else {
+            // 다음 문자가 중성이 아니면 받침으로 처리
+            jongBuffer = c;
+            // 종성이 들어오면 바로 음절 완성
+            const choIdx = CHO.indexOf(choBuffer);
+            const jungIdx = JUNG.indexOf(jungBuffer);
+            const jongIdx = JONG.indexOf(jongBuffer);
+            if (choIdx !== -1 && jungIdx !== -1 && jongIdx !== -1) {
+              const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28 + jongIdx;
+              result += String.fromCharCode(code);
+            } else {
+              result += choBuffer + jungBuffer + jongBuffer;
+            }
+            choBuffer = null;
+            jungBuffer = null;
+            jongBuffer = null;
+          }
+        } else {
+          // 일반적인 초성 처리
+          // 이전 조합이 있으면 flush
+          if (choBuffer && jungBuffer) {
+            const choIdx = CHO.indexOf(choBuffer);
+            const jungIdx = JUNG.indexOf(jungBuffer);
+            const jongIdx = jongBuffer ? JONG.indexOf(jongBuffer) : 0;
+            if (choIdx !== -1 && jungIdx !== -1) {
+              const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28 + jongIdx;
+              result += String.fromCharCode(code);
+            } else {
+              result += choBuffer + jungBuffer + (jongBuffer || '');
+            }
+            choBuffer = null;
+            jungBuffer = null;
+            jongBuffer = null;
+          }
+          choBuffer = c;
+        }
+        
+      } else if (JUNG.includes(c)) {
+        if (choBuffer) {
+          // 이전 조합이 있으면 flush
+          if (jungBuffer) {
+            const choIdx = CHO.indexOf(choBuffer);
+            const jungIdx = JUNG.indexOf(jungBuffer);
+            const jongIdx = jongBuffer ? JONG.indexOf(jongBuffer) : 0;
+            if (choIdx !== -1 && jungIdx !== -1) {
+              const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28 + jongIdx;
+              result += String.fromCharCode(code);
+            } else {
+              result += choBuffer + jungBuffer + (jongBuffer || '');
+            }
+            choBuffer = null;
+            jungBuffer = null;
+            jongBuffer = null;
+          }
+          jungBuffer = c;
+        } else {
+          // 초성 없이 중성만 있으면 바로 출력
+          result += c;
+        }
+        
+      } else {
+        // 기타 문자는 바로 출력
+        result += c;
+      }
+    }
+    
+    // 마지막 flush
+    if (choBuffer && jungBuffer) {
+      const choIdx = CHO.indexOf(choBuffer);
+      const jungIdx = JUNG.indexOf(jungBuffer);
+      const jongIdx = jongBuffer ? JONG.indexOf(jongBuffer) : 0;
+      if (choIdx !== -1 && jungIdx !== -1) {
+        const code = 0xAC00 + choIdx * 21 * 28 + jungIdx * 28 + jongIdx;
+        result += String.fromCharCode(code);
+      } else {
+        result += choBuffer + jungBuffer + (jongBuffer || '');
+      }
+    } else if (choBuffer) {
+      result += choBuffer;
+    } else if (jungBuffer) {
+      result += jungBuffer;
+    }
+    
+    return result;
+  };
+
+  // pileref 실시간 한글 조합
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (pileref.current) {
+        const rawText = pileref.current.textContent || '';
+        const chars = rawText.split('');
+        const combinedText = combineHangul(chars);
+        setCombinedWord(combinedText);
+      }
+    }, 300);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // 카메라 관련 refs 추가
   const handsRef = useRef<any | null>(null);
@@ -743,12 +877,24 @@ useEffect(() => {
                       </div>
                     </div>
                     <div ref={pileref} className="text-center text-6xl mt-4" />
+                    {/* 조합된 한글 단어 표시 */}
+                    {combinedWord && (
+                      <div className="text-center text-4xl mt-4 p-4 bg-green-100 rounded-lg border-2 border-green-300">
+                        <span className="text-green-700 font-bold">조합된 단어: {combinedWord}</span>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>
                     <div ref={decref} className="text-5xl text-center font-bold" />
                     <LetterDisplay isVowel={setType !== 'consonant'} progress={currentIndex + 1} />
                     <div ref={pileref} className="text-center text-3xl mt-4" />
+                    {/* 조합된 한글 단어 표시 */}
+                    {combinedWord && (
+                      <div className="text-center text-2xl mt-4 p-3 bg-green-100 rounded-lg border-2 border-green-300">
+                        <span className="text-green-700 font-bold">조합된 단어: {combinedWord}</span>
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>
