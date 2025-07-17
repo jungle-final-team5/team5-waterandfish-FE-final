@@ -398,12 +398,12 @@ const LearnSession = () => {
     <div className="min-h-screen bg-gray-50">
       <SessionHeader
         currentMode={"복습"}
-        currentSign={currentLessonSign.word}
         chapterId={chapterId}
         currentSignIndex={currentSignIndex}
         progress={currentSignIndex/(lessons.length - 1)}
         categoryId={undefined}
         navigate={navigate}
+        feedback={feedback}
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
