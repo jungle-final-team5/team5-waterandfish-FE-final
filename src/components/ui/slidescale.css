@@ -1,0 +1,92 @@
+/* 기본 애니메이션 - 모노톤 */
+@keyframes gradient-default {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 정답 애니메이션 - 초록 계열 */
+@keyframes gradient-correct {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 오답 애니메이션 - 붉은 계열 */
+@keyframes gradient-incorrect {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 기본 테두리 스타일 */
+.gradient-border {
+  position: relative;
+  border-radius: 0.5rem;
+  overflow: visible !important;
+  z-index: 0;
+  transition: all 0.5s ease;
+}
+
+/* 기본 상태 - 모노톤 */
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  background: linear-gradient(
+    45deg,
+    #333333,
+    #666666,
+    #999999,
+    #cccccc,
+    #ffffff,
+    #cccccc,
+    #999999,
+    #666666,
+    #333333
+  );
+  background-size: 400% 400%;
+  z-index: -1;
+  animation: gradient-default 3s ease infinite;
+  border-radius: 0.6rem;
+  transition: background 0.5s ease;
+}
+
+/* 정답 상태 - 초록 계열 */
+.gradient-border.correct::before {
+  background: linear-gradient(
+    45deg,
+    #00ff00,
+    #33cc33,
+    #00cc66,
+    #00ffcc,
+    #00ff00
+  );
+  background-size: 400% 400%;
+  animation: gradient-correct 2s ease infinite;
+}
+
+/* 오답 상태 - 붉은 계열 */
+.gradient-border.incorrect::before {
+  background: linear-gradient(
+    45deg,
+    #ff0000,
+    #ff3333,
+    #ff6666,
+    #ff9999,
+    #ff0000
+  );
+  background-size: 400% 400%;
+  animation: gradient-incorrect 2s ease infinite;
+}
+
+/* CardContent에 직접 배경색 지정 */
+.gradient-border > div {
+  background: white;
+  border-radius: 0.4rem;
+  position: relative;
+  z-index: 1;
+}
