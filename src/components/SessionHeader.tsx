@@ -64,7 +64,7 @@ return (
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
-            onClick={() => navigate(`/category`)}
+            onClick={() => navigate(`/home`)}
             className="hover:bg-blue-50 text-xl"
           >
             <ArrowLeft className="h-1 w-1 mr-2" />
