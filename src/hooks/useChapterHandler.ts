@@ -118,13 +118,18 @@ export const useChapterHandler = () => {
         }
     };
 
-    const handleStartSingleLearn = async (lessonId: string) => {
+    const handleStartSingleLearn = async (lessonId: string, isAuthenticated: boolean = true) => {
         try {
             setConnectingChapter(lessonId);
 
             // WebSocket 연결 시도
             try {
-                const response = await API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`);
+                let response;
+                if (isAuthenticated === true) {
+                    response = await API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/deploy/lesson/${lessonId}`);
+                } else {
+                    response = await API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/public/deploy/lesson/${lessonId}`);
+                }
                 if (response.data.success && response.data.data.ws_url) {
                     await connectToWebSockets([response.data.data.ws_url]);
                     showStatus(); // 전역 상태 표시 활성화

@@ -319,9 +319,15 @@ const LearnSession = () => {
     if (!lessons || lessons.length === 0 || !chapterId) return;
 
     disconnectWebSockets();
+    // 1. 레슨 상태 업데이트
     API.post(`/progress/chapters/${chapterId}/lessons`,
       { lesson_ids: lessons.map(l => l.id), status: "study" })
       .then(() => {
+        // 2. 챕터 완료(진도 증가) API 호출
+        return API.post('/study/sessions/complete', { chapter_id: chapterId });
+      })
+      .then(() => {
+        // 3. 완료 페이지로 이동
         navigate(`/complete/chapter/${chapterId}/${1}`);
       });
     // eslint-disable-next-line
