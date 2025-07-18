@@ -68,14 +68,14 @@ const SessionBegin = () => {
       <header className="bg-white shadow-sm border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                onClick={handleBack}
-                className="hover:bg-blue-50"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                뒤로가기
-              </Button>
+          <Button
+            variant="ghost"
+            onClick={() => navigate(`/home`)}
+            className="hover:bg-blue-50 text-xl"
+          >
+            <ArrowLeft className="h-1 w-1 mr-2" />
+            뒤로
+          </Button>
             </div>
           </div>
         </header>

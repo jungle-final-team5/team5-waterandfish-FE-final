@@ -22,7 +22,7 @@ const LetterSession = () => {
   function divwords(word){
         decref.current.textContent = '';
         setIsDone(false);
-        std.current
+        
         for(let i = 0;i<word.length;i++){
             const char = word[i];
             const code = char.charCodeAt(0);
@@ -485,7 +485,7 @@ console.log('MediaPipe Hands instance created via global script');
             ges.current = null;
           }
         } else {
-          resultElement.textContent = 'Waiting for hand...';
+          resultElement.textContent = '인식 중!';
           setProgressPercent(0);
         }
         canvasCtx.restore();
@@ -813,17 +813,10 @@ useEffect(() => {
         feedback={''}
       />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 왼쪽 영역: 문제/연습 카드 */}
-          <div className="space-y-6 flex justify-center">
-            <Card style={{ width: '100%', maxWidth: 700 }}>
-              <CardHeader>
-                {qors ? (
-                  <CardTitle>현재 문제</CardTitle>
-                ) : (
-                  setType === 'consonant' ? <CardTitle>자음 연습</CardTitle> : <CardTitle>모음 연습</CardTitle>
-                )}
+      
+        <div className="grid lg:grid-cols-2 gap-12">
+          <div className="mt-4 p-3 bg-gray-100 rounded-md">
+            <div className="space-y-4 relative">
                 {!qors && (
                   <div className="mt-2">
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -839,8 +832,7 @@ useEffect(() => {
                     )}
                   </div>
                 )}
-              </CardHeader>
-              <CardContent>
+              
                 {qors ? (
                   <>
                     <div className="flex items-center justify-center w-full mb-8" style={{ minHeight: '180px' }}>
@@ -897,17 +889,12 @@ useEffect(() => {
                     )}
                   </>
                 )}
-              </CardContent>
-            </Card>
+              
+            </div>
           </div>
 
           {/* 오른쪽 영역: 손 모양 인식 카드 */}
-          <div className="space-y-6 flex justify-center">
-            <Card style={{ width: '100%', maxWidth: 700 }}>
-              <CardHeader>
-                <CardTitle>손 모양 인식</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center">
+          <div className="mt-4 p-3 bg-gray-100 rounded-md">
                 {isCameraInitializing && (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -922,7 +909,9 @@ useEffect(() => {
                     </Button>
                   </div>
                 )}
+                <div className="space-y-4">
                 <video
+                  className="h-full"
                   ref={videoRef}
                   style={{ display: 'none' }}
                   autoPlay
@@ -935,12 +924,13 @@ useEffect(() => {
                   ref={canvasRef}
                   width="640"
                   height="480"
-                  className="border border-gray-300"
+                  className="w-full h-full object-cover"
                   style={{
                     transform: 'scaleX(-1)',
                     visibility: !isCameraInitializing && !cameraError ? 'visible' : 'hidden'
                   }}
                 />
+                </div>
                 {/* resultRef 영역을 맨 아래로 이동 */}
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-8 w-full flex justify-center">
                   <div className="text-center" style={{ width: '610px' }}>
@@ -951,11 +941,10 @@ useEffect(() => {
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+
           </div>
         </div>
-      </main>
+      
     </div>
   );
 };
