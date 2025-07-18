@@ -14,7 +14,7 @@ import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
 import { Lesson as LessonBase } from '@/types/learning';
-import VideoInput from '@/components/PlayerWindow';
+import PlayerWindow from '@/components/PlayerWindow';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
 import LearningDisplay from '@/components/LearningDisplay';
@@ -52,12 +52,6 @@ const Learn = () => {
   });  
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [lessonLoading, setLessonLoading] = useState(true);
-  const [lessonError, setLessonError] = useState<string | null>(null);
-  const [wsUrl, setWsUrl] = useState<string | null>(null);
-  const [wsUrlLoading, setWsUrlLoading] = useState(false);
-  const [currentSignIndex, setCurrentSignIndex] = useState(0);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [landmarksBuffer, setLandmarksBuffer] = useState<LandmarksData[]>([]);
   const bufferIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const BUFFER_DURATION = 1000; // 1초
@@ -241,50 +235,6 @@ const Learn = () => {
 
   //===============================================
 
-  // lesson fetch (chapter_id 포함)
-  useEffect(() => {
-    if (!lessonId) return;
-    setLessonLoading(true);
-    setLessonError(null);
-    API.get<{ success: boolean; data: Lesson; message?: string }>(`/lessons/${lessonId}`)
-      .then(res => {
-        const data = res.data.data;
-        // word가 없고 sign_text가 있으면 word에 sign_text를 할당
-        if (!data.word && data.sign_text) {
-          data.word = data.sign_text;
-        }
-        setLesson(data);
-        setCurrentSign(data); // useClassifierClient의 currentSign 설정
-        setCurrentSignId(data.id); // useClassifierClient의 currentSignId 설정
-        setLessonLoading(false);
-      })
-      .catch((err) => {
-        setLesson(null);
-        setLessonLoading(false);
-        setLessonError('존재하지 않는 수어입니다');
-      });
-  }, [lessonId, setCurrentSign, setCurrentSignId]);
-
-  // 단일 레슨용 wsUrl fetch
-  useEffect(() => {
-    if (!lessonId) return;
-    setWsUrlLoading(true);
-    API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/public/deploy/lesson/${lessonId}`)
-      .then(res => {
-        setWsUrl(res.data.data.ws_url);
-        // Home.tsx처럼 lesson_mapper에 직접 할당
-        setLessonMapper(prev => ({
-          ...prev,
-          [lessonId]: res.data.data.ws_url
-        }));
-        setWsUrlLoading(false);
-      })
-      .catch(() => {
-        setWsUrl(null);
-        setWsUrlLoading(false);
-      });
-  }, [lessonId]);
-
   // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당)
   const handleFeedbackComplete = useCallback(() => {
     setCorrectCount(prev => {
@@ -340,12 +290,12 @@ const Learn = () => {
   };
 
   // 데이터 로딩/에러 처리
-  if (lessonLoading || wsUrlLoading) {
-    return <div className="text-center mt-10">수어 정보를 불러오는 중입니다...</div>;
-  }
-  if (lessonError) {
-    return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
-  }
+  // if (lessonLoading || wsUrlLoading) {
+  //   return <div className="text-center mt-10">수어 정보를 불러오는 중입니다...</div>;
+  // }
+  // if (lessonError) {
+  //   return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
+  // }
 
   // 완료 화면
   if (isCompleted) {
@@ -438,7 +388,7 @@ const Learn = () => {
 
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">
-            <VideoInput
+            <PlayerWindow
               width={640}
               height={480}
               autoStart={true}
