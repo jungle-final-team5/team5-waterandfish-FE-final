@@ -427,6 +427,11 @@ const Learn = () => {
               </div>
             )}
           </div>
+          <div className="text-center mt-4">
+            <h2 className="text-3xl font-bold text-blue-600">
+              {lesson?.word}
+            </h2>
+          </div>
         </div>
 
         <div className="mt-4 p-3 bg-gray-100 rounded-md">
