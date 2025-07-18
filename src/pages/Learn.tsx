@@ -13,8 +13,7 @@ import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
-import { Lesson as LessonBase } from '@/types/learning';
-import VideoInput from '@/components/PlayerWindow';
+import PlayerWindow from '@/components/PlayerWindow';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
 import LearningDisplay from '@/components/LearningDisplay';
@@ -25,12 +24,7 @@ import SessionHeader from '@/components/SessionHeader';
 import { update } from 'lodash';
 import { useClassifierClient } from '@/hooks/useClassifierClient';
 import { useAnimation } from '@/hooks/useAnimation';
-
-interface Lesson extends LessonBase {
-  sign_text?: string;
-  media_url?: string;
-  chapter_id?: string;
-}
+import { Lesson } from '@/types/learning';
 
 const CORRECT_TARGET = 3;
 
@@ -49,15 +43,9 @@ const Learn = () => {
   // 애니메이션 훅 사용
   const { videoSrc, isSlowMotion, togglePlaybackSpeed } = useAnimation({
     lessonId: lessonId ?? '',
-  });  
+  });
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [lessonLoading, setLessonLoading] = useState(true);
-  const [lessonError, setLessonError] = useState<string | null>(null);
-  const [wsUrl, setWsUrl] = useState<string | null>(null);
-  const [wsUrlLoading, setWsUrlLoading] = useState(false);
-  const [currentSignIndex, setCurrentSignIndex] = useState(0);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [landmarksBuffer, setLandmarksBuffer] = useState<LandmarksData[]>([]);
   const bufferIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const BUFFER_DURATION = 1000; // 1초
@@ -90,6 +78,8 @@ const Learn = () => {
     wsList,
     sendMessage,
   } = useClassifierClient();
+
+
 
   //===============================================
   // 랜드마크 버퍼링 및 전송 처리
@@ -241,50 +231,6 @@ const Learn = () => {
 
   //===============================================
 
-  // lesson fetch (chapter_id 포함)
-  useEffect(() => {
-    if (!lessonId) return;
-    setLessonLoading(true);
-    setLessonError(null);
-    API.get<{ success: boolean; data: Lesson; message?: string }>(`/lessons/${lessonId}`)
-      .then(res => {
-        const data = res.data.data;
-        // word가 없고 sign_text가 있으면 word에 sign_text를 할당
-        if (!data.word && data.sign_text) {
-          data.word = data.sign_text;
-        }
-        setLesson(data);
-        setCurrentSign(data); // useClassifierClient의 currentSign 설정
-        setCurrentSignId(data.id); // useClassifierClient의 currentSignId 설정
-        setLessonLoading(false);
-      })
-      .catch((err) => {
-        setLesson(null);
-        setLessonLoading(false);
-        setLessonError('존재하지 않는 수어입니다');
-      });
-  }, [lessonId, setCurrentSign, setCurrentSignId]);
-
-  // 단일 레슨용 wsUrl fetch
-  useEffect(() => {
-    if (!lessonId) return;
-    setWsUrlLoading(true);
-    API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/public/deploy/lesson/${lessonId}`)
-      .then(res => {
-        setWsUrl(res.data.data.ws_url);
-        // Home.tsx처럼 lesson_mapper에 직접 할당
-        setLessonMapper(prev => ({
-          ...prev,
-          [lessonId]: res.data.data.ws_url
-        }));
-        setWsUrlLoading(false);
-      })
-      .catch(() => {
-        setWsUrl(null);
-        setWsUrlLoading(false);
-      });
-  }, [lessonId]);
-
   // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당)
   const handleFeedbackComplete = useCallback(() => {
     setCorrectCount(prev => {
@@ -339,13 +285,20 @@ const Learn = () => {
     navigate('/home');
   };
 
-  // 데이터 로딩/에러 처리
-  if (lessonLoading || wsUrlLoading) {
-    return <div className="text-center mt-10">수어 정보를 불러오는 중입니다...</div>;
-  }
-  if (lessonError) {
-    return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
-  }
+  useEffect(() => {
+    const fetchLesson = async () => {
+      const response = await API.get<{ success: boolean; data: Lesson }>(`/lessons/${lessonId}`);
+      if (response.data.success) {
+        setLesson(response.data.data);
+      }
+    };
+    setCurrentSignId(lessonId ?? '');
+    fetchLesson();
+  }, [lessonId]);
+
+  useEffect(() => {
+    setCurrentSign(lesson);
+  }, [currentSignId, lesson]);
 
   // 완료 화면
   if (isCompleted) {
@@ -374,7 +327,7 @@ const Learn = () => {
           <div className="max-w-2xl mx-auto text-center py-12">
             <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
-            <p className="text-gray-600 mb-6">'{lesson?.sign_text ?? lessonId}' 수어를 성공적으로 3회 따라했습니다.</p>
+            <p className="text-gray-600 mb-6">'{lesson?.word ?? lessonId}' 수어를 성공적으로 3회 따라했습니다.</p>
             <div className="flex justify-center space-x-4">
               <Button onClick={handleRetry} variant="outline">
                 다시하기
@@ -403,7 +356,7 @@ const Learn = () => {
 
       <div className="grid lg:grid-cols-2 gap-12">
         <div className="mt-12 p-3 bg-gray-100 rounded-md">
-        <div className="space-y-4 relative">
+          <div className="space-y-4 relative">
             {videoSrc ? (
               <>
                 <video
@@ -438,7 +391,7 @@ const Learn = () => {
 
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">
-            <VideoInput
+            <PlayerWindow
               width={640}
               height={480}
               autoStart={true}

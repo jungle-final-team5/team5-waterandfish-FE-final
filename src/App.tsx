@@ -21,10 +21,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import LetterSession from "./pages/LetterSession";
 import LearningGuide from "./pages/LearningGuide";
 import QuizSession from "./pages/QuizSession";
-import QuizReview from "./pages/ReviewSession";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { GlobalWebSocketProvider } from "@/contexts/GlobalWebSocketContext";
-import ReviewSession from "./pages/ReviewSession";
 import MediaPipeSession from "./pages/MediaPipeSession";
 import SessionBegin from "./pages/SessionBegin";
 import SessionComplete from "./pages/SessionComplete";
@@ -59,8 +57,6 @@ const App = () => (
                 <Route path="/learn/chapter/:chapterId/guide/:modeNum" element={<ProtectedRoute><SessionBegin /></ProtectedRoute>} />
                 <Route path="/learn/chapter/:chapterId" element={<ProtectedRoute><LearnSession /></ProtectedRoute>} />
                 <Route path="/quiz/chapter/:chapterId" element={<ProtectedRoute><QuizSession /></ProtectedRoute>} />
-                <Route path="/review/chapter/:chapterId" element={<ProtectedRoute><ReviewSession /></ProtectedRoute>} />
-                <Route path="/quiz/chapter/:chapterId/review" element={<ProtectedRoute><QuizReview /></ProtectedRoute>} />
                 <Route path="/test/letter/:setType/:qOrs" element={<ProtectedRoute><LetterSession /></ProtectedRoute>} />
                 <Route path="/review/letter/:setType/" element={<ProtectedRoute><LetterReview /></ProtectedRoute>}/>
                 <Route path="/complete/chapter/:chapterId/:modeNum" element={<ProtectedRoute><SessionComplete /></ProtectedRoute>} />
