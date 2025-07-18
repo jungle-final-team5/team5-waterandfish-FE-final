@@ -29,6 +29,29 @@ const QuizSession = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
+
+  const [timerValue, setTimerValue] = useState(15);
+const timeref = useRef<HTMLDivElement | null>(null);
+const times = useRef(15);
+
+const timedown = () => {
+  if (times.current === 0) {
+    setTimerValue(times.current);
+    // 타이머가 0이 되었을 때 처리할 로직
+    if (timeref.current) timeref.current.textContent = times.current.toString();
+    // 예: 시간 초과 처리
+    handleTimeUp();
+  } else if (times.current > 0) {
+    times.current -= 1;
+    setTimerValue(times.current);
+    if (timeref.current) {
+      timeref.current.textContent = times.current.toString();
+    }
+    setTimeout(timedown, 1000);
+  }
+};
+
+
   // useClassifierClient 훅 사용
   const {
     isRetrying,
@@ -332,6 +355,7 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
     }
   }, [currentSignId, lessonMapper, retryWsConnection, retryLessonMapper]);
 
+
   // 퀴즈 모드에서 정답 판정 (80% 이상이면 정답)
   useEffect(() => {
     if (currentResult && timerActive && currentResult.prediction === currentSign?.word) {
@@ -425,6 +449,17 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
       setCurrentSignId(currentLesson?.id || '');
     }
   }, [lessons, currentSignIndex]);
+
+  // 타이머 시작 로직 수정 (기존 useEffect 수정)
+useEffect(() => {
+  if (timerActive) { // timerActive가 true일 때만 타이머 시작
+    setTimerValue(15);
+    times.current = 15;
+    if (timeref.current) timeref.current.textContent = times.current.toString();
+    setTimeout(timedown, 1000);
+  }
+}, [timerActive]); // timerActive가 변경될 때 타이머 재시작
+
 
 
 // 시간 초과 시 호출
@@ -532,45 +567,43 @@ const handleTimeUp = useCallback(() => {
         feedback={feedback}
       />
 
-      
 
-          {/* 퀴즈 타이머 */}
-          {isQuizReady && (
-            <div className="mb-6">
-              <QuizTimer
-                duration={QUIZ_TIME_LIMIT}
-                onTimeUp={handleTimeUp}
-                isActive={timerActive}
-                onTimeChange={setTimeSpent}
-              />
-            </div>
-          )}
+         
       <div className="grid lg:grid-cols-2 gap-12">
-      <div className="mt-4 p-3 bg-gray-100 rounded-md">
-        
+<div className="mt-4 p-3 bg-gray-100 rounded-md">
+  <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-lg p-8 w-full h-full">
+    {/* 퀴즈 타이머 */}
+    {isQuizReady && (
+      <div className="mb-6 w-full">
+        <QuizTimer
+          duration={QUIZ_TIME_LIMIT}
+          onTimeUp={handleTimeUp}
+          isActive={timerActive}
+          onTimeChange={setTimeSpent}
+        />
+      </div>
+    )}
+    
+    <div className="text-center w-full">
+      <h2 className="text-3xl font-bold text-blue-600 mb-4">
+        이 수어를 맞춰보세요!
+      </h2>
+      <div className="text-6xl font-bold text-gray-800 mb-4">
+        {currentSign?.word || '로딩 중...'}
+      </div>
+      <p className="text-gray-600 mb-6">
+        {currentSignIndex + 1} / {lessons.length}
+      </p>
 
-            <div className="flex items-center justify-center bg-white rounded-lg shadow-lg p-8 w-full h-full">
-              <div className="text-center w-full">
-                <h2 className="text-3xl font-bold text-blue-600 mb-4">
-                  이 수어를 맞춰보세요!
-                </h2>
-                <div className="text-6xl font-bold text-gray-800 mb-4">
-                  {currentSign?.word || '로딩 중...'}
-                </div>
-                <p className="text-gray-600 mb-6">
-                  {currentSignIndex + 1} / {lessons.length}
-                </p>
-
-                {/* 퀴즈 진행 중 표시 */}
-                {isQuizReady && (
-                  <div className="text-green-600 font-semibold text-lg">
-                    ⏱️ 퀴즈 진행 중...
-                  </div>
-                )}
-              </div>
-            
-            </div>
-            </div>
+      {/* 퀴즈 진행 중 표시 */}
+      {isQuizReady && (
+        <div className="text-green-600 font-semibold text-lg">
+          ⏱️ 퀴즈 진행 중...
+        </div>
+      )}
+    </div>
+  </div>
+</div>
     
 
             <div className="mt-4 p-3 bg-gray-100 rounded-md">

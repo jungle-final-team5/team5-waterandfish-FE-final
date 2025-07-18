@@ -28,6 +28,48 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
   currentSign = null,
   currentResult = ""
 }) => {
+  // 팁 내용 배열 추가
+const tips = [
+  "좌측의 예시를 전부 따라한 뒤, 손을 카메라가 못보도록 가려주면 채점 판정에 도움이 되어요.",
+  "영상이 재생되고 있는 부분을 눌러서 재생 속도를 전환 할 수 있어요. (느리게 또는 일반 속도)",
+  "손 모양이 정확하게 보이도록 카메라 앞에서 적절한 거리를 유지해주세요.",
+  "아래 단어를 옆으로 넘겨서 지금 진행하고 있는 단어를 넘어갈 수 있어요.",
+  "주변에 사람이 없는 곳에서 진행하면 보다 확실한 판정을 기대 할 수 있어요."
+];
+
+// 팁 인덱스와 타이머 상태 추가
+const [tipIndex, setTipIndex] = useState(0);
+const [tipDuration, setTipDuration] = useState(7); // 기본 5초
+const tipTimerRef = useRef<NodeJS.Timeout | null>(null);
+// 팁 순환 함수
+const rotateTips = useCallback(() => {
+  setTipIndex(prev => (prev + 1) % tips.length);
+}, []);
+
+// 팁 타이머 설정
+useEffect(() => {
+  // 이전 타이머 정리
+  if (tipTimerRef.current) {
+    clearInterval(tipTimerRef.current);
+  }
+  
+  // 새 타이머 설정
+  tipTimerRef.current = setInterval(rotateTips, tipDuration * 1000);
+  
+  // 컴포넌트 언마운트 시 정리
+  return () => {
+    if (tipTimerRef.current) {
+      clearInterval(tipTimerRef.current);
+      tipTimerRef.current = null;
+    }
+  };
+}, [tipDuration, rotateTips]);
+
+// 팁 지속 시간 변경 함수 (필요시 외부에서 호출)
+const changeTipDuration = (seconds: number) => {
+  setTipDuration(seconds);
+};
+
   const videoRef = useRef<HTMLVideoElement>(null); // 비디오 요소 참조
   const streamRef = useRef<MediaStream | null>(null); // 비디오 스트림 참조
   
@@ -151,7 +193,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
       <CardContent>
 
         {/* 비디오 영역 */}
-        <div className="relative w-full h-full mx-auto overflow-hidden">
+        <div className="mt-3relative w-full h-full mx-auto overflow-hidden">
           <video
             ref={videoRef}
             autoPlay
@@ -187,16 +229,27 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
         </div>
       </CardContent>
 
-{/* 현재 수어 텍스트 표시 */}
-<div className="mt-12 mb-4 mx-4 bg-blue-50 p-6 rounded-lg border border-blue-200 shadow-sm relative overflow-hidden">
+<div className="mt-2 mx-4 bg-yellow-50 p-3 rounded-lg border border-yellow-200 shadow-sm h-[80px]">
+  <div className="flex items-start h-full">
+    <span className="text-yellow-600 font-semibold mr-2">[팁]</span>
+    <div className="flex-1">
+      <p className="text-xl text-gray-700 overflow-hidden overflow-ellipsis line-clamp-3">
+        {tips[tipIndex]}
+      </p>
+    </div>
+  </div>
+</div>
+
+
+{/* 상태 바 - 고정 마진 설정 */}
+<div className="mt-[39px] mb-4 mx-4 bg-blue-50 p-6 rounded-lg border-2 border-blue-200 shadow-sm relative overflow-hidden">
   {/* 차오르는 배경 */}
   <div 
     className="absolute top-0 left-0 h-full bg-blue-200 transition-all duration-300 ease-out"
     style={{ width: `${parseFloat(currentResult) || 0}%` }}
   ></div>
   <div className="relative z-10 text-left">
-
-    <h2 className="text-6xl font-itelic text-blue-900">
+    <h2 className="text-4xl font-italic text-blue-900 text-center">
       {currentResult}
     </h2>
   </div>

@@ -13,17 +13,40 @@ interface SlideScaleProps {
   words: string[];
   currentIndex: number;
   feedbackState?: 'default' | 'correct' | 'incorrect';
+  onManualChange?: () => void; // Add this new prop
 }
 
-function SlideScale({ words, currentIndex, feedbackState = 'default' }: SlideScaleProps) {
+
+
+function SlideScale({ words, currentIndex, feedbackState = 'default', onManualChange }: SlideScaleProps) {
   const [api, setApi] = React.useState<CarouselApi>();
+  const [prevIndex, setPrevIndex] = React.useState(currentIndex);
   
   // 현재 인덱스가 변경될 때마다 해당 슬라이드로 이동
   React.useEffect(() => {
     if (api) {
       api.scrollTo(currentIndex);
     }
+    setPrevIndex(currentIndex);
   }, [api, currentIndex]);
+
+  // Listen for user-initiated slide changes
+  React.useEffect(() => {
+    if (!api || !onManualChange) return;
+    
+    const onSelect = () => {
+      const currentSlide = api.selectedScrollSnap();
+      // Only trigger if the change wasn't programmatic
+      if (currentSlide !== prevIndex && currentSlide !== currentIndex) {
+        onManualChange();
+      }
+    };
+    
+    api.on('select', onSelect);
+    return () => {
+      api.off('select', onSelect);
+    };
+  }, [api, currentIndex, prevIndex, onManualChange]);
 
   // 피드백 상태에 따른 클래스 결정
   const getBorderClass = (index: number) => {
