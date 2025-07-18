@@ -1,0 +1,32 @@
+# 1단계: 빌드
+FROM node:20.14.0-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+COPY .env.production .env.production
+RUN npm install
+COPY . .
+RUN npm run build -- --mode production
+
+# 2단계: HTTP/3 지원 Nginx로 정적 파일 서빙
+FROM nginx:1.28.0-alpine
+
+# HTTP/3 지원을 위한 패키지 설치
+RUN apk add --no-cache openssl
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# SSL 인증서 복사
+COPY ssl/certificate.crt /etc/nginx/ssl/certificate.crt
+COPY ssl/private.key /etc/nginx/ssl/private.key
+COPY ssl/ca_bundle.crt /etc/nginx/ssl/ca_bundle.crt
+
+# HTTP/3 지원 Nginx 설정 복사
+COPY nginx-http3.conf /etc/nginx/conf.d/default.conf
+
+# HTTP/3를 위한 포트 노출
+EXPOSE 80
+EXPOSE 443/tcp
+EXPOSE 443/udp
+
+# Nginx 시작 시 HTTP/3 모듈 로드
+CMD ["nginx", "-g", "daemon off;"]

@@ -54,7 +54,7 @@ server {
             return 400 "WebSocket upgrade required";
         }
 
-        proxy_pass http://15.164.24.154:$ws_port/ws;
+        proxy_pass http://15.164.24.153:$ws_port/ws;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
