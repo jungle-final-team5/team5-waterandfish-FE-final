@@ -17,6 +17,7 @@ import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import { Button } from '@/components/ui/button';
 import { useClassifierClient } from '@/hooks/useClassifierClient';
 import { useAnimation } from '@/hooks/useAnimation';
+import { SlideScale } from '@/components/ui/slidescale';
 
 
 
@@ -342,41 +343,44 @@ const LearnSession = () => {
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
+
       <div className="mt-4 p-3 bg-gray-100 rounded-md">
-        <div className="space-y-4">
-        {videoSrc ? (
-          <video
-            src={videoSrc}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-auto"
-          />
-        ) : (
-          <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
-            <p>비디오 로딩 중...</p>
-          </div>
-        )}
+                
+<div className="space-y-4 relative">
+  {videoSrc ? (
+    <>
+      <video
+        src={videoSrc}
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="w-full h-full object-contain"
+        onClick={togglePlaybackSpeed}
+      />
+      {isSlowMotion && (
+        <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded-md text-xl font-medium">
+          0.5x
+        </div>
+      )}
+    </>
+  ) : (
+    <div className="flex items-center justify-center bg-gray-200 rounded h-full w-full">
+      <p>비디오 로딩 중...</p>
+    </div>
+  )}
+</div>
 
-                    <div className="flex items-center justify-center gap-x-2 w-full mt-16">
-              <Button
-                onClick={togglePlaybackSpeed}
-                variant="outline"
-                size="sm"
-                className="flex items-center h-12 px-8 text-lg font-semibold rounded-md border border-gray-300"
-              >
-                {isSlowMotion ? '일반 속도' : '천천히 보기'}
-                {isSlowMotion ? '(1x)' : '(0.5x)'}
-              </Button>
-
-              <StreamingControls
-                connectionStatus={connectionStatus}
-                transitionSign={handleNextSign}
-                className="h-12"
-                buttonClassName="h-12 px-8 text-lg font-semibold rounded-md border border-gray-300"
+          <div className="mt-4 flex-1 flex justify-center items-center mx-auto max-w-4xl">
+              {lessons && (
+              <SlideScale 
+                words={lessons?.map((lesson: any) => lesson.word)} 
+                currentIndex={currentSignIndex}
+                feedbackState={feedback} // 'default', 'correct', 'incorrect' 중 하나
+                onManualChange={handleNextSign} // Add this line
               />
-            </div>
+
+          )}
         </div>
         </div>
 
@@ -393,7 +397,6 @@ const LearnSession = () => {
               currentSign={currentLessonSign}
               currentResult={displayConfidence}
             />
-
             {/* 숨겨진 비디오 요소들 */}
             <div className="hidden">
               <video
