@@ -546,151 +546,162 @@ const Dashboard: React.FC = () => {
       </div>
       {/* 모든 챕터 카드 그리드 (백엔드 /chapters API 사용) */}
       <div className="flex flex-col gap-16 relative w-full max-w-7xl mx-auto px-8 pb-24">
-        {zigzagRows.map((row, rowIdx) => (
-          <div
-            key={rowIdx}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16"
-          >
-            {row.map((chapter, idx) => {
-              const globalIdx = chapter._originalIndex;
-              let status;
-              if (globalIdx < chapterCurrentIndex) status = 'completed';
-              else if (globalIdx === chapterCurrentIndex) status = 'current';
-              else status = 'locked';
+        {zigzagRows.map((row, rowIdx) => {
+          const isOddRow = rowIdx % 2 === 0; // 0,2,...이 왼→오
+          const isLastRow = rowIdx === zigzagRows.length - 1;
+          return (
+            <div
+              key={rowIdx}
+              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 ${(row.length === 1 || row.length === 2) && rowIdx % 2 !== 0 ? 'justify-end' : ''}`}
+            >
+              {row.map((chapter, idx) => {
+                const globalIdx = chapter._originalIndex;
+                let status;
+                if (globalIdx < chapterCurrentIndex) status = 'completed';
+                else if (globalIdx === chapterCurrentIndex) status = 'current';
+                else status = 'locked';
 
-              const isOddRow = rowIdx % 2 === 0; // 0,2,...이 왼→오
-              const isRightColInOddRow = isOddRow && idx === row.length - 1;
-              const isLeftColInEvenRow = !isOddRow && idx === 0;
-              const showVerticalLine = (isRightColInOddRow || isLeftColInEvenRow) && (globalIdx + 3 < allChapters.length);
+                const isRightColInOddRow = isOddRow && idx === row.length - 1;
+                const isLeftColInEvenRow = !isOddRow && idx === 0;
+                const showVerticalLine =
+                  (isRightColInOddRow || isLeftColInEvenRow) &&
+                  (!isLastRow || row.length === 1);
 
-              // 가로 연결선: 왼→오 줄은 오른쪽, 오→왼 줄은 왼쪽
-              const showHorizontalLine = isOddRow
-                ? idx < row.length - 1 // 오른쪽에 선
-                : idx > 0;             // 왼쪽에 선
+                // 역방향 + 2개일 때 오른쪽 정렬(col-start-2, col-start-3)
+                let colStart = '';
+                if (row.length === 2 && rowIdx % 2 !== 0) {
+                  colStart = idx === 0 ? 'col-start-2' : 'col-start-3';
+                }
 
-              return (
-                <div
-                  key={chapter.id}
-                  className={`relative group ${
-                    status === 'locked'
-                      ? 'opacity-60 cursor-not-allowed'
-                      : 'cursor-pointer'
-                  }`}
-                  style={{ minHeight: 340, height: 340, maxWidth: 480, width: '100%' }}
-                >
-                  {/* 👉 수직 연결선 */}
-                  {showVerticalLine && (
-                    <div
-                      className="absolute left-1/2 bottom-[-64px] w-[5px] h-[64px] rounded-full bg-cyan-200 overflow-hidden z-0"
-                      style={{
-                        backgroundImage: 'linear-gradient(180deg, rgba(103,232,249,0.4), rgba(103,232,249,0.8))',
-                        backgroundSize: '100% 200%',
-                        animation: 'flow 4s linear infinite',
-                        boxShadow: '0 0 6px rgba(103,232,249,0.4)',
-                      }}
-                    ></div>
-                  )}
-                  {/* 👉 가로 연결선 (지그재그 방향에 따라 위치 다름) */}
-                  {showHorizontalLine && (
-                    <div
-                      className={`absolute top-1/2 ${isOddRow ? '-right-16' : '-left-16'} w-16 h-[5px] rounded-full bg-cyan-200 overflow-hidden`}
-                      style={{
-                        backgroundImage: 'linear-gradient(90deg, rgba(103,232,249,0.4), rgba(103,232,249,0.8))',
-                        backgroundSize: '200% 100%',
-                        animation: isOddRow ? 'flow 4s linear infinite' : 'flow-reverse 4s linear infinite',
-                        boxShadow: '0 0 6px rgba(103,232,249,0.4)',
-                      }}
-                    ></div>
-                  )}
-                  {/* Chapter Card */}
+                // 가로 연결선: 왼→오 줄은 오른쪽, 오→왼 줄은 왼쪽
+                const showHorizontalLine = isOddRow
+                  ? idx < row.length - 1 // 오른쪽에 선
+                  : idx > 0;             // 왼쪽에 선
+
+                return (
                   <div
-                    className={`h-full p-8 rounded-3xl shadow-lg border-2 transition-all duration-300 relative
-                      ${status === 'completed'
-                        ? 'bg-white border-emerald-200 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:rotate-1'
-                        : status === 'locked'
-                          ? 'bg-gray-50 border-gray-100'
-                          : 'bg-white border-cyan-100 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:bg-cyan-50 group-hover:border-cyan-300'
-                    }
-                    `}
-                    onClick={async () => {
-                      if (status === 'locked' || loadingChapterId) return;
-                      setLoadingChapterId(chapter.id);
-                      const lessonIds = (chapter.lessons || []).map((lesson) => lesson.id);
-                      await handleStartLearn(chapter.id, lessonIds, '/home');
-                      setLoadingChapterId(null);
-                    }}
+                    key={chapter.id}
+                    className={`relative group ${colStart} ${
+                      status === 'locked'
+                        ? 'opacity-60 cursor-not-allowed'
+                        : 'cursor-pointer'
+                    }`}
+                    style={{ minHeight: 340, height: 340, maxWidth: 480, width: '100%' }}
                   >
-                    {/* 오버레이: 로딩 중일 때 카드 전체 흐리게 + 중앙 스피너 */}
-                    {loadingChapterId === chapter.id && (
-                      <div className="absolute inset-0 bg-gray-200/60 flex items-center justify-center z-20 rounded-3xl">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500"></div>
-                      </div>
-                    )}
-                    {/* Status Badge */}
-                    <div className="flex justify-between items-start mb-6">
+                    {/* 👉 수직 연결선 */}
+                    {showVerticalLine && (
                       <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                          status === 'completed'
-                            ? 'bg-emerald-400 text-white'
-                            : status === 'current'
-                              ? 'bg-white border-4 border-cyan-400 text-cyan-500'
-                              : 'bg-gray-300 text-gray-500'
-                        }`}
-                      >
-                        {status === 'completed' ? (
-                          <CheckCircleOutlined className="text-xl" />
-                        ) : status === 'locked' ? (
-                          <LockOutlined className="text-lg" />
-                        ) : (
-                          globalIdx + 1
+                        className="absolute left-1/2 bottom-[-64px] w-[5px] h-[64px] rounded-full bg-cyan-200 overflow-hidden z-0"
+                        style={{
+                          backgroundImage: 'linear-gradient(180deg, rgba(103,232,249,0.4), rgba(103,232,249,0.8))',
+                          backgroundSize: '100% 200%',
+                          animation: 'flow 4s linear infinite',
+                          boxShadow: '0 0 6px rgba(103,232,249,0.4)',
+                        }}
+                      ></div>
+                    )}
+                    {/* 👉 가로 연결선 (지그재그 방향에 따라 위치 다름) */}
+                    {showHorizontalLine && (
+                      <div
+                        className={`absolute top-1/2 ${isOddRow ? '-right-16' : '-left-16'} w-16 h-[5px] rounded-full bg-cyan-200 overflow-hidden`}
+                        style={{
+                          backgroundImage: 'linear-gradient(90deg, rgba(103,232,249,0.4), rgba(103,232,249,0.8))',
+                          backgroundSize: '200% 100%',
+                          animation: isOddRow ? 'flow 4s linear infinite' : 'flow-reverse 4s linear infinite',
+                          boxShadow: '0 0 6px rgba(103,232,249,0.4)',
+                        }}
+                      ></div>
+                    )}
+                    {/* Chapter Card */}
+                    <div
+                      className={`h-full p-8 rounded-3xl shadow-lg border-2 transition-all duration-300 relative
+                        ${status === 'completed'
+                          ? 'bg-white border-emerald-200 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:rotate-1'
+                          : status === 'locked'
+                            ? 'bg-gray-50 border-gray-100'
+                            : 'bg-white border-cyan-100 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:bg-cyan-50 group-hover:border-cyan-300'
+                      }
+                      `}
+                      onClick={async () => {
+                        if (status === 'locked' || loadingChapterId) return;
+                        setLoadingChapterId(chapter.id);
+                        const lessonIds = (chapter.lessons || []).map((lesson) => lesson.id);
+                        await handleStartLearn(chapter.id, lessonIds, '/home');
+                        setLoadingChapterId(null);
+                      }}
+                    >
+                      {/* 오버레이: 로딩 중일 때 카드 전체 흐리게 + 중앙 스피너 */}
+                      {loadingChapterId === chapter.id && (
+                        <div className="absolute inset-0 bg-gray-200/60 flex items-center justify-center z-20 rounded-3xl">
+                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500"></div>
+                        </div>
+                      )}
+                      {/* Status Badge */}
+                      <div className="flex justify-between items-start mb-6">
+                        <div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                            status === 'completed'
+                              ? 'bg-emerald-400 text-white'
+                              : status === 'current'
+                                ? 'bg-white border-4 border-cyan-400 text-cyan-500'
+                                : 'bg-gray-300 text-gray-500'
+                          }`}
+                        >
+                          {status === 'completed' ? (
+                            <CheckCircleOutlined className="text-xl" />
+                          ) : status === 'locked' ? (
+                            <LockOutlined className="text-lg" />
+                          ) : (
+                            globalIdx + 1
+                          )}
+                        </div>
+                        {status === 'current' && (
+                          <span className="bg-cyan-100 text-cyan-600 px-3 py-1 rounded-full text-sm font-medium">
+                            진행 중
+                          </span>
                         )}
                       </div>
-                      {status === 'current' && (
-                        <span className="bg-cyan-100 text-cyan-600 px-3 py-1 rounded-full text-sm font-medium">
-                          진행 중
-                        </span>
-                      )}
-                    </div>
-                    {/* Content */}
-                    <div>
-                      <h3
-                        className={`text-xl font-bold mb-6 ${
-                          status === 'locked' ? 'text-gray-400' : 'text-gray-800'
-                        }`}
-                      >
-                        {chapter.title}
-                      </h3>
-                      {/* Example Signs Grid */}
-                      <div className="grid grid-cols-2 gap-4">
-                        {(chapter.lessons || []).slice(0, 4).map((lesson, lidx) => (
-                          <div
-                            key={lidx}
-                            className={`rounded-xl p-4 flex items-center justify-center transition-colors duration-300
-                          ${status === 'completed'
-                            ? 'bg-emerald-50 group-hover:bg-emerald-100'
-                            : 'bg-cyan-50 group-hover:bg-cyan-100'}
-                        `}
-                          >
-                            <span className={`text-sm font-medium ${status === 'completed' ? 'text-emerald-700' : 'text-cyan-700'}`}>{lesson.word}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    {/* Locked 안내 멘트: 카드 하단 고정 */}
-                    {status === 'locked' && (
-                      <div className="absolute bottom-6 left-0 w-full flex justify-center">
-                        <div className="flex items-center space-x-2 text-gray-400">
-                          <LockOutlined />
-                          <span className="text-sm">이전 챕터를 완료하면 잠금이 해제됩니다</span>
+                      {/* Content */}
+                      <div>
+                        <h3
+                          className={`text-xl font-bold mb-6 ${
+                            status === 'locked' ? 'text-gray-400' : 'text-gray-800'
+                          }`}
+                        >
+                          {chapter.title}
+                        </h3>
+                        {/* Example Signs Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                          {(chapter.lessons || []).slice(0, 4).map((lesson, lidx) => (
+                            <div
+                              key={lidx}
+                              className={`rounded-xl p-4 flex items-center justify-center transition-colors duration-300
+                            ${status === 'completed'
+                              ? 'bg-emerald-50 group-hover:bg-emerald-100'
+                              : 'bg-cyan-50 group-hover:bg-cyan-100'}
+                          `}
+                            >
+                              <span className={`text-sm font-medium ${status === 'completed' ? 'text-emerald-700' : 'text-cyan-700'}`}>{lesson.word}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    )}
+                      {/* Locked 안내 멘트: 카드 하단 고정 */}
+                      {status === 'locked' && (
+                        <div className="absolute bottom-6 left-0 w-full flex justify-center">
+                          <div className="flex items-center space-x-2 text-gray-400">
+                            <LockOutlined />
+                            <span className="text-sm">이전 챕터를 완료하면 잠금이 해제됩니다</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
       {/* 검색창 밑은 모두 제거, 빈 공간만 남김 */}
       <div className="h-40"></div>
