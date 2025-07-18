@@ -23,7 +23,6 @@ import { SlideScale } from '@/components/ui/slidescale';
 
 const LearnSession = () => {
   const { categoryId, chapterId } = useParams();
-  const [isSlowMotion, setIsSlowMotion] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [transmissionCount, setTransmissionCount] = useState(0);
@@ -72,9 +71,8 @@ const LearnSession = () => {
   const [isRecording, setIsRecording] = useState(false);
 
   // 애니메이션 훅 사용
-  const { videoSrc } = useAnimation({
+  const { videoSrc, isSlowMotion, togglePlaybackSpeed } = useAnimation({
     lessonId: currentLessonSignId,
-    isSlowMotion
   });
 
   const [sessionComplete, setSessionComplete] = useState(false);
@@ -99,11 +97,8 @@ const LearnSession = () => {
   const [isMovingNextSign, setIsMovingNextSign] = useState(false);
   const transmissionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 재생 속도 토글 함수
-  const togglePlaybackSpeed = () => {
-    setIsSlowMotion(prev => !prev);
-  };
   
+
   // 랜드마크 감지 시 호출되는 콜백 (useCallback으로 먼저 정의)
   const handleLandmarksDetected = useCallback((landmarks: LandmarksData) => {
     // 녹화 중일 때만 버퍼에 추가
@@ -342,7 +337,7 @@ const LearnSession = () => {
         currentMode={"학습"}
         chapterId={chapterId}
         currentSignIndex={currentSignIndex}
-        progress={currentSignIndex/(lessons.length - 1)}
+        progress={currentSignIndex / (lessons.length - 1)}
         categoryId={undefined}
         navigate={navigate}
         feedback={feedback}
@@ -350,44 +345,44 @@ const LearnSession = () => {
 
       <div className="grid lg:grid-cols-2 gap-12">
 
-      <div className="mt-4 p-3 bg-gray-100 rounded-md">
-                
-<div className="space-y-4 relative">
-  {videoSrc ? (
-    <>
-      <video
-        src={videoSrc}
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="w-full h-full object-contain"
-        onClick={togglePlaybackSpeed}
-      />
-      {isSlowMotion && (
-        <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded-md text-xl font-medium">
-          0.5x
-        </div>
-      )}
-    </>
-  ) : (
-    <div className="flex items-center justify-center bg-gray-200 rounded h-full w-full">
-      <p>비디오 로딩 중...</p>
-    </div>
-  )}
-</div>
+        <div className="mt-4 p-3 bg-gray-100 rounded-md">
+
+          <div className="space-y-4 relative">
+            {videoSrc ? (
+              <>
+                <video
+                  src={videoSrc}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-contain"
+                  onClick={togglePlaybackSpeed}
+                />
+                {isSlowMotion && (
+                  <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded-md text-xl font-medium">
+                    0.5x
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center justify-center bg-gray-200 rounded h-full w-full">
+                <p>비디오 로딩 중...</p>
+              </div>
+            )}
+          </div>
 
           <div className="mt-4 flex-1 flex justify-center items-center mx-auto max-w-4xl">
-              {lessons && (
-              <SlideScale 
-                words={lessons?.map((lesson: any) => lesson.word)} 
+            {lessons && (
+              <SlideScale
+                words={lessons?.map((lesson: any) => lesson.word)}
                 currentIndex={currentSignIndex}
                 feedbackState={feedback} // 'default', 'correct', 'incorrect' 중 하나
                 onManualChange={handleNextSign} // Add this line
               />
 
-          )}
-        </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-4 p-3 bg-gray-100 rounded-md">
