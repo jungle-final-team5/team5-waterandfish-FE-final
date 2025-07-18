@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import useWebsocket from "./useWebsocket";
+import { Lesson } from "@/types/learning";
 
 //===============================================
 // 분류 서버 관련 훅
@@ -29,7 +30,7 @@ export const useClassifierClient = () => {
     const [currentWsUrl, setCurrentWsUrl] = useState<string>('');
     const [lessonMapper, setLessonMapper] = useState<Record<string, string>>({});
     const [currentSignId, setCurrentSignId] = useState<string>('');
-    const [currentSign, setCurrentSign] = useState<any>(null);
+    const [currentSign, setCurrentSign] = useState<Lesson>(null);
     const [currentResult, setCurrentResult] = useState<any>(null);
     const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
     const [displayConfidence, setDisplayConfidence] = useState<string>('');
@@ -221,8 +222,12 @@ export const useClassifierClient = () => {
                                 let percent: number | undefined = undefined;
                                 if (prediction === target) {
                                     percent = confidence * 100;
+                                    console.log('percent:', percent);
                                 } else if (probabilities && target && probabilities[target] != null) {
                                     percent = probabilities[target] * 100;
+                                }
+                                else {
+                                    setDisplayConfidence("DEBUG: wrong connection%");
                                 }
                                 if (percent != null) {
                                     setDisplayConfidence(`${percent.toFixed(1)}%`);
@@ -253,7 +258,7 @@ export const useClassifierClient = () => {
                 });
             };
         }
-    }, [wsList, isBufferingPaused, feedback, currentSign]);
+    }, [wsList, isBufferingPaused, feedback, currentSign, currentSignId]);
 
     // 컴포넌트 언마운트 시 타이머 정리
     useEffect(() => {

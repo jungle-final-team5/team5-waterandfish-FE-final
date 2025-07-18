@@ -13,7 +13,6 @@ import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
-import { Lesson as LessonBase } from '@/types/learning';
 import PlayerWindow from '@/components/PlayerWindow';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
@@ -25,12 +24,7 @@ import SessionHeader from '@/components/SessionHeader';
 import { update } from 'lodash';
 import { useClassifierClient } from '@/hooks/useClassifierClient';
 import { useAnimation } from '@/hooks/useAnimation';
-
-interface Lesson extends LessonBase {
-  sign_text?: string;
-  media_url?: string;
-  chapter_id?: string;
-}
+import { Lesson } from '@/types/learning';
 
 const CORRECT_TARGET = 3;
 
@@ -49,7 +43,7 @@ const Learn = () => {
   // 애니메이션 훅 사용
   const { videoSrc, isSlowMotion, togglePlaybackSpeed } = useAnimation({
     lessonId: lessonId ?? '',
-  });  
+  });
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [landmarksBuffer, setLandmarksBuffer] = useState<LandmarksData[]>([]);
@@ -84,6 +78,8 @@ const Learn = () => {
     wsList,
     sendMessage,
   } = useClassifierClient();
+
+
 
   //===============================================
   // 랜드마크 버퍼링 및 전송 처리
@@ -289,13 +285,20 @@ const Learn = () => {
     navigate('/home');
   };
 
-  // 데이터 로딩/에러 처리
-  // if (lessonLoading || wsUrlLoading) {
-  //   return <div className="text-center mt-10">수어 정보를 불러오는 중입니다...</div>;
-  // }
-  // if (lessonError) {
-  //   return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
-  // }
+  useEffect(() => {
+    const fetchLesson = async () => {
+      const response = await API.get<{ success: boolean; data: Lesson }>(`/lessons/${lessonId}`);
+      if (response.data.success) {
+        setLesson(response.data.data);
+      }
+    };
+    setCurrentSignId(lessonId ?? '');
+    fetchLesson();
+  }, [lessonId]);
+
+  useEffect(() => {
+    setCurrentSign(lesson);
+  }, [currentSignId, lesson]);
 
   // 완료 화면
   if (isCompleted) {
@@ -324,7 +327,7 @@ const Learn = () => {
           <div className="max-w-2xl mx-auto text-center py-12">
             <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
-            <p className="text-gray-600 mb-6">'{lesson?.sign_text ?? lessonId}' 수어를 성공적으로 3회 따라했습니다.</p>
+            <p className="text-gray-600 mb-6">'{lesson?.word ?? lessonId}' 수어를 성공적으로 3회 따라했습니다.</p>
             <div className="flex justify-center space-x-4">
               <Button onClick={handleRetry} variant="outline">
                 다시하기
@@ -353,7 +356,7 @@ const Learn = () => {
 
       <div className="grid lg:grid-cols-2 gap-12">
         <div className="mt-12 p-3 bg-gray-100 rounded-md">
-        <div className="space-y-4 relative">
+          <div className="space-y-4 relative">
             {videoSrc ? (
               <>
                 <video
