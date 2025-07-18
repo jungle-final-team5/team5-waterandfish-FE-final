@@ -614,6 +614,17 @@ const Dashboard: React.FC = () => {
                     `}
                     onClick={async () => {
                       if (status === 'locked' || loadingChapterId) return;
+                      if(chapter.title == "자음"){
+                        await API.post(`/progress/chapters/${chapter.id}`);
+                        return navigate(`/test/letter/consonant/study`);
+                        
+                      }else if(chapter.title == "모음"){
+                        await API.post(`/progress/chapters/${chapter.id}`);
+                        return navigate(`/test/letter/vowel/study`);
+                      }else if(chapter.title == "단어 해체"){
+                        await API.post(`/progress/chapters/${chapter.id}`);
+                        return navigate(`/test/word/word/study`);
+                      }
                       setLoadingChapterId(chapter.id);
                       const lessonIds = (chapter.lessons || []).map((lesson) => lesson.id);
                       await handleStartLearn(chapter.id, lessonIds, '/home');
