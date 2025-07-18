@@ -3,11 +3,11 @@ import API from '@/components/AxiosInstance';
 
 interface UseAnimationProps {
   lessonId?: string;
-  isSlowMotion?: boolean;
 }
 
-export const useAnimation = ({ lessonId, isSlowMotion = false }: UseAnimationProps) => {
+export const useAnimation = ({ lessonId }: UseAnimationProps) => {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [isSlowMotion, setIsSlowMotion] = useState(false);
 
   // 애니메이션 재생 루틴
   const loadAnim = async (id: string) => {
@@ -52,9 +52,16 @@ export const useAnimation = ({ lessonId, isSlowMotion = false }: UseAnimationPro
       }
     };
   }, [videoSrc]);
+  
+  // 재생 속도 토글 함수
+  const togglePlaybackSpeed = () => {
+    setIsSlowMotion(prev => !prev);
+  };
 
   return {
     videoSrc,
-    loadAnim
+    loadAnim,
+    isSlowMotion,
+    togglePlaybackSpeed
   };
 }; 
