@@ -12,7 +12,7 @@ import SessionHeader from '@/components/SessionHeader';
 import API from '@/components/AxiosInstance';
 import { Chapter } from '@/types/learning';
 import { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
-import VideoInput from '@/components/VideoInput';
+import VideoInput from '@/components/PlayerWindow';
 import StreamingControls from '@/components/StreamingControls';
 import { Button } from '@/components/ui/button';
 

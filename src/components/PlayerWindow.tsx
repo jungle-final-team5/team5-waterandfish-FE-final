@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Camera, CameraOff, Settings, Monitor, AlertCircle } from 'lucide-react';
 import { Lesson } from '@/types/learning';
 
-interface VideoInputProps { // 비디오 입력 컴포넌트 속성 인터페이스
+interface PlayerWindowProps { // 비디오 입력 컴포넌트 속성 인터페이스
   onStreamReady?: (stream: MediaStream) => void;
   onStreamError?: (error: string) => void;
   width?: number;
@@ -17,7 +17,7 @@ interface VideoInputProps { // 비디오 입력 컴포넌트 속성 인터페이
   currentResult: string;
 }
 
-const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌트 함수
+const PlayerWindow: React.FC<PlayerWindowProps> = ({ // 비디오 입력 컴포넌트 함수
   onStreamReady,
   onStreamError,
   width = 640,
@@ -31,7 +31,7 @@ const VideoInput: React.FC<VideoInputProps> = ({ // 비디오 입력 컴포넌�
   // 팁 내용 배열 추가
 const tips = [
   "좌측의 예시를 전부 따라한 뒤, 손을 카메라가 못보도록 가려주면 채점 판정에 도움이 되어요.",
-  "영상이 재생되고 있는 부분을 눌러서 재생 속도를 전환 할 수 있어요. (느리게 또는 일반 속도)",
+  "영상이 재생되고 있는 부분을 눌러서 재생 속도를 전환 할 수 있어요.",
   "손 모양이 정확하게 보이도록 카메라 앞에서 적절한 거리를 유지해주세요.",
   "아래 단어를 옆으로 넘겨서 지금 진행하고 있는 단어를 넘어갈 수 있어요.",
   "주변에 사람이 없는 곳에서 진행하면 보다 확실한 판정을 기대 할 수 있어요."
@@ -230,8 +230,8 @@ const changeTipDuration = (seconds: number) => {
       </CardContent>
 
 <div className="mt-2 mx-4 bg-yellow-50 p-3 rounded-lg border border-yellow-200 shadow-sm h-[80px]">
-  <div className="flex items-start h-full">
-    <span className="text-yellow-600 font-semibold mr-2">[팁]</span>
+  <div className="flex items-center h-full">
+    <span className="text-yellow-600 font-semibold mr-2">[도움말]</span>
     <div className="flex-1">
       <p className="text-xl text-gray-700 overflow-hidden overflow-ellipsis line-clamp-3">
         {tips[tipIndex]}
@@ -258,4 +258,4 @@ const changeTipDuration = (seconds: number) => {
   );
 };
 
-export default VideoInput;  
+export default PlayerWindow;  

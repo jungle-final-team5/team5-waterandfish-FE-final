@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import WebcamView from '@/components/WebcamView';
-import VideoInput from '@/components/VideoInput';
+import VideoInput from '@/components/PlayerWindow';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import WebcamPreview from '@/components/WebcamPreview';
 

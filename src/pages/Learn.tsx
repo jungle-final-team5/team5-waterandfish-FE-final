@@ -14,7 +14,7 @@ import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
 import { Lesson as LessonBase } from '@/types/learning';
-import VideoInput from '@/components/VideoInput';
+import VideoInput from '@/components/PlayerWindow';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
 import LearningDisplay from '@/components/LearningDisplay';

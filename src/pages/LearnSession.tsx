@@ -7,7 +7,7 @@ import React, { useState, useRef, useEffect, useCallback, startTransition } from
 
 import API from '@/components/AxiosInstance';
 import useWebsocket, { getConnectionByUrl, disconnectWebSockets } from '@/hooks/useWebsocket';
-import VideoInput from '@/components/VideoInput';
+import VideoInput from '@/components/PlayerWindow';
 import SessionHeader from '@/components/SessionHeader';
 import LearningDisplay from '@/components/LearningDisplay';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
