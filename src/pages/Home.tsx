@@ -1,5 +1,3 @@
-// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Progress, Badge, Avatar, Tooltip, Input } from 'antd';
 import {
@@ -624,6 +622,16 @@ const Dashboard: React.FC = () => {
                       `}
                       onClick={async () => {
                         if (status === 'locked' || loadingChapterId) return;
+                        if(chapter.title == "자음"){
+                          await API.post(`/progress/chapters/${chapter.id}`);
+                          return navigate(`/test/letter/consonant/study`);
+                        }else if(chapter.title == "모음"){
+                          await API.post(`/progress/chapters/${chapter.id}`);
+                          return navigate(`/test/letter/vowel/study`);
+                        }else if(chapter.title == "단어 해체"){
+                          await API.post(`/progress/chapters/${chapter.id}`);
+                          return navigate(`/test/letter/word/study`);
+                        }
                         setLoadingChapterId(chapter.id);
                         const lessonIds = (chapter.lessons || []).map((lesson) => lesson.id);
                         await handleStartLearn(chapter.id, lessonIds, '/home');
