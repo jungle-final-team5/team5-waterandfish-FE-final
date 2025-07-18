@@ -10,7 +10,8 @@ import {
   Volume2,
   Lightbulb,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  User
 } from 'lucide-react';
 import { useLearningData } from '@/hooks/useLearningData';
 import WebcamView from '@/components/WebcamView';
@@ -106,17 +107,17 @@ const SessionBegin = () => {
                       <h4 className="font-semibold text-lg text-gray-900">카메라 준비</h4>
                       <p className="text-base text-gray-600">
 
-                        웹캠과 적정 거리(약 1-1.5m)를 유지하세요. 상체가 모두 보이도록 위치를 조정해주세요.
+                        카메라와 눈높이가 비슷하게 위치해야 합니다. 손을 무릎에 올렸을 때 카메라에 보이지 않도록 준비해주세요
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
-                    <Users className="h-6 w-6 text-green-600 mt-1" />
+                    <User className="h-6 w-6 text-green-600 mt-1" />
                     <div>
-                      <h4 className="font-semibold text-lg text-gray-900">조용한 환경</h4>
+                      <h4 className="font-semibold text-lg text-gray-900">화면에 다른 사람이 보이지 않는 공간</h4>
                       <p className="text-base text-gray-600">
 
-                        정확한 인식을 위해 주변에 다른 사람이 없는 공간에서 진행해주세요.
+                        정확한 인식을 위해 주변에 다른 사람이 보이지 않는 공간에서 진행해주세요.
                       </p>
                     </div>
                   </div>
@@ -139,9 +140,7 @@ const SessionBegin = () => {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <span className="mr-2 text-2xl" role="img" aria-label="sparkles">✨</span>
-                  {modeNum === 1 && ('수어지교 200% 활용법!')}
-                  {modeNum === 2 && ('수어지교 200% 활용법!')}
-                  {modeNum === 3 && ('수어지교 200% 활용법!')}
+                  학습 팁
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -159,7 +158,7 @@ const SessionBegin = () => {
                       <li className="flex items-start">
                         <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
 
-                        설명 기능을 활용해 동작의 의미를 이해해보세요
+                        수어 동작은 무릎에서 시작하고 무릎에서 끝나야 합니다.
                       </li>
                     </>
                   )}
