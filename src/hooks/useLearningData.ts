@@ -115,6 +115,7 @@ export const useLearningData = () => {
     }
 
     const res = await API.get<{ success: boolean; data: { chapter: Chapter }; message: string }>(`/chapters/${chapterId}/session`);
+    
     console.log('lesson list!!', res.data);
     return res.data.data || null;
   }

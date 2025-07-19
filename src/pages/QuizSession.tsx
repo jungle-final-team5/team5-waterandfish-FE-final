@@ -31,25 +31,8 @@ const QuizSession = () => {
   const [transmissionCount, setTransmissionCount] = useState(0);
 
   const [timerValue, setTimerValue] = useState(15);
-const timeref = useRef<HTMLDivElement | null>(null);
-const times = useRef(15);
-
-const timedown = () => {
-  if (times.current === 0) {
-    setTimerValue(times.current);
-    // 타이머가 0이 되었을 때 처리할 로직
-    if (timeref.current) timeref.current.textContent = times.current.toString();
-    // 예: 시간 초과 처리
-    handleTimeUp();
-  } else if (times.current > 0) {
-    times.current -= 1;
-    setTimerValue(times.current);
-    if (timeref.current) {
-      timeref.current.textContent = times.current.toString();
-    }
-    setTimeout(timedown, 1000);
-  }
-};
+  const timeref = useRef<HTMLDivElement | null>(null);
+  const times = useRef(15);
 
 
   // useClassifierClient 훅 사용
@@ -140,7 +123,7 @@ const timedown = () => {
     }
   }, [isRecording, isConnected]);
 
-    const togglePlaybackSpeed = () => {
+  const togglePlaybackSpeed = () => {
     setIsSlowMotion(prev => !prev);
   };
 
@@ -233,6 +216,20 @@ const timedown = () => {
     setIsRecording(true);
     return () => {
       disconnectWebSockets();
+      // 1. 레슨 상태 업데이트
+      API.post(`/progress/chapters/${chapterId}/lessons`, {
+        lesson_ids: lessons.map((l) => l.id),
+        status: 'study',
+      })
+        .then(() => {
+          // 2. 챕터 완료(진도 증가) API 호출
+          return API.post('/study/sessions/complete', { chapter_id: chapterId });
+        })
+        .then(() => {
+          // 3. 완료 페이지로 이동
+          navigate(`/complete/chapter/${chapterId}/${1}`);
+        });
+      // eslint-disable-next-line
       // 버퍼링 타이머 정리
       if (bufferIntervalRef.current) {
         clearInterval(bufferIntervalRef.current);
@@ -266,44 +263,44 @@ const timedown = () => {
   //===============================================
 
 
-// handleNextSign 함수 수정
-const handleNextSign = useCallback(async (latestResults = quizResults) => {
-  console.log('🔄 다음 수어로 이동:', currentSignIndex + 1);
-  console.log('현재 퀴즈 결과:', latestResults);
-  
-  // 타이머 상태 초기화
-  setTimerActive(false);
-  setQuizStarted(false);
-  setIsRecording(false);
-  setIsQuizReady(false);
-  
-  if (lessons && currentSignIndex < lessons.length - 1) {
-    setCurrentSignIndex(currentSignIndex + 1);
-    setFeedback(null);
-    // 다음 수어로 업데이트
-    const nextLesson = lessons[currentSignIndex + 1];
-    setCurrentSign(nextLesson);
-    setCurrentSignId(nextLesson?.id || '');
-  } else {
-    setSessionComplete(true);
+  // handleNextSign 함수 수정
+  const handleNextSign = useCallback(async (latestResults = quizResults) => {
+    console.log('🔄 다음 수어로 이동:', currentSignIndex + 1);
+    console.log('현재 퀴즈 결과:', latestResults);
+
+    // 타이머 상태 초기화
+    setTimerActive(false);
+    setQuizStarted(false);
+    setIsRecording(false);
+    setIsQuizReady(false);
+
+    if (lessons && currentSignIndex < lessons.length - 1) {
+      setCurrentSignIndex(currentSignIndex + 1);
+      setFeedback(null);
+      // 다음 수어로 업데이트
+      const nextLesson = lessons[currentSignIndex + 1];
+      setCurrentSign(nextLesson);
+      setCurrentSignId(nextLesson?.id || '');
+    } else {
+      setSessionComplete(true);
       disconnectWebSockets();
-    // 백엔드 퀴즈 제출 API 사용 (최신 결과 사용)
-    try {
-      const results = latestResults.map(result => ({
-        lessonId: result.signId,
-        correct: result.correct,
-        timeSpent: result.timeSpent
-      }));
-      console.log(results);
-      await API.post(`/quiz/chapter/${chapterId}/submit`, {
-        results: results
-      });
-      console.log('퀴즈 결과 제출 완료');
-    } catch (error) {
-      console.error('퀴즈 결과 제출 실패:', error);
+      // 백엔드 퀴즈 제출 API 사용 (최신 결과 사용)
+      try {
+        const results = latestResults.map(result => ({
+          lessonId: result.signId,
+          correct: result.correct,
+          timeSpent: result.timeSpent
+        }));
+        console.log(results);
+        await API.post(`/quiz/chapter/${chapterId}/submit`, {
+          results: results
+        });
+        console.log('퀴즈 결과 제출 완료');
+      } catch (error) {
+        console.error('퀴즈 결과 제출 실패:', error);
+      }
     }
-  }
-}, [currentSignIndex, lessons, chapterId]);
+  }, [currentSignIndex, lessons, chapterId]);
 
   // FeedbackDisplay 완료 콜백 함수
   const handleFeedbackComplete = () => {
@@ -362,13 +359,13 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
       const { confidence, probabilities } = currentResult;
       const target = currentSign?.word;
       let percent: number | undefined = undefined;
-      
+
       if (currentResult.prediction === target) {
         percent = confidence * 100;
       } else if (probabilities && target && probabilities[target] != null) {
         percent = probabilities[target] * 100;
       }
-      
+
       if (percent >= 80.0) {
         console.log("✅ 정답! 시간 내에 성공");
         setTimerActive(false);
@@ -382,17 +379,17 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
             correct: true,
             timeSpent: QUIZ_TIME_LIMIT - timeSpent
           };
-          
+
           // 상태 업데이트와 동시에 로컬 변수에도 저장
           setQuizResults(prev => {
             const updatedResults = [...prev, newResult];
-            
+
             // 상태 업데이트 후 3초 뒤에 다음 문제로 이동
             setTimeout(() => {
               console.log("업데이트된 퀴즈 결과 (정답):", updatedResults);
               handleNextSign(updatedResults); // 업데이트된 결과를 인자로 전달
             }, 3000);
-            
+
             return updatedResults;
           });
         }
@@ -450,50 +447,38 @@ const handleNextSign = useCallback(async (latestResults = quizResults) => {
     }
   }, [lessons, currentSignIndex]);
 
-  // 타이머 시작 로직 수정 (기존 useEffect 수정)
-useEffect(() => {
-  if (timerActive) { // timerActive가 true일 때만 타이머 시작
-    setTimerValue(15);
-    times.current = 15;
-    if (timeref.current) timeref.current.textContent = times.current.toString();
-    setTimeout(timedown, 1000);
-  }
-}, [timerActive]); // timerActive가 변경될 때 타이머 재시작
+  // 시간 초과 시 호출
+  const handleTimeUp = useCallback(() => {
+    console.log('⏰ 시간 초과! 오답 처리');
+    setIsRecording(false);
+    setTimerActive(false);
+    setFeedback('incorrect');
 
+    if (currentSign) {
+      // 새 결과 객체 생성
+      const newResult = {
+        signId: currentSign.id,
+        correct: false,
+        timeSpent: QUIZ_TIME_LIMIT
+      };
 
+      // 상태 업데이트와 동시에 로컬 변수에도 저장
+      setQuizResults(prev => {
+        const updatedResults = [...prev, newResult];
 
-// 시간 초과 시 호출
-const handleTimeUp = useCallback(() => {
-  console.log('⏰ 시간 초과! 오답 처리');
-  setIsRecording(false);
-  setTimerActive(false);
-  setFeedback('incorrect');
+        // 상태 업데이트 후 3초 뒤에 다음 문제로 이동
+        setTimeout(() => {
+          console.log("업데이트된 퀴즈 결과:", updatedResults);
+          handleNextSign(updatedResults); // 업데이트된 결과를 인자로 전달
+        }, 3000);
 
-  if (currentSign) {
-    // 새 결과 객체 생성
-    const newResult = {
-      signId: currentSign.id,
-      correct: false,
-      timeSpent: QUIZ_TIME_LIMIT
-    };
-    
-    // 상태 업데이트와 동시에 로컬 변수에도 저장
-    setQuizResults(prev => {
-      const updatedResults = [...prev, newResult];
-      
-      // 상태 업데이트 후 3초 뒤에 다음 문제로 이동
-      setTimeout(() => {
-        console.log("업데이트된 퀴즈 결과:", updatedResults);
-        handleNextSign(updatedResults); // 업데이트된 결과를 인자로 전달
-      }, 3000);
-      
-      return updatedResults;
-    });
-    
-    console.log(currentSign.id);
-    console.log("틀린거 저장 완료하다");
-  }
-}, [currentSign]);
+        return updatedResults;
+      });
+
+      console.log(currentSign.id);
+      console.log("틀린거 저장 완료하다");
+    }
+  }, [currentSign]);
 
   // 퀴즈 시작 함수
   const handleStartQuiz = () => {
@@ -568,87 +553,87 @@ const handleTimeUp = useCallback(() => {
       />
 
 
-         
+
       <div className="grid lg:grid-cols-2 gap-12">
-<div className="mt-4 p-3 bg-gray-100 rounded-md">
-  <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-lg p-8 w-full h-full">
-    {/* 퀴즈 타이머 */}
-    {isQuizReady && (
-      <div className="mb-6 w-full">
-        <QuizTimer
-          duration={QUIZ_TIME_LIMIT}
-          onTimeUp={handleTimeUp}
-          isActive={timerActive}
-          onTimeChange={setTimeSpent}
-        />
-      </div>
-    )}
-    
-    <div className="text-center w-full">
-      <h2 className="text-3xl font-bold text-blue-600 mb-4">
-        이 수어를 맞춰보세요!
-      </h2>
-      <div className="text-6xl font-bold text-gray-800 mb-4">
-        {currentSign?.word || '로딩 중...'}
-      </div>
-      <p className="text-gray-600 mb-6">
-        {currentSignIndex + 1} / {lessons.length}
-      </p>
-
-      {/* 퀴즈 진행 중 표시 */}
-      {isQuizReady && (
-        <div className="text-green-600 font-semibold text-lg">
-          ⏱️ 퀴즈 진행 중...
-        </div>
-      )}
-    </div>
-  </div>
-</div>
-    
-
-            <div className="mt-4 p-3 bg-gray-100 rounded-md">
-            {/* 웹캠 및 분류 결과 */}
-            <div className="space-y-4">
-              <VideoInput
-                width={640}
-                height={480}
-                autoStart={true}
-                showControls={true}
-                className="h-full"
-                currentSign={currentSign}
-                currentResult={displayConfidence}
-              />
-
-
-
-              {/* 숨겨진 비디오 요소들 */}
-              <div className="hidden">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
+        <div className="mt-4 p-3 bg-gray-100 rounded-md">
+          <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-lg p-8 w-full h-full">
+            {/* 퀴즈 타이머 */}
+            {isQuizReady && (
+              <div className="mb-6 w-full">
+                <QuizTimer
+                  duration={QUIZ_TIME_LIMIT}
+                  onTimeUp={handleTimeUp}
+                  isActive={timerActive}
+                  onTimeChange={setTimeSpent}
                 />
-                <canvas ref={canvasRef} />
               </div>
+            )}
+
+            <div className="text-center w-full">
+              <h2 className="text-3xl font-bold text-blue-600 mb-4">
+                이 수어를 맞춰보세요!
+              </h2>
+              <div className="text-6xl font-bold text-gray-800 mb-4">
+                {currentSign?.word || '로딩 중...'}
+              </div>
+              <p className="text-gray-600 mb-6">
+                {currentSignIndex + 1} / {lessons.length}
+              </p>
+
+              {/* 퀴즈 진행 중 표시 */}
+              {isQuizReady && (
+                <div className="text-green-600 font-semibold text-lg">
+                  ⏱️ 퀴즈 진행 중...
+                </div>
+              )}
             </div>
           </div>
-
-          {/* 피드백 표시 */}
-          {feedback && (
-            <div className="mt-8">
-              <div className="mb-2 text-sm text-gray-600">
-                디버그: feedback={feedback}, prediction={currentResult?.prediction}
-              </div>
-              <FeedbackDisplay
-                feedback={feedback}
-                prediction={currentResult?.prediction}
-                onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
-              />
-            </div>
-          )}
         </div>
+
+
+        <div className="mt-4 p-3 bg-gray-100 rounded-md">
+          {/* 웹캠 및 분류 결과 */}
+          <div className="space-y-4">
+            <VideoInput
+              width={640}
+              height={480}
+              autoStart={true}
+              showControls={true}
+              className="h-full"
+              currentSign={currentSign}
+              currentResult={displayConfidence}
+            />
+
+
+
+            {/* 숨겨진 비디오 요소들 */}
+            <div className="hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <canvas ref={canvasRef} />
+            </div>
+          </div>
+        </div>
+
+        {/* 피드백 표시 */}
+        {feedback && (
+          <div className="mt-8">
+            <div className="mb-2 text-sm text-gray-600">
+              디버그: feedback={feedback}, prediction={currentResult?.prediction}
+            </div>
+            <FeedbackDisplay
+              feedback={feedback}
+              prediction={currentResult?.prediction}
+              onComplete={feedback === 'correct' ? handleFeedbackComplete : undefined}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
