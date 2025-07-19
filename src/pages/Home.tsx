@@ -59,6 +59,7 @@ import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import { useChapterHandler } from '@/hooks/useChapterHandler';
 import { Dialog } from '@/components/ui/dialog';
 import axios from 'axios';
+import 'animate.css';
 
 
 const { Search: AntdSearch } = Input;
@@ -155,10 +156,15 @@ const Dashboard: React.FC = () => {
 
   // 마이페이지 모달 상태
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [chaptersToAnimate, setChaptersToAnimate] = useState<string[]>([]);
 
   // 마이페이지 버튼 ref와 꼬리 위치 상태
   const profileBtnRef = useRef<HTMLButtonElement>(null);
   const [tailLeft, setTailLeft] = useState<number | null>(null);
+  const firstAnimatedChapterRef = useRef<HTMLDivElement>(null);
+
+  // Home 컴포넌트 내부
+  const prevChapterStatus = useRef<{ [id: string]: string }>({});
 
   useEffect(() => {
     if (isProfileModalOpen && profileBtnRef.current) {
@@ -357,24 +363,32 @@ const Dashboard: React.FC = () => {
   const [userLoading, setUserLoading] = useState(true);
 
   useEffect(() => {
+    if (allChapters.length === 0) return; // allChapters가 로드될 때까지 기다림
+
     setUserLoading(true);
     API.get('/user/me', { withCredentials: true })
       .then(res => {
-        setUser(res.data);
+        const user = res.data;
+        setUser(user);
+
+        const lastKnownIndexStr = localStorage.getItem('lastKnownChapterIndex');
+        const lastKnownIndex = lastKnownIndexStr ? parseInt(lastKnownIndexStr, 10) : -1;
+        const currentIndex = user?.chapter_current_index ?? 0;
+
+        if (lastKnownIndex !== -1 && currentIndex > lastKnownIndex) {
+          const newlyUnlockedChapters = allChapters
+            .slice(lastKnownIndex, currentIndex)
+            .map(ch => ch.id);
+          setChaptersToAnimate(newlyUnlockedChapters);
+        }
+
+        localStorage.setItem('lastKnownChapterIndex', currentIndex.toString());
       })
       .catch(() => setUser(null))
       .finally(() => setUserLoading(false));
-  }, []);
+  }, [allChapters]);
 
-  // user 정보가 없으면 챕터 목록 렌더링 X
-  if (userLoading) {
-    return <div className="w-full flex justify-center items-center min-h-[400px]">Loading...</div>;
-  }
-  if (!user) {
-    return <div className="w-full flex justify-center items-center min-h-[400px] text-red-500">유저 정보를 불러올 수 없습니다.</div>;
-  }
-
-  const chapterCurrentIndex = user.chapter_current_index ?? 0;
+  const chapterCurrentIndex = user?.chapter_current_index ?? 0;
 
   // 지그재그(ㄹ자) 배치용: 3개씩 묶고, 짝수줄은 reverse + 각 chapter에 원래 인덱스 저장
   function zigzagChapters(chapters: any[], rowSize = 3) {
@@ -394,6 +408,33 @@ const Dashboard: React.FC = () => {
     return rows;
   }
   const zigzagRows = zigzagChapters(allChapters, 3);
+
+  useEffect(() => {
+    const newStatuses: { [id: string]: string } = {};
+    allChapters.forEach(ch => {
+      newStatuses[ch.id] = ch.status;
+    });
+    prevChapterStatus.current = newStatuses;
+  }, [allChapters]);
+
+  useEffect(() => {
+    if (chaptersToAnimate.length > 0 && firstAnimatedChapterRef.current) {
+      setTimeout(() => {
+        firstAnimatedChapterRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }, 500); // 애니메이션 시작과 함께 부드럽게 스크롤
+    }
+  }, [chaptersToAnimate]);
+
+  // user 정보가 없으면 챕터 목록 렌더링 X
+  if (userLoading) {
+    return <div className="w-full flex justify-center items-center min-h-[400px]">Loading...</div>;
+  }
+  if (!user) {
+    return <div className="w-full flex justify-center items-center min-h-[400px] text-red-500">유저 정보를 불러올 수 없습니다.</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -576,15 +617,28 @@ const Dashboard: React.FC = () => {
                   ? idx < row.length - 1 // 오른쪽에 선
                   : idx > 0;             // 왼쪽에 선
 
+                const shouldAnimate = chaptersToAnimate.includes(chapter.id);
+                const animationDelay = `${500 + chaptersToAnimate.indexOf(chapter.id) * 200}ms`; // 0.5초 기본 지연
+
+                const isFirstAnimated = chaptersToAnimate[0] === chapter.id;
+
                 return (
                   <div
+                    ref={isFirstAnimated ? firstAnimatedChapterRef : null}
                     key={chapter.id}
                     className={`relative group ${colStart} ${
                       status === 'locked'
                         ? 'opacity-60 cursor-not-allowed'
                         : 'cursor-pointer'
-                    }`}
-                    style={{ minHeight: 340, height: 340, maxWidth: 480, width: '100%' }}
+                    } ${shouldAnimate ? 'animate__animated animate__zoomIn animate__slow' : ''}`}
+                    style={{ 
+                      minHeight: 340, 
+                      height: 340, 
+                      maxWidth: 480, 
+                      width: '100%', 
+                      animationDelay: shouldAnimate ? animationDelay : '0s',
+                      transitionDelay: shouldAnimate ? animationDelay : '0s' 
+                    }}
                   >
                     {/* 👉 수직 연결선 */}
                     {showVerticalLine && (
@@ -612,7 +666,7 @@ const Dashboard: React.FC = () => {
                     )}
                     {/* Chapter Card */}
                     <div
-                      className={`h-full p-8 rounded-3xl shadow-lg border-2 transition-all duration-300 relative
+                      className={`h-full p-8 rounded-3xl shadow-lg border-2 transition-all duration-500 relative
                         ${status === 'completed'
                           ? 'bg-white border-emerald-200 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:rotate-1'
                           : status === 'locked'
