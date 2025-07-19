@@ -647,17 +647,15 @@ const Dashboard: React.FC = () => {
                         if (status === 'locked' || loadingChapterId) return;
                         if (chapter.title == '자음') {
                           await API.post(`/progress/chapters/${chapter.id}`);
-                          return navigate(`/test/letter/consonant/study`);
+                          return navigate(`/test/letter/consonant/study/${chapter.id}`);
                         } else if (chapter.title == '모음') {
                           await API.post(`/progress/chapters/${chapter.id}`);
-                          return navigate(`/test/letter/vowel/study`);
-                        } else if (chapter.title == '단어 해체') {
+                          return navigate(`/test/letter/vowel/study/${chapter.id}`);
+                        } else if (chapter.title == '지화 퀴즈') {
                           await API.post(`/progress/chapters/${chapter.id}`);
-                          return navigate(`/test/letter/word/quiz`);
+                          return navigate(`/test/letter/word/quiz/${chapter.id}`);
                         }
                         setLoadingChapterId(chapter.id);
-                        const lessonIds = (chapter.lessons || []).map((lesson) => lesson.id);
-                        // await handleStartLearn(chapter.id, lessonIds, '/home');
                         await handleStartLearnV2(chapter.id, '/home');
                         setLoadingChapterId(null);
                       }}
