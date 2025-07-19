@@ -13,7 +13,7 @@ import { set } from 'lodash';
 
 const LetterSession = () => {
   // 원형 프로그레스바용 상태 추가
-  const [timerValue, setTimerValue] = useState(10);
+  const [timerValue, setTimerValue] = useState(120);
   const [gesture, setGesture] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraInitializing, setIsCameraInitializing] = useState(true);
@@ -106,7 +106,7 @@ const LetterSession = () => {
   const [progressPercent, setProgressPercent] = useState(0);
   const [isDone, setIsDone] = useState(false);
 
-  const times = useRef(30);
+  const times = useRef(120);
   const [qors, setQors] = useState<boolean>(qOrs === 'quiz');
   const timeref = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -353,7 +353,7 @@ const LetterSession = () => {
       // 약간의 지연을 두어 정리가 완료되도록 함
       // // await new Promise(resolve => setTimeout(resolve, 500)); // [주석처리] 미디어파이프 로딩시 timeout
       if(qors === true){
-        times.current = 30;
+        times.current = 120;
       }
           console.log('MediaPipe Hands dynamic load via hands.js');
       // ESM entrypoint인 hands.js를 직접 불러와 실제 클래스 가져오기 (CDN)
@@ -555,7 +555,7 @@ console.log('MediaPipe Hands instance created via global script');
 
   const handleNext = () => {
     setProgressPercent(0);
-    times.current = 30;
+    times.current = 120;
     if (timeref.current) {
       timeref.current.textContent = times.current.toString();
     }
@@ -736,7 +736,7 @@ useEffect(() => {
     std.current = true;
     divwords(words);
     setTimerValue(10);
-    times.current = 30;
+    times.current = 120;
     if(qors){
       setTimeout(timedown, 1000);
     }
@@ -858,7 +858,7 @@ useEffect(() => {
                               stroke="#2563eb"
                               strokeWidth="24"
                               strokeDasharray={2 * Math.PI * 112}
-                              strokeDashoffset={2 * Math.PI * 112 * (1 - (timerValue - 1) / 29)}
+                              strokeDashoffset={2 * Math.PI * 112 * (1 - (timerValue - 1) / 119)}
                               style={{ transition: 'stroke-dashoffset 1s linear' }}
                             />
                           )}
