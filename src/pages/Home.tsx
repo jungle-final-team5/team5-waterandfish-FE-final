@@ -364,7 +364,6 @@ const Dashboard: React.FC = () => {
         const lastKnownIndexStr = localStorage.getItem('lastKnownChapterIndex');
         const lastKnownIndex = lastKnownIndexStr ? parseInt(lastKnownIndexStr, 10) : -1;
         const currentIndex = user?.chapter_current_index ?? 0;
-        alert(`currentIndex: ${currentIndex}`);
 
         if (lastKnownIndex !== -1 && currentIndex > lastKnownIndex) {
           const newlyUnlockedChapters = allChapters
