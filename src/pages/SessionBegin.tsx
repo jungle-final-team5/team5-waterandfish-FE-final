@@ -65,7 +65,7 @@ const SessionBegin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
@@ -165,15 +165,15 @@ const SessionBegin = () => {
                     <>
                       <li className="flex items-start">
 
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="w-2 h-2 bg-indigo-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                         시간 제한이 있으니 미리 동작을 연습해두세요
                       </li>
                       <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="w-2 h-2 bg-indigo-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                         정확한 동작이 중요합니다. 천천히 정확하게 해주세요
                       </li>
                       <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="w-2 h-2 bg-indigo-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
 
                         틀린 문제는 자동으로 복습 목록에 추가됩니다
                       </li>
@@ -244,7 +244,7 @@ const SessionBegin = () => {
               disabled={connectedCount !== totalCount}
               onClick={startContents}
               size="lg"
-              className="w-[704px] h-32 mt-2 border border-gray-300 rounded-xl flex items-center justify-center text-2xl font-bold"
+              className="w-[704px] h-32 mt-2 border border-gray-300 rounded-xl flex items-center justify-center text-2xl font-bold bg-indigo-900 hover:bg-black text-white transition-colors"
             >
               세션 시작
               <ArrowRight className="h-4 w-4 ml-2" />

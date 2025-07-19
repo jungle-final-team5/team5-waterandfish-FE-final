@@ -446,9 +446,9 @@ const Dashboard: React.FC = () => {
 
           /* ✅ 테두리만 3회 Pulse 효과 (Option 1: 현재 학습 가능 챕터 강조) */
           @keyframes border-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(34,211,238,0.55), 0 0 0 4px rgba(34,211,238,0.18); }
-            45% { box-shadow: 0 0 0 6px rgba(34,211,238,0.0), 0 0 0 14px rgba(34,211,238,0.40); }
-            100% { box-shadow: 0 0 0 0 rgba(34,211,238,0.25), 0 0 0 2px rgba(34,211,238,0.12); }
+            0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.55), 0 0 0 4px rgba(99,102,241,0.18); }
+            45% { box-shadow: 0 0 0 6px rgba(99,102,241,0.0), 0 0 0 14px rgba(99,102,241,0.40); }
+            100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.25), 0 0 0 2px rgba(99,102,241,0.12); }
           }
           /* 반복 3회로 제한, forwards로 잔상 유지 */
           .pulse-border-3 { animation: border-pulse 1.35s ease-in-out 0s 3 forwards; }
@@ -478,7 +478,7 @@ const Dashboard: React.FC = () => {
                     <div className="absolute -top-6" style={tailLeft !== null ? { left: tailLeft } : { left: '50%', transform: 'translateX(-50%)' }}>
                       <svg width="40" height="40" viewBox="0 0 40 40"><polygon points="20,0 40,40 0,40" fill="#fff" /></svg>
                     </div>
-                    <div className="w-full bg-gradient-to-r from-blue-400 to-cyan-400 rounded-xl p-4 text-white mb-4 flex items-center justify-between cursor-pointer" onClick={() => { setIsProfileModalOpen(false); setIsStreakModalOpen(true); }}>
+                    <div className="w-full bg-gradient-to-r from-blue-400 to-indigo-400 rounded-xl p-4 text-white mb-4 flex items-center justify-between cursor-pointer" onClick={() => { setIsProfileModalOpen(false); setIsStreakModalOpen(true); }}>
                       <div>
                         <div className="font-semibold">연속 학습</div>
                         <div className="text-sm opacity-90">{currentStreak}일 연속 학습 중!</div>
@@ -501,7 +501,7 @@ const Dashboard: React.FC = () => {
                         <div className="bg-green-500 h-2 rounded-full" style={{ width: `${progressOverview?.overall_progress ?? 0}%` }}></div>
                       </div>
                     </div>
-                    <Button className="w-full bg-cyan-500 text-white py-3 rounded-lg hover:bg-cyan-600 transition-colors font-semibold text-base" onClick={() => { setIsProfileModalOpen(false); navigate('/profile'); }}>
+                    <Button className="w-full bg-indigo-500 text-white py-3 rounded-lg hover:bg-indigo-600 transition-colors font-semibold text-base" onClick={() => { setIsProfileModalOpen(false); navigate('/profile'); }}>
                       계정 설정
                     </Button>
                   </div>
@@ -614,24 +614,32 @@ const Dashboard: React.FC = () => {
                     {/* 수직 연결선 */}
                     {showVerticalLine && (
                       <div
-                        className="absolute left-1/2 bottom-[-64px] w-[5px] h-[64px] rounded-full bg-cyan-200 overflow-hidden z-0"
+                        className="absolute left-1/2 bottom-[-64px] w-[5px] h-[64px] rounded-full overflow-hidden z-0"
                         style={{
-                          backgroundImage: 'linear-gradient(180deg, rgba(103,232,249,0.4), rgba(103,232,249,0.8))',
+                          backgroundImage: status === 'completed'
+                            ? 'linear-gradient(180deg, rgba(16,185,129,0.4), rgba(16,185,129,0.8))' // emerald-500
+                            : 'linear-gradient(180deg, rgba(99,102,241,0.4), rgba(99,102,241,0.8))',
                           backgroundSize: '100% 200%',
                           animation: 'flow 4s linear infinite',
-                          boxShadow: '0 0 6px rgba(103,232,249,0.4)',
+                          boxShadow: status === 'completed'
+                            ? '0 0 6px rgba(16,185,129,0.4)'
+                            : '0 0 6px rgba(99,102,241,0.4)',
                         }}
                       ></div>
                     )}
                     {/* 가로 연결선 */}
                     {showHorizontalLine && (
                       <div
-                        className={`absolute top-1/2 ${isOddRow ? '-right-16' : '-left-16'} w-16 h-[5px] rounded-full bg-cyan-200 overflow-hidden`}
+                        className={`absolute top-1/2 ${isOddRow ? '-right-16' : '-left-16'} w-16 h-[5px] rounded-full overflow-hidden`}
                         style={{
-                          backgroundImage: 'linear-gradient(90deg, rgba(103,232,249,0.4), rgba(103,232,249,0.8))',
+                          backgroundImage: status === 'completed'
+                            ? 'linear-gradient(90deg, rgba(16,185,129,0.4), rgba(16,185,129,0.8))'
+                            : 'linear-gradient(90deg, rgba(99,102,241,0.4), rgba(99,102,241,0.8))',
                           backgroundSize: '200% 100%',
                           animation: isOddRow ? 'flow 4s linear infinite' : 'flow-reverse 4s linear infinite',
-                          boxShadow: '0 0 6px rgba(103,232,249,0.4)',
+                          boxShadow: status === 'completed'
+                            ? '0 0 6px rgba(16,185,129,0.4)'
+                            : '0 0 6px rgba(99,102,241,0.4)',
                         }}
                       ></div>
                     )}
@@ -641,8 +649,8 @@ const Dashboard: React.FC = () => {
                         ? 'bg-white border-emerald-200 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:rotate-1'
                         : status === 'locked'
                           ? 'bg-gray-50 border-gray-100'
-                          : 'bg-white border-cyan-100 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:bg-cyan-50 group-hover:border-cyan-300'
-                        } ${isCurrentChapter && status !== 'locked' ? 'border-cyan-400 pulse-border-3' : ''}`}
+                          : 'bg-white border-indigo-100 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:bg-indigo-50 group-hover:border-indigo-300'
+                        } ${isCurrentChapter && status !== 'locked' ? 'border-indigo-400 pulse-border-3' : ''}`}
                       onClick={async () => {
                         if (status === 'locked' || loadingChapterId) return;
                         if (chapter.title == '자음') {
@@ -662,7 +670,7 @@ const Dashboard: React.FC = () => {
                     >
                       {loadingChapterId === chapter.id && (
                         <div className="absolute inset-0 bg-gray-200/60 flex items-center justify-center z-20 rounded-3xl">
-                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500"></div>
+                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
                         </div>
                       )}
                       <div className="flex justify-between items-start mb-6">
@@ -670,7 +678,7 @@ const Dashboard: React.FC = () => {
                           className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${status === 'completed'
                             ? 'bg-emerald-400 text-white'
                             : status === 'current'
-                              ? 'bg-white border-4 border-cyan-400 text-cyan-500'
+                              ? 'bg-white border-4 border-indigo-400 text-indigo-500'
                               : 'bg-gray-300 text-gray-500'
                             }`}
                         >
@@ -683,7 +691,7 @@ const Dashboard: React.FC = () => {
                           )}
                         </div>
                         {status === 'current' && (
-                          <span className="bg-cyan-100 text-cyan-600 px-3 py-1 rounded-full text-sm font-medium">진행 중</span>
+                          <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-sm font-medium">진행 중</span>
                         )}
                       </div>
                       <div>
@@ -702,10 +710,10 @@ const Dashboard: React.FC = () => {
                               className={`rounded-xl p-4 flex items-center justify-center transition-colors duration-300 ${
                                 status === 'completed'
                               ? 'bg-emerald-50 group-hover:bg-emerald-100'
-                                  : 'bg-cyan-50 group-hover:bg-cyan-100'
+                                  : 'bg-indigo-50 group-hover:bg-indigo-100'
                               }`}
                             >
-                              <span className={`text-sm font-medium ${status === 'completed' ? 'text-emerald-700' : 'text-cyan-700'}`}>
+                              <span className={`text-sm font-medium ${status === 'completed' ? 'text-emerald-700' : 'text-indigo-700'}`}>
                                 {lesson.word}
                               </span>
                             </div>
