@@ -61,7 +61,6 @@ import { Dialog } from '@/components/ui/dialog';
 import axios from 'axios';
 import 'animate.css';
 
-
 const { Search: AntdSearch } = Input;
 
 // 진도율 정보 타입
@@ -171,7 +170,6 @@ const Dashboard: React.FC = () => {
       const btnRect = profileBtnRef.current.getBoundingClientRect();
       const modalRect = document.getElementById('profile-modal')?.getBoundingClientRect();
       if (modalRect) {
-        // 꼬리의 left를 버튼의 중앙에 맞춤 (모달 기준)
         setTailLeft(btnRect.left + btnRect.width / 2 - modalRect.left - 20); // 20은 꼬리 width/2
       }
     }
@@ -187,9 +185,6 @@ const Dashboard: React.FC = () => {
   const offset = circumference - (progress / 100) * circumference;
 
   const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz, handleStartSingleLearn } = useChapterHandler();
-
-  
-
 
   // 시간대별 인사 메시지
   const getGreeting = () => {
@@ -224,14 +219,11 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchBadges = async () => {
       try {
-        // 전체 뱃지 목록
         const allBadgesRes = await API.get<ApiBadge[]>('/badge/');
-        // 획득한 뱃지 목록
         const earnedBadgesRes = await API.get<EarnedBadge[]>('/badge/earned');
         const earnedIds = Array.isArray(earnedBadgesRes.data)
           ? earnedBadgesRes.data.map((b) => b.badge_id ?? b.id)
           : [];
-        // unlocked 필드 추가
         const processed = Array.isArray(allBadgesRes.data)
           ? allBadgesRes.data.map((badge) => ({
             id: badge.id,
@@ -319,7 +311,6 @@ const Dashboard: React.FC = () => {
   const handleCardClick = async (cardType: string) => {
     switch (cardType) {
       case 'recent':
-        // recentLearning 관련 코드 제거
         break;
       case 'streak':
         setIsStreakModalOpen(true);
@@ -333,7 +324,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // 로그아웃 핸들러 보강
   const handleLogout = async () => {
     try {
       await API.post('auth/logout');
@@ -358,12 +348,12 @@ const Dashboard: React.FC = () => {
       });
   }, []);
 
-  // user 상태를 서버에서 받아옴
+  // user 상태
   const [user, setUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
 
   useEffect(() => {
-    if (allChapters.length === 0) return; // allChapters가 로드될 때까지 기다림
+    if (allChapters.length === 0) return;
 
     setUserLoading(true);
     API.get('/user/me', { withCredentials: true })
@@ -377,7 +367,7 @@ const Dashboard: React.FC = () => {
 
         if (lastKnownIndex !== -1 && currentIndex > lastKnownIndex) {
           const newlyUnlockedChapters = allChapters
-            .slice(lastKnownIndex, currentIndex)
+            .slice(lastKnownIndex + 1, currentIndex + 1)
             .map(ch => ch.id);
           setChaptersToAnimate(newlyUnlockedChapters);
         }
@@ -390,7 +380,7 @@ const Dashboard: React.FC = () => {
 
   const chapterCurrentIndex = user?.chapter_current_index ?? 0;
 
-  // 지그재그(ㄹ자) 배치용: 3개씩 묶고, 짝수줄은 reverse + 각 chapter에 원래 인덱스 저장
+  // 지그재그 배치
   function zigzagChapters(chapters: any[], rowSize = 3) {
     const rows = [];
     for (let i = 0; i < chapters.length; i += rowSize) {
@@ -399,7 +389,6 @@ const Dashboard: React.FC = () => {
         ...chapter,
         _originalIndex: i + idx,
       }));
-      // 짝수 번째 줄 (row index가 1, 3, 5...)는 뒤집기
       if ((i / rowSize) % 2 === 1) {
         indexedRow.reverse();
       }
@@ -424,17 +413,20 @@ const Dashboard: React.FC = () => {
           behavior: 'smooth',
           block: 'center',
         });
-      }, 500); // 애니메이션 시작과 함께 부드럽게 스크롤
+      }, 500);
     }
   }, [chaptersToAnimate]);
 
-  // user 정보가 없으면 챕터 목록 렌더링 X
   if (userLoading) {
     return <div className="w-full flex justify-center items-center min-h-[400px]">Loading...</div>;
   }
   if (!user) {
     return <div className="w-full flex justify-center items-center min-h-[400px] text-red-500">유저 정보를 불러올 수 없습니다.</div>;
   }
+
+  // ✅ Option 1: 현재 학습 가능한 챕터(= chapterCurrentIndex) 강조
+// (removed_latestUnlocked)Id 제거, 대신 currentHighlightId 사용
+const currentHighlightId = allChapters[chapterCurrentIndex]?.id;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white font-ttlaundry">
@@ -449,50 +441,35 @@ const Dashboard: React.FC = () => {
           .font-ttlaundry {
             font-family: 'TTLaundryGothicB', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
           }
-          .!rounded-button {
-            border-radius: 12px !important;
+          .!rounded-button { border-radius: 12px !important; }
+          body { min-height: 1024px; }
+          @keyframes flow { 0% { background-position: 200% 50%; } 100% { background-position: 0% 50%; } }
+          @keyframes flow-reverse { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+
+          /* ✅ 테두리만 3회 Pulse 효과 (Option 1: 현재 학습 가능 챕터 강조) */
+          @keyframes border-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34,211,238,0.55), 0 0 0 4px rgba(34,211,238,0.18); }
+            45% { box-shadow: 0 0 0 6px rgba(34,211,238,0.0), 0 0 0 14px rgba(34,211,238,0.40); }
+            100% { box-shadow: 0 0 0 0 rgba(34,211,238,0.25), 0 0 0 2px rgba(34,211,238,0.12); }
           }
-          body {
-            min-height: 1024px;
-          }
-          @keyframes flow {
-            0% {
-              background-position: 200% 50%;
-            }
-            100% {
-              background-position: 0% 50%;
-            }
-          }
-          @keyframes flow-reverse {
-            0% {
-              background-position: 0% 50%;
-            }
-            100% {
-              background-position: 200% 50%;
-            }
-          }
+          /* 반복 3회로 제한, forwards로 잔상 유지 */
+          .pulse-border-3 { animation: border-pulse 1.35s ease-in-out 0s 3 forwards; }
         `}
       </style>
 
-      {/* 상단 로고 및 버튼만 남기고 인사 메시지는 제거 */}
+      {/* 상단 바 */}
       <div className="bg-white shadow-sm px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* 로고 영역 */}
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-indigo-200 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-xl">🐟</span>
             </div>
             <div>
-              <span className="text-2xl font-bold text-indigo-600">
-                수어지교
-              </span>
+              <span className="text-2xl font-bold text-indigo-600">수어지교</span>
               <div className="text-xs text-gray-500 mt-0.5">인터랙티브 수어 학습 플랫폼</div>
             </div>
           </div>
-          {/* 프로필/설정 버튼 - 알림(벨) 아이콘 제거 */}
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
-            {/* 알림 버튼 제거됨 */}
-            {/* 마이페이지 버튼 아래에 말풍선 모달 (버튼 div 내부에서 조건부 렌더링) */}
             <div className="flex items-center space-x-4 mt-4 md:mt-0 relative">
               <Button ref={profileBtnRef} onClick={() => setIsProfileModalOpen((v) => !v)} variant="ghost" size="icon">
                 <User className="h-5 w-5 text-gray-600" />
@@ -500,11 +477,9 @@ const Dashboard: React.FC = () => {
               {isProfileModalOpen && (
                 <div className="absolute left-1/2 transform -translate-x-1/2 top-12 z-50 w-[340px] max-w-xs flex justify-center pointer-events-auto" id="profile-modal">
                   <div className="relative bg-white rounded-3xl shadow-2xl p-8 w-full flex flex-col items-center" style={{ minWidth: 300 }}>
-                    {/* 말풍선 꼬리 (동적 위치) */}
                     <div className="absolute -top-6" style={tailLeft !== null ? { left: tailLeft } : { left: '50%', transform: 'translateX(-50%)' }}>
                       <svg width="40" height="40" viewBox="0 0 40 40"><polygon points="20,0 40,40 0,40" fill="#fff" /></svg>
                     </div>
-                    {/* 연속학습 카드 */}
                     <div className="w-full bg-gradient-to-r from-blue-400 to-cyan-400 rounded-xl p-4 text-white mb-4 flex items-center justify-between cursor-pointer" onClick={() => { setIsProfileModalOpen(false); setIsStreakModalOpen(true); }}>
                       <div>
                         <div className="font-semibold">연속 학습</div>
@@ -512,7 +487,6 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div className="text-2xl">🔥</div>
                     </div>
-                    {/* 뱃지 카드 */}
                     <div className="w-full bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 flex items-center justify-between cursor-pointer" onClick={() => { setIsProfileModalOpen(false); setIsBadgeModalOpen(true); }}>
                       <div>
                         <div className="font-semibold text-gray-800">획득한 뱃지</div>
@@ -520,7 +494,6 @@ const Dashboard: React.FC = () => {
                       </div>
                       <Trophy className="text-2xl text-yellow-500" />
                     </div>
-                    {/* 진도율 카드 */}
                     <div className="w-full bg-green-50 border border-green-200 rounded-xl p-4 mb-6 cursor-pointer" onClick={() => { setIsProfileModalOpen(false); setIsProgressModalOpen(true); }}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="font-semibold text-gray-800">전체 진도율</div>
@@ -530,7 +503,6 @@ const Dashboard: React.FC = () => {
                         <div className="bg-green-500 h-2 rounded-full" style={{ width: `${progressOverview?.overall_progress ?? 0}%` }}></div>
                       </div>
                     </div>
-                    {/* 계정 설정 버튼 */}
                     <Button className="w-full bg-cyan-500 text-white py-3 rounded-lg hover:bg-cyan-600 transition-colors font-semibold text-base" onClick={() => { setIsProfileModalOpen(false); navigate('/profile'); }}>
                       계정 설정
                     </Button>
@@ -545,15 +517,13 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 인사 메시지: 중앙 검색창 바로 위 */}
+      {/* 인사 */}
       <div className="w-full max-w-2xl mx-auto mt-8 mb-2 text-center">
-        <h1 className="text-3xl font-bold text-indigo-600 mb-2 font-ttlaundry">
-          {getGreeting()}, {nickname}님! 👋
-        </h1>
+        <h1 className="text-3xl font-bold text-indigo-600 mb-2 font-ttlaundry animate__animated animate__bounce animate__repeat-2">{getGreeting()}, {nickname}님! 👋</h1>
         <p className="text-gray-600 mb-2 font-ttlaundry">오늘도 수어 학습을 시작해볼까요?</p>
       </div>
 
-      {/* 중앙 검색 바 (Home.tsx 스타일) */}
+      {/* 검색 */}
       <div className="w-full max-w-2xl mx-auto mt-8 mb-8 relative transition-all duration-200 rounded-xl bg-white">
         <div className="relative">
           {connectingChapter ? (
@@ -592,10 +562,11 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
-      {/* 모든 챕터 카드 그리드 (백엔드 /chapters API 사용) */}
+
+      {/* 챕터 카드 그리드 */}
       <div className="flex flex-col gap-16 relative w-full max-w-7xl mx-auto px-8 pb-24">
         {zigzagRows.map((row, rowIdx) => {
-          const isOddRow = rowIdx % 2 === 0; // 0,2,...이 왼→오
+          const isOddRow = rowIdx % 2 === 0; // 0,2,... 왼→오
           const isLastRow = rowIdx === zigzagRows.length - 1;
           return (
             <div
@@ -611,45 +582,39 @@ const Dashboard: React.FC = () => {
 
                 const isRightColInOddRow = isOddRow && idx === row.length - 1;
                 const isLeftColInEvenRow = !isOddRow && idx === 0;
-                const showVerticalLine =
-                  (isRightColInOddRow || isLeftColInEvenRow) &&
-                  (!isLastRow || row.length === 1);
+                const showVerticalLine = (isRightColInOddRow || isLeftColInEvenRow) && (!isLastRow || row.length === 1);
 
-                // 역방향 + 2개일 때 오른쪽 정렬(col-start-2, col-start-3)
                 let colStart = '';
                 if (row.length === 2 && rowIdx % 2 !== 0) {
                   colStart = idx === 0 ? 'col-start-2' : 'col-start-3';
                 }
 
-                // 가로 연결선: 왼→오 줄은 오른쪽, 오→왼 줄은 왼쪽
-                const showHorizontalLine = isOddRow
-                  ? idx < row.length - 1 // 오른쪽에 선
-                  : idx > 0;             // 왼쪽에 선
+                const showHorizontalLine = isOddRow ? idx < row.length - 1 : idx > 0;
 
                 const shouldAnimate = chaptersToAnimate.includes(chapter.id);
-                const animationDelay = `${500 + chaptersToAnimate.indexOf(chapter.id) * 200}ms`; // 0.5초 기본 지연
+// Option 1: 현재 학습 가능한 챕터만 테두리 pulse
+const isCurrentChapter = chapter.id === currentHighlightId;
+const animationIndex = chaptersToAnimate.indexOf(chapter.id);
+const animationDelay = `${500 + (animationIndex >= 0 ? animationIndex : 0) * 200}ms`;
+const isFirstAnimated = chaptersToAnimate[0] === chapter.id;
 
-                const isFirstAnimated = chaptersToAnimate[0] === chapter.id;
-
-                return (
-                  <div
-                    ref={isFirstAnimated ? firstAnimatedChapterRef : null}
-                    key={chapter.id}
-                    className={`relative group ${colStart} ${
-                      status === 'locked'
-                        ? 'opacity-60 cursor-not-allowed'
-                        : 'cursor-pointer'
-                    } ${shouldAnimate ? 'animate__animated animate__zoomIn animate__slow' : ''}`}
-                    style={{ 
-                      minHeight: 340, 
-                      height: 340, 
-                      maxWidth: 480, 
-                      width: '100%', 
-                      animationDelay: shouldAnimate ? animationDelay : '0s',
-                      transitionDelay: shouldAnimate ? animationDelay : '0s' 
-                    }}
-                  >
-                    {/* 👉 수직 연결선 */}
+return (
+  <div
+    ref={isFirstAnimated ? firstAnimatedChapterRef : null}
+    key={chapter.id}
+    className={`relative group ${colStart} ${
+      status === 'locked' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+    } ${shouldAnimate ? 'animate__animated animate__zoomIn' : ''}`}
+    style={{
+      minHeight: 340,
+      height: 340,
+      maxWidth: 480,
+      width: '100%',
+      animationDelay: shouldAnimate ? animationDelay : '0s',
+      transitionDelay: shouldAnimate ? animationDelay : '0s'
+    }}
+  >
+                    {/* 수직 연결선 */}
                     {showVerticalLine && (
                       <div
                         className="absolute left-1/2 bottom-[-64px] w-[5px] h-[64px] rounded-full bg-cyan-200 overflow-hidden z-0"
@@ -661,7 +626,7 @@ const Dashboard: React.FC = () => {
                         }}
                       ></div>
                     )}
-                    {/* 👉 가로 연결선 (지그재그 방향에 따라 위치 다름) */}
+                    {/* 가로 연결선 */}
                     {showHorizontalLine && (
                       <div
                         className={`absolute top-1/2 ${isOddRow ? '-right-16' : '-left-16'} w-16 h-[5px] rounded-full bg-cyan-200 overflow-hidden`}
@@ -675,23 +640,22 @@ const Dashboard: React.FC = () => {
                     )}
                     {/* Chapter Card */}
                     <div
-                      className={`h-full p-8 rounded-3xl shadow-lg border-2 transition-all duration-500 relative
-                        ${status === 'completed'
+                      className={`h-full p-8 rounded-3xl shadow-lg border-2 transition-all duration-500 relative ${
+                        status === 'completed'
                           ? 'bg-white border-emerald-200 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:rotate-1'
                           : status === 'locked'
                             ? 'bg-gray-50 border-gray-100'
                             : 'bg-white border-cyan-100 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:bg-cyan-50 group-hover:border-cyan-300'
-                      }
-                      `}
+                      } ${isCurrentChapter && status !== 'locked' ? 'border-cyan-400 pulse-border-3' : ''}`}
                       onClick={async () => {
                         if (status === 'locked' || loadingChapterId) return;
-                        if(chapter.title == "자음"){
+                        if (chapter.title == '자음') {
                           await API.post(`/progress/chapters/${chapter.id}`);
                           return navigate(`/test/letter/consonant/study`);
-                        }else if(chapter.title == "모음"){
+                        } else if (chapter.title == '모음') {
                           await API.post(`/progress/chapters/${chapter.id}`);
                           return navigate(`/test/letter/vowel/study`);
-                        }else if(chapter.title == "단어 해체"){
+                        } else if (chapter.title == '단어 해체') {
                           await API.post(`/progress/chapters/${chapter.id}`);
                           return navigate(`/test/letter/word/study`);
                         }
@@ -701,13 +665,11 @@ const Dashboard: React.FC = () => {
                         setLoadingChapterId(null);
                       }}
                     >
-                      {/* 오버레이: 로딩 중일 때 카드 전체 흐리게 + 중앙 스피너 */}
                       {loadingChapterId === chapter.id && (
                         <div className="absolute inset-0 bg-gray-200/60 flex items-center justify-center z-20 rounded-3xl">
                           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500"></div>
                         </div>
                       )}
-                      {/* Status Badge */}
                       <div className="flex justify-between items-start mb-6">
                         <div
                           className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
@@ -727,37 +689,26 @@ const Dashboard: React.FC = () => {
                           )}
                         </div>
                         {status === 'current' && (
-                          <span className="bg-cyan-100 text-cyan-600 px-3 py-1 rounded-full text-sm font-medium">
-                            진행 중
-                          </span>
+                          <span className="bg-cyan-100 text-cyan-600 px-3 py-1 rounded-full text-sm font-medium">진행 중</span>
                         )}
                       </div>
-                      {/* Content */}
                       <div>
-                        <h3
-                          className={`text-xl font-bold mb-6 ${
-                            status === 'locked' ? 'text-gray-400' : 'text-gray-800'
-                          }`}
-                        >
-                          {chapter.title}
-                        </h3>
-                        {/* Example Signs Grid */}
+                        <h3 className={`text-xl font-bold mb-6 ${status === 'locked' ? 'text-gray-400' : 'text-gray-800'}`}>{chapter.title}</h3>
                         <div className="grid grid-cols-2 gap-4">
                           {(chapter.lessons || []).slice(0, 4).map((lesson, lidx) => (
                             <div
                               key={lidx}
-                              className={`rounded-xl p-4 flex items-center justify-center transition-colors duration-300
-                            ${status === 'completed'
-                              ? 'bg-emerald-50 group-hover:bg-emerald-100'
-                              : 'bg-cyan-50 group-hover:bg-cyan-100'}
-                          `}
+                              className={`rounded-xl p-4 flex items-center justify-center transition-colors duration-300 ${
+                                status === 'completed'
+                                  ? 'bg-emerald-50 group-hover:bg-emerald-100'
+                                  : 'bg-cyan-50 group-hover:bg-cyan-100'
+                              }`}
                             >
                               <span className={`text-sm font-medium ${status === 'completed' ? 'text-emerald-700' : 'text-cyan-700'}`}>{lesson.word}</span>
                             </div>
                           ))}
                         </div>
                       </div>
-                      {/* Locked 안내 멘트: 카드 하단 고정 */}
                       {status === 'locked' && (
                         <div className="absolute bottom-6 left-0 w-full flex justify-center">
                           <div className="flex items-center space-x-2 text-gray-400">
@@ -766,6 +717,7 @@ const Dashboard: React.FC = () => {
                           </div>
                         </div>
                       )}
+                      
                     </div>
                   </div>
                 );
@@ -774,9 +726,9 @@ const Dashboard: React.FC = () => {
           );
         })}
       </div>
-      {/* 검색창 밑은 모두 제거, 빈 공간만 남김 */}
+
       <div className="h-40"></div>
-      {/* 마이페이지 관련 모달들 */}
+
       <BadgeModal isOpen={isBadgeModalOpen} onClose={() => setIsBadgeModalOpen(false)} />
       <StreakModal isOpen={isStreakModalOpen} onClose={() => setIsStreakModalOpen(false)} />
       <ProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} />
@@ -784,4 +736,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;
