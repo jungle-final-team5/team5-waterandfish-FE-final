@@ -57,7 +57,7 @@ const App = () => (
                 <Route path="/learn/chapter/:chapterId/guide/:modeNum" element={<ProtectedRoute><SessionBegin /></ProtectedRoute>} />
                 <Route path="/learn/chapter/:chapterId" element={<ProtectedRoute><LearnSession /></ProtectedRoute>} />
                 <Route path="/quiz/chapter/:chapterId" element={<ProtectedRoute><QuizSession /></ProtectedRoute>} />
-                <Route path="/test/letter/:setType/:qOrs" element={<ProtectedRoute><LetterSession /></ProtectedRoute>} />
+                <Route path="/test/letter/:setType/:qOrs/:chapterId" element={<ProtectedRoute><LetterSession /></ProtectedRoute>} />
                 <Route path="/complete/chapter/:chapterId/:modeNum" element={<ProtectedRoute><SessionComplete /></ProtectedRoute>} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
