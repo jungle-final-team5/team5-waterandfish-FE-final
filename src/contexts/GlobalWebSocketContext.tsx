@@ -35,7 +35,7 @@ interface GlobalWebSocketProviderProps {
 export const GlobalWebSocketProvider: React.FC<GlobalWebSocketProviderProps> = ({
   children,
   defaultPosition = 'top-right',
-  autoShowOnConnection = true,
+  autoShowOnConnection = false,
   showToggleButton = true
 }) => {
   const [isStatusVisible, setIsStatusVisible] = useState(false);
@@ -48,12 +48,12 @@ export const GlobalWebSocketProvider: React.FC<GlobalWebSocketProviderProps> = (
   // WebSocket 연결 시 자동으로 상태 표시
   useEffect(() => {
     if (isAutoShow && connectionStatus === 'connected' && wsList.length > 0) {
-      setIsStatusVisible(true);
+      setIsStatusVisible(false);
     }
   }, [connectionStatus, wsList.length, isAutoShow]);
 
   // 컨텍스트 메서드들
-  const showStatus = () => setIsStatusVisible(true);
+  const showStatus = () => setIsStatusVisible(false);
   const hideStatus = () => setIsStatusVisible(false);
   const toggleStatus = () => setIsStatusVisible(!isStatusVisible);
 
