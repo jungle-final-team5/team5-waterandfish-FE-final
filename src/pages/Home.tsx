@@ -172,7 +172,7 @@ const Dashboard: React.FC = () => {
   // ref 추가
   const currentChapterRef = useRef<HTMLDivElement>(null);
 
-  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz, handleStartSingleLearn } = useChapterHandler();
+  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz, handleStartSingleLearn, handleStartLearnV2 } = useChapterHandler();
 
   // 시간대별 인사 메시지
   const getGreeting = () => {
@@ -423,8 +423,8 @@ const Dashboard: React.FC = () => {
   }
 
   // ✅ Option 1: 현재 학습 가능한 챕터(= chapterCurrentIndex) 강조
-// (removed_latestUnlocked)Id 제거, 대신 currentHighlightId 사용
-const currentHighlightId = allChapters[chapterCurrentIndex]?.id;
+  // (removed_latestUnlocked)Id 제거, 대신 currentHighlightId 사용
+  const currentHighlightId = allChapters[chapterCurrentIndex]?.id;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white font-ttlaundry">
@@ -590,28 +590,27 @@ const currentHighlightId = allChapters[chapterCurrentIndex]?.id;
                 const showHorizontalLine = isOddRow ? idx < row.length - 1 : idx > 0;
 
                 const shouldAnimate = chaptersToAnimate.includes(chapter.id);
-// Option 1: 현재 학습 가능한 챕터만 테두리 pulse
-const isCurrentChapter = chapter.id === currentHighlightId;
-const animationIndex = chaptersToAnimate.indexOf(chapter.id);
-const animationDelay = `${500 + (animationIndex >= 0 ? animationIndex : 0) * 200}ms`;
-                const isFirstAnimated = chaptersToAnimate[0] === chapter.id;
+                // Option 1: 현재 학습 가능한 챕터만 테두리 pulse
+                const isCurrentChapter = chapter.id === currentHighlightId;
+                const animationIndex = chaptersToAnimate.indexOf(chapter.id);
+                const animationDelay = `${500 + (animationIndex >= 0 ? animationIndex : 0) * 200}ms`;
+                                const isFirstAnimated = chaptersToAnimate[0] === chapter.id;
 
-return (
-  <div
-    ref={isCurrentChapter ? currentChapterRef : isFirstAnimated ? firstAnimatedChapterRef : null}
-    key={chapter.id}
-    className={`relative group ${colStart} ${
-      status === 'locked' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
-    } ${shouldAnimate ? 'animate__animated animate__zoomIn' : ''}`}
-    style={{
-      minHeight: 340,
-      height: 340,
-      maxWidth: 480,
-      width: '100%',
-      animationDelay: shouldAnimate ? animationDelay : '0s',
-      transitionDelay: shouldAnimate ? animationDelay : '0s'
-    }}
-  >
+                return (
+                  <div
+                    ref={isCurrentChapter ? currentChapterRef : isFirstAnimated ? firstAnimatedChapterRef : null}
+                    key={chapter.id}
+                    className={`relative group ${colStart} ${status === 'locked' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                      } ${shouldAnimate ? 'animate__animated animate__zoomIn' : ''}`}
+                    style={{
+                      minHeight: 340,
+                      height: 340,
+                      maxWidth: 480,
+                      width: '100%',
+                      animationDelay: shouldAnimate ? animationDelay : '0s',
+                      transitionDelay: shouldAnimate ? animationDelay : '0s'
+                    }}
+                  >
                     {/* 수직 연결선 */}
                     {showVerticalLine && (
                       <div
@@ -638,13 +637,12 @@ return (
                     )}
                     {/* Chapter Card */}
                     <div
-                      className={`h-full p-8 rounded-3xl shadow-lg border-2 transition-all duration-500 relative ${
-                        status === 'completed'
-                          ? 'bg-white border-emerald-200 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:rotate-1'
-                          : status === 'locked'
-                            ? 'bg-gray-50 border-gray-100'
-                            : 'bg-white border-cyan-100 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:bg-cyan-50 group-hover:border-cyan-300'
-                      } ${isCurrentChapter && status !== 'locked' ? 'border-cyan-400 pulse-border-3' : ''}`}
+                      className={`h-full p-8 rounded-3xl shadow-lg border-2 transition-all duration-500 relative ${status === 'completed'
+                        ? 'bg-white border-emerald-200 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:rotate-1'
+                        : status === 'locked'
+                          ? 'bg-gray-50 border-gray-100'
+                          : 'bg-white border-cyan-100 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:bg-cyan-50 group-hover:border-cyan-300'
+                        } ${isCurrentChapter && status !== 'locked' ? 'border-cyan-400 pulse-border-3' : ''}`}
                       onClick={async () => {
                         if (status === 'locked' || loadingChapterId) return;
                         if (chapter.title == '자음') {
@@ -659,7 +657,8 @@ return (
                         }
                         setLoadingChapterId(chapter.id);
                         const lessonIds = (chapter.lessons || []).map((lesson) => lesson.id);
-                        await handleStartLearn(chapter.id, lessonIds, '/home');
+                        // await handleStartLearn(chapter.id, lessonIds, '/home');
+                        await handleStartLearnV2(chapter.id, '/home');
                         setLoadingChapterId(null);
                       }}
                     >
@@ -670,13 +669,12 @@ return (
                       )}
                       <div className="flex justify-between items-start mb-6">
                         <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                            status === 'completed'
-                              ? 'bg-emerald-400 text-white'
-                              : status === 'current'
-                                ? 'bg-white border-4 border-cyan-400 text-cyan-500'
-                                : 'bg-gray-300 text-gray-500'
-                          }`}
+                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${status === 'completed'
+                            ? 'bg-emerald-400 text-white'
+                            : status === 'current'
+                              ? 'bg-white border-4 border-cyan-400 text-cyan-500'
+                              : 'bg-gray-300 text-gray-500'
+                            }`}
                         >
                           {status === 'completed' ? (
                             <CheckCircleOutlined className="text-xl" />
@@ -691,7 +689,14 @@ return (
                         )}
                       </div>
                       <div>
-                        <h3 className={`text-xl font-bold mb-6 ${status === 'locked' ? 'text-gray-400' : 'text-gray-800'}`}>{chapter.title}</h3>
+                        <h3 className={`text-xl font-bold mb-6 ${status === 'locked' ? 'text-gray-400' : 'text-gray-800'}`}>
+                          {chapter.course_type === 1 ? (
+                            <span className="text-3xl text-gray-500 mr-2">📖</span>
+                          ) : (
+                            <span className="text-3xl text-gray-500 mr-2">🧐</span>
+                          )}
+                          {chapter.title}
+                        </h3>
                         <div className="grid grid-cols-2 gap-4">
                           {(chapter.lessons || []).slice(0, 4).map((lesson, lidx) => (
                             <div
@@ -702,7 +707,9 @@ return (
                                   : 'bg-cyan-50 group-hover:bg-cyan-100'
                               }`}
                             >
-                              <span className={`text-sm font-medium ${status === 'completed' ? 'text-emerald-700' : 'text-cyan-700'}`}>{lesson.word}</span>
+                              <span className={`text-sm font-medium ${status === 'completed' ? 'text-emerald-700' : 'text-cyan-700'}`}>
+                                {lesson.word}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -715,7 +722,6 @@ return (
                           </div>
                         </div>
                       )}
-                      
                     </div>
                   </div>
                 );

@@ -36,51 +36,12 @@ const SessionComplete = () => {
     toast({ title: "완벽해요", description: "단 한 개도 틀린게 없네요! 대단합니다!!" });
   }
 
-
-
   useEffect(() => {
     if (modeNum === 2 && wrongCount === 0) {
       handlePerfectQuiz();
     }
   }, [modeNum, wrongCount]);
 
-  const handleStartQuiz = async (chapterId: string, lessonIds: string[]) => {
-    const modeNum = 2;
-    const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
-    try {
-      setConnectingChapter(chapterId);
-
-      // WebSocket 연결 시도
-      try {
-        const response = await API.get<{ success: boolean; data: { ws_urls: string[], lesson_mapper: { [key: string]: string } } }>(`/ml/deploy/${chapterId}`);
-        if (response.data.success && response.data.data.ws_urls) {
-          console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
-          await connectToWebSockets(response.data.data.ws_urls);
-
-          // 학습 진도 이벤트 기록
-          await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'review' });
-
-          // lesson_mapper를 URL state로 전달
-          navigate(path, {
-            state: {
-              lesson_mapper: response.data.data.lesson_mapper
-            }
-          });
-          return; // 성공적으로 처리되었으므로 함수 종료
-        }
-      } catch (wsError) {
-        console.warn('WebSocket 연결 실패:', wsError);
-        // WebSocket 연결 실패해도 페이지 이동은 계속 진행
-      }
-
-      setConnectingChapter(null);
-      navigate(path);
-    } catch (err) {
-      console.error('학습 시작 실패:', err);
-      setConnectingChapter(null);
-      navigate(path); // 실패해도 이동
-    }
-  };
 
   // 번호 배정이 이상하면 home으로 보내버린다
   useEffect(() => {
