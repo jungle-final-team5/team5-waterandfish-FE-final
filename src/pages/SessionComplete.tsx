@@ -29,23 +29,16 @@ const SessionComplete = () => {
   const { totalQuestions, correctCount, wrongCount } = location.state || {};
   const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
   const lessonIds = lessons.map((lesson: Lesson) => lesson.id); // 수정: lessons 상태에서 lessonIds 추출
-  const { handleStartReview } = useChapterHandler();
 
   const handlePerfectQuiz = async () => {
     toast({ title: "완벽해요", description: "단 한 개도 틀린게 없네요! 대단합니다!!" });
   }
 
-  const handlePerfectReview = async () => {
-    toast({ title: "깔끔한 리뷰!", description: "이 챕터의 모든 수어를 마스터했습니다!!" });
-  }
+
 
   useEffect(() => {
     if (modeNum === 2 && wrongCount === 0) {
       handlePerfectQuiz();
-    }
-
-    if (modeNum === 3) {
-      handlePerfectReview();
     }
   }, [modeNum, wrongCount]);
 
@@ -253,44 +246,6 @@ const SessionComplete = () => {
           )}
           {/* 버튼 영역 */}
           <div className="flex flex-col gap-4 mt-8 w-full">
-            {modeNum === 1 &&
-              <Button
-                onClick={() => {
-                  handleStartQuiz(chapterId, lessonIds)
-                }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
-                {connectingChapter === chapterId ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    연결 중...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-5 w-5 mr-2" />
-                    퀴즈풀기
-                  </>
-                )}
-              </Button>}
-            {modeNum === 2 && (
-              <Button
-                onClick={() => {
-                  handleStartReview(chapterId, lessonIds)
-                }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
-                {connectingChapter === chapterId ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    연결 중...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-5 w-5 mr-2" />
-                    복습하기
-                  </>
-                )}
-              </Button>
-            )}
-
             <Button onClick={() => navigate('/home')}
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
               홈으로 돌아가기

@@ -128,11 +128,6 @@ const Categories = () => {
               <BookOutlined className="text-2xl mb-1" />
               <span className="text-xs font-medium">학습</span>
             </div>
-            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition-colors"
-              onClick={() => navigate('/review')}>
-              <ReloadOutlined className="text-2xl mb-1" />
-              <span className="text-xs font-medium">복습</span>
-            </div>
           </div>
         </div>
       </div>
