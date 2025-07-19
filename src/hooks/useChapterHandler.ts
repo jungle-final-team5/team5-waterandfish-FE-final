@@ -16,9 +16,7 @@ export const useChapterHandler = () => {
         console.log('[handleStartLearnV2] chapterId', chapterId);
         const chapter_data = await API.get<{ success: boolean; data: Chapter }>(`/chapters/v2/${chapterId}`);
         const chapter = chapter_data.data.data;
-        const modeNum = chapter.course_type;
-        const lessonIds = chapter.lesson_ids;
-        const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
+        const path = `/learn/chapter/${chapterId}/guide/${chapter.course_type}`;
         try {
             setConnectingChapter(chapterId);
             await API.post(`/progress/chapters/${chapterId}`);
@@ -33,6 +31,7 @@ export const useChapterHandler = () => {
                     navigate(path, {
                         state: {
                             lesson_mapper: response.data.data.lesson_mapper,
+                            lesson_ids: chapter.lesson_ids,
                             ...(origin ? { origin } : {})
                         }
                     });

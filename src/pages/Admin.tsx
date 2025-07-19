@@ -234,17 +234,23 @@ const Admin = () => {
           } else {
             // 챕터 생성
             const lessonIds = chapterData.signs.map(sign => sign.id);
-            const chapterRes = await API.post<Chapter>("/chapters/v2", {
-              categoryid: selectedCategoryId,
-              title: chapterData["title"],
-              type: chapterData["type"],
-              course_type: chapterData.course_type === 'learn' ? 1 : 2,
-              lesson_ids: lessonIds
-            });
-            const chapterId = (chapterRes.data as any).id;// ✅ ObjectId 문자열
-            addChapter(selectedCategoryId, chapterData, chapterId);
-            const courseTypeValue = chapterData.course_type === 'learn' ? 1 : 2;
-            await API.post(`/chapters/${chapterId}/lessons/connect`, { "chapter": chapterId, "lesson": lessonIds, "course_type": courseTypeValue });
+            try {
+              const chapterRes = await API.post<Chapter>("/chapters/v2", {
+                categoryid: selectedCategoryId,
+                title: chapterData["title"],
+                type: chapterData["type"],
+                course_type: chapterData.course_type === 'learn' ? 1 : 2,
+                lesson_ids: lessonIds
+              });
+              alert('챕터 생성 완료');
+            } catch (error) {
+              alert('챕터 생성 실패');
+            }
+            // v1 코드
+            // const chapterId = (chapterRes.data as any).id;// ✅ ObjectId 문자열
+            // addChapter(selectedCategoryId, chapterData, chapterId);
+            // const courseTypeValue = chapterData.course_type === 'learn' ? 1 : 2;
+            // await API.post(`/chapters/${chapterId}/lessons/connect`, { "chapter": chapterId, "lesson": lessonIds, "course_type": courseTypeValue });
             handleChapterModalClose();
           }
         }}

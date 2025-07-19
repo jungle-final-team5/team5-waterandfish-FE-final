@@ -343,7 +343,7 @@ const Dashboard: React.FC = () => {
   const [loadingChapterId, setLoadingChapterId] = useState<string | null>(null);
 
   useEffect(() => {
-    API.get<{ success: boolean; data: { chapters: any[] }; message: string }>('/chapters')
+    API.get<{ success: boolean; data: { chapters: any[] }; message: string }>('/chapters/v2')
       .then(res => {
         setAllChapters(res.data.data.chapters || []);
       })
