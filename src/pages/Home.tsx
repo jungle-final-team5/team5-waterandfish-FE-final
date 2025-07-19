@@ -653,7 +653,7 @@ const Dashboard: React.FC = () => {
                           return navigate(`/test/letter/vowel/study`);
                         } else if (chapter.title == '단어 해체') {
                           await API.post(`/progress/chapters/${chapter.id}`);
-                          return navigate(`/test/letter/word/study`);
+                          return navigate(`/test/letter/word/quiz`);
                         }
                         setLoadingChapterId(chapter.id);
                         const lessonIds = (chapter.lessons || []).map((lesson) => lesson.id);
