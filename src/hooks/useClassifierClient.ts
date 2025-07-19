@@ -227,7 +227,7 @@ export const useClassifierClient = () => {
                                     percent = probabilities[target] * 100;
                                 }
                                 else {
-                                    setDisplayConfidence("DEBUG: wrong connection%");
+                                    setDisplayConfidence("[연결 대기 중]");
                                 }
                                 if (percent != null) {
                                     setDisplayConfidence(`${percent.toFixed(1)}%`);

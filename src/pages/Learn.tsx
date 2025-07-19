@@ -205,6 +205,7 @@ const Learn = () => {
 
   useEffect(() => {
     setIsRecording(true);
+    
     return () => {
       disconnectWebSockets();
       // 버퍼링 타이머 정리

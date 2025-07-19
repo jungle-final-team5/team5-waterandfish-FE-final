@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useBadgeSystem } from "@/hooks/useBadgeSystem";
 import confetti from 'canvas-confetti';
 import { useChapterHandler } from "@/hooks/useChapterHandler";
+import Lottie from 'lottie-react';
+import successAnimation from '../../public/Success.json';
 
 const SessionComplete = () => {
   // modeNum 1. 기본 학습
@@ -29,63 +31,17 @@ const SessionComplete = () => {
   const { totalQuestions, correctCount, wrongCount } = location.state || {};
   const [connectingChapter, setConnectingChapter] = useState<string | null>(null);
   const lessonIds = lessons.map((lesson: Lesson) => lesson.id); // 수정: lessons 상태에서 lessonIds 추출
-  const { handleStartReview } = useChapterHandler();
 
   const handlePerfectQuiz = async () => {
     toast({ title: "완벽해요", description: "단 한 개도 틀린게 없네요! 대단합니다!!" });
-  }
-
-  const handlePerfectReview = async () => {
-    toast({ title: "깔끔한 리뷰!", description: "이 챕터의 모든 수어를 마스터했습니다!!" });
   }
 
   useEffect(() => {
     if (modeNum === 2 && wrongCount === 0) {
       handlePerfectQuiz();
     }
-
-    if (modeNum === 3) {
-      handlePerfectReview();
-    }
   }, [modeNum, wrongCount]);
 
-  const handleStartQuiz = async (chapterId: string, lessonIds: string[]) => {
-    const modeNum = 2;
-    const path = `/learn/chapter/${chapterId}/guide/${modeNum}`;
-    try {
-      setConnectingChapter(chapterId);
-
-      // WebSocket 연결 시도
-      try {
-        const response = await API.get<{ success: boolean; data: { ws_urls: string[], lesson_mapper: { [key: string]: string } } }>(`/ml/deploy/${chapterId}`);
-        if (response.data.success && response.data.data.ws_urls) {
-          console.log('[Chapters]response.data.data.lesson_mapper', response.data.data.lesson_mapper);
-          await connectToWebSockets(response.data.data.ws_urls);
-
-          // 학습 진도 이벤트 기록
-          await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'review' });
-
-          // lesson_mapper를 URL state로 전달
-          navigate(path, {
-            state: {
-              lesson_mapper: response.data.data.lesson_mapper
-            }
-          });
-          return; // 성공적으로 처리되었으므로 함수 종료
-        }
-      } catch (wsError) {
-        console.warn('WebSocket 연결 실패:', wsError);
-        // WebSocket 연결 실패해도 페이지 이동은 계속 진행
-      }
-
-      setConnectingChapter(null);
-      navigate(path);
-    } catch (err) {
-      console.error('학습 시작 실패:', err);
-      setConnectingChapter(null);
-      navigate(path); // 실패해도 이동
-    }
-  };
 
   // 번호 배정이 이상하면 home으로 보내버린다
   useEffect(() => {
@@ -224,7 +180,9 @@ const SessionComplete = () => {
             {modeNum === 2 && <span className="text-6xl animate-bounce">🏆</span>}
             {modeNum === 3 && <span className="text-6xl animate-bounce">🫶🏻</span>}
           </div>
-          <CheckCircle className="h-20 w-20 text-green-500 mx-auto mb-4 drop-shadow-lg animate-fade-in" />
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            <Lottie animationData={successAnimation} loop={false} style={{ width: 90, height: 90 }} />
+          </div>
           {/* 완료 메시지 */}
           {modeNum === 1 && <>
             <h2 className="text-3xl font-extrabold text-purple-700 mb-2 animate-fade-in">학습 완료!</h2>
@@ -253,45 +211,7 @@ const SessionComplete = () => {
           )}
           {/* 버튼 영역 */}
           <div className="flex flex-col gap-4 mt-8 w-full">
-            {modeNum === 1 &&
-              <Button
-                onClick={() => {
-                  handleStartQuiz(chapterId, lessonIds)
-                }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
-                {connectingChapter === chapterId ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    연결 중...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-5 w-5 mr-2" />
-                    퀴즈풀기
-                  </>
-                )}
-              </Button>}
-            {modeNum === 2 && (
-              <Button
-                onClick={() => {
-                  handleStartReview(chapterId, lessonIds)
-                }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
-                {connectingChapter === chapterId ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    연결 중...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-5 w-5 mr-2" />
-                    복습하기
-                  </>
-                )}
-              </Button>
-            )}
-
-            <Button onClick={() => navigate('/home')}
+            <Button onClick={() => navigate('/home', { state: { completed: true } })}
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
               홈으로 돌아가기
             </Button>

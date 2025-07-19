@@ -1,33 +1,33 @@
+import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster as Sonner } from "@/components/ui/sonner";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { GlobalWebSocketProvider } from "@/contexts/GlobalWebSocketContext";
+
 import Home from "./pages/Home";
 import Learn from "./pages/Learn";
-import Categories from "./pages/Categories";
-import Chapters from "./pages/Chapters";
-import LearnSession from "./pages/LearnSession";
-import Review from "./pages/Review";
-import SearchPage from "./pages/Search";
-import Profile from "./pages/Profile";
+import Index from "./pages/Index";
+import Login from "./pages/Login";
 import Admin from "./pages/Admin";
+import Signup from "./pages/Signup";
+import Profile from "./pages/Profile";
+import Chapters from "./pages/Chapters";
+import SearchPage from "./pages/Search";
 import NotFound from "./pages/NotFound";
-import AuthCallback from "./pages/AuthCallback";
-import { AuthProvider } from "@/hooks/useAuth";
-import LetterSession from "./pages/LetterSession";
-import LearningGuide from "./pages/LearningGuide";
+import Categories from "./pages/Categories";
 import QuizSession from "./pages/QuizSession";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { GlobalWebSocketProvider } from "@/contexts/GlobalWebSocketContext";
-import MediaPipeSession from "./pages/MediaPipeSession";
 import SessionBegin from "./pages/SessionBegin";
+import LearnSession from "./pages/LearnSession";
+import AuthCallback from "./pages/AuthCallback";
+import LetterSession from "./pages/LetterSession";
 import SessionComplete from "./pages/SessionComplete";
-import LetterReview from "./pages/LetterReview";
+import MediaPipeSession from "./pages/MediaPipeSession";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import LocationContext from "@/contexts/LocationContext";
+
+
 
 
 const queryClient = new QueryClient();
@@ -57,10 +57,8 @@ const App = () => (
                 <Route path="/learn/chapter/:chapterId/guide/:modeNum" element={<ProtectedRoute><SessionBegin /></ProtectedRoute>} />
                 <Route path="/learn/chapter/:chapterId" element={<ProtectedRoute><LearnSession /></ProtectedRoute>} />
                 <Route path="/quiz/chapter/:chapterId" element={<ProtectedRoute><QuizSession /></ProtectedRoute>} />
-                <Route path="/test/letter/:setType/:qOrs" element={<ProtectedRoute><LetterSession /></ProtectedRoute>} />
-                <Route path="/review/letter/:setType/" element={<ProtectedRoute><LetterReview /></ProtectedRoute>}/>
+                <Route path="/test/letter/:setType/:qOrs/:chapterId" element={<ProtectedRoute><LetterSession /></ProtectedRoute>} />
                 <Route path="/complete/chapter/:chapterId/:modeNum" element={<ProtectedRoute><SessionComplete /></ProtectedRoute>} />
-                <Route path="/review" element={<ProtectedRoute><Review /></ProtectedRoute>} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/Admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />

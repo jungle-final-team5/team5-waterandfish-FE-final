@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import API from '@/components/AxiosInstance';
 import { useAuth } from '@/hooks/useAuth';
 import { useChapterHandler } from '@/hooks/useChapterHandler';
+import LoadingFish from "../components/LoadingFish";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,9 +127,9 @@ const Index = () => {
           <div className="max-w-2xl mx-auto mb-8 relative">
             <div className="relative">
               {/* 로딩 중이면 스피너, 아니면 돋보기 아이콘 */}
-              {(isEnteringLesson || connectingChapter) ? (
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-indigo-600"></div>
+              {(isEnteringLesson || connectingChapter || loading) ? (
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  <LoadingFish />
                 </div>
               ) : (
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
