@@ -18,9 +18,10 @@ export interface Chapter {
   type: 'word' | 'sentence';
   lessons: Lesson[];
   categoryId: string;
-  course_type: 'learn' | 'quiz';
+  course_type: number;
   order_index: number;
   description: string;
+  lesson_ids: string[];
 }
 
 export interface Category {

@@ -180,7 +180,7 @@ const Dashboard: React.FC = () => {
   const progress = Math.max(0, Math.min(percent, 100));
   const offset = circumference - (progress / 100) * circumference;
 
-  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz, handleStartSingleLearn } = useChapterHandler();
+  const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz, handleStartSingleLearn, handleStartLearnV2 } = useChapterHandler();
 
   
 
@@ -634,7 +634,8 @@ const Dashboard: React.FC = () => {
                         }
                         setLoadingChapterId(chapter.id);
                         const lessonIds = (chapter.lessons || []).map((lesson) => lesson.id);
-                        await handleStartLearn(chapter.id, lessonIds, '/home');
+                        // await handleStartLearn(chapter.id, lessonIds, '/home');
+                        await handleStartLearnV2(chapter.id, '/home');
                         setLoadingChapterId(null);
                       }}
                     >
@@ -676,6 +677,11 @@ const Dashboard: React.FC = () => {
                             status === 'locked' ? 'text-gray-400' : 'text-gray-800'
                           }`}
                         >
+                          {chapter.course_type === 1 ? (
+                            <span className="text-3xl text-gray-500 mr-2">📖</span>
+                          ) : (
+                            <span className="text-3xl text-gray-500 mr-2">🧐</span>
+                          )}
                           {chapter.title}
                         </h3>
                         {/* Example Signs Grid */}
