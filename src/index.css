@@ -4,6 +4,17 @@
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 
+@font-face {
+  font-family: 'TTLaundryGothicB';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2403-2@1.0/TTLaundryGothicB.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+}
+
+html, body {
+  font-family: 'TTLaundryGothicB', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

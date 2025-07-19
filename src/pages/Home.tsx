@@ -429,9 +429,18 @@ const Dashboard: React.FC = () => {
 const currentHighlightId = allChapters[chapterCurrentIndex]?.id;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white font-ttlaundry">
       <style>
         {`
+          @font-face {
+            font-family: 'TTLaundryGothicB';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2403-2@1.0/TTLaundryGothicB.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+          }
+          .font-ttlaundry {
+            font-family: 'TTLaundryGothicB', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+          }
           .!rounded-button { border-radius: 12px !important; }
           body { min-height: 1024px; }
           @keyframes flow { 0% { background-position: 200% 50%; } 100% { background-position: 0% 50%; } }
@@ -510,8 +519,8 @@ const currentHighlightId = allChapters[chapterCurrentIndex]?.id;
 
       {/* 인사 */}
       <div className="w-full max-w-2xl mx-auto mt-8 mb-2 text-center">
-        <h1 className="text-3xl font-bold text-indigo-600 mb-2 animate__animated animate__bounce animate__repeat-2">{getGreeting()}, {nickname}님! 👋</h1>
-        <p className="text-gray-600 mb-2">오늘도 수어 학습을 시작해볼까요?</p>
+        <h1 className="text-3xl font-bold text-indigo-600 mb-2 font-ttlaundry animate__animated animate__bounce animate__repeat-2">{getGreeting()}, {nickname}님! 👋</h1>
+        <p className="text-gray-600 mb-2 font-ttlaundry">오늘도 수어 학습을 시작해볼까요?</p>
       </div>
 
       {/* 검색 */}
