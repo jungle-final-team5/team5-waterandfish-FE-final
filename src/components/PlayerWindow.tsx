@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Camera, CameraOff, Settings, Monitor, AlertCircle } from 'lucide-react';
 import { Lesson } from '@/types/learning';
+import LoadingFish from "./LoadingFish";
 
 interface PlayerWindowProps { // 비디오 입력 컴포넌트 속성 인터페이스
   onStreamReady?: (stream: MediaStream) => void;
@@ -30,7 +31,7 @@ const PlayerWindow: React.FC<PlayerWindowProps> = ({ // 비디오 입력 컴포�
 }) => {
   // 팁 내용 배열 추가
 const tips = [
-  "좌측의 예시를 전부 따라한 뒤, 손을 카메라가 못보도록 가려주면 채점 판정에 도움이 되어요.",
+  "좌측의 예시를 전부 따라한 뒤, 손을 카메라가 못보도록 가려주면 채점 판정에 도움이 돼요.",
   "영상이 재생되고 있는 부분을 눌러서 재생 속도를 전환 할 수 있어요.",
   "손 모양이 정확하게 보이도록 카메라 앞에서 적절한 거리를 유지해주세요.",
   "아래 단어를 옆으로 넘겨서 지금 진행하고 있는 단어를 넘어갈 수 있어요.",
@@ -220,10 +221,7 @@ const changeTipDuration = (seconds: number) => {
           
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 rounded-lg">
-              <div className="text-center text-white">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-2"></div>
-                <p className="text-lg font-medium">카메라 연결 중...</p>
-              </div>
+              <LoadingFish />
             </div>
           )}
         </div>

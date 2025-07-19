@@ -14,7 +14,7 @@ import {
   CheckCircleOutlined,
   LockOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge as CustomBadge } from '@/components/ui/badge';
 import { Input as CustomInput } from '@/components/ui/input';
@@ -60,6 +60,9 @@ import { useChapterHandler } from '@/hooks/useChapterHandler';
 import { Dialog } from '@/components/ui/dialog';
 import axios from 'axios';
 import 'animate.css';
+import LoadingFish from "../components/LoadingFish";
+import Lottie from 'lottie-react';
+import successAnimation from '../../public/Success.json';
 
 const { Search: AntdSearch } = Input;
 
@@ -121,6 +124,7 @@ const getIconForBadge = (iconName: string | undefined) => {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { checkBadges } = useBadgeSystem();
   const { currentStreak, studyDates, loading: streakLoading } = useStreakData();
@@ -165,24 +169,8 @@ const Dashboard: React.FC = () => {
   // Home 컴포넌트 내부
   const prevChapterStatus = useRef<{ [id: string]: string }>({});
 
-  useEffect(() => {
-    if (isProfileModalOpen && profileBtnRef.current) {
-      const btnRect = profileBtnRef.current.getBoundingClientRect();
-      const modalRect = document.getElementById('profile-modal')?.getBoundingClientRect();
-      if (modalRect) {
-        setTailLeft(btnRect.left + btnRect.width / 2 - modalRect.left - 20); // 20은 꼬리 width/2
-      }
-    }
-  }, [isProfileModalOpen]);
-
-  // 전체 진도율 원형 그래프 변수 선언 (JSX 바깥에서)
-  const percent = progressOverview?.overall_progress || 0;
-  const radius = 56;
-  const stroke = 8;
-  const normalizedRadius = radius - stroke / 2;
-  const circumference = 2 * Math.PI * normalizedRadius;
-  const progress = Math.max(0, Math.min(percent, 100));
-  const offset = circumference - (progress / 100) * circumference;
+  // ref 추가
+  const currentChapterRef = useRef<HTMLDivElement>(null);
 
   const { connectingChapter, setConnectingChapter, handleStartLearn, handleStartQuiz, handleStartSingleLearn } = useChapterHandler();
 
@@ -417,8 +405,18 @@ const Dashboard: React.FC = () => {
     }
   }, [chaptersToAnimate]);
 
+  // 챕터 카드 렌더링 이후에 useEffect 추가
+  useEffect(() => {
+    if (currentChapterRef.current) {
+      currentChapterRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [allChapters, chapterCurrentIndex]);
+
   if (userLoading) {
-    return <div className="w-full flex justify-center items-center min-h-[400px]">Loading...</div>;
+    return <div className="w-full flex justify-center items-center min-h-[400px]"><LoadingFish /></div>;
   }
   if (!user) {
     return <div className="w-full flex justify-center items-center min-h-[400px] text-red-500">유저 정보를 불러올 수 없습니다.</div>;
@@ -596,11 +594,11 @@ const currentHighlightId = allChapters[chapterCurrentIndex]?.id;
 const isCurrentChapter = chapter.id === currentHighlightId;
 const animationIndex = chaptersToAnimate.indexOf(chapter.id);
 const animationDelay = `${500 + (animationIndex >= 0 ? animationIndex : 0) * 200}ms`;
-const isFirstAnimated = chaptersToAnimate[0] === chapter.id;
+                const isFirstAnimated = chaptersToAnimate[0] === chapter.id;
 
 return (
   <div
-    ref={isFirstAnimated ? firstAnimatedChapterRef : null}
+    ref={isCurrentChapter ? currentChapterRef : isFirstAnimated ? firstAnimatedChapterRef : null}
     key={chapter.id}
     className={`relative group ${colStart} ${
       status === 'locked' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
@@ -700,7 +698,7 @@ return (
                               key={lidx}
                               className={`rounded-xl p-4 flex items-center justify-center transition-colors duration-300 ${
                                 status === 'completed'
-                                  ? 'bg-emerald-50 group-hover:bg-emerald-100'
+                              ? 'bg-emerald-50 group-hover:bg-emerald-100'
                                   : 'bg-cyan-50 group-hover:bg-cyan-100'
                               }`}
                             >
@@ -736,4 +734,4 @@ return (
   );
 };
 
-export default Dashboard;
+export default Dashboard; 
