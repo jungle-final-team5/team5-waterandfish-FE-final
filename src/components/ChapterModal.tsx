@@ -14,7 +14,7 @@ interface ChapterModalProps {
   onClose: () => void;
   chapter?: Chapter | null;
   categoryId: string;
-  onSave: (data: { title: string; type: 'word' | 'sentence'; signs: Lesson[] }, options?: { onlyLessonAdd?: boolean }) => void;
+  onSave: (data: { title: string; type: 'word' | 'sentence'; signs: Lesson[]; course_type: 'learn' | 'quiz' }, options?: { onlyLessonAdd?: boolean }) => void;
 }
 interface LessonResponse {
   lessons: Lesson[];
@@ -32,7 +32,8 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
     defaultValues: {
       title: chapter?.title || '',
       description: chapter?.description || '',
-      type: chapter?.type || 'word' as 'word' | 'sentence'
+      type: chapter?.type || 'word' as 'word' | 'sentence',
+      course_type: 'learn' as 'learn' | 'quiz'
     }
   });
   useEffect(() => {
@@ -57,20 +58,22 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
       form.reset({
         title: chapter.title,
         description: chapter.description || '',
-        type: chapter.type
+        type: chapter.type,
+        course_type: 'learn'
       });
       setSelectedSigns(chapter.lessons);
     } else {
       form.reset({
         title: '',
         description: '',
-        type: 'word'
+        type: 'word',
+        course_type: 'learn'
       });
       setSelectedSigns([]);
     }
   }, [chapter, form]);
 
-  const handleSubmit = (data: { title: string; description: string; type: 'word' | 'sentence' }) => {
+  const handleSubmit = (data: { title: string; description: string; type: 'word' | 'sentence'; course_type: 'learn' | 'quiz' }) => {
     onSave({
       ...data,
       signs: selectedSigns
@@ -132,6 +135,28 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
                     <SelectContent>
                       <SelectItem value="word">단어</SelectItem>
                       <SelectItem value="sentence">문장</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="course_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>코스 타입</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="코스 타입을 선택하세요" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="learn">학습 (Learn)</SelectItem>
+                      <SelectItem value="quiz">퀴즈 (Quiz)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

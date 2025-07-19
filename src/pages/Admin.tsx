@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 const Admin = () => {
   const navigate = useNavigate();
   const { categories, addCategory, updateCategory, deleteCategory, addChapter, updateChapter, deleteChapter } = useLearningData();
-  
+
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [chapterModalOpen, setChapterModalOpen] = useState(false);
   const [videoUploadModalOpen, setVideoUploadModalOpen] = useState(false);
@@ -26,7 +26,7 @@ const Admin = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [lessonManageModalOpen, setLessonManageModalOpen] = useState(false);
   const { toast } = useToast();
-  
+
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
     setCategoryModalOpen(true);
@@ -151,11 +151,10 @@ const Admin = () => {
                         <TableRow key={chapter.id}>
                           <TableCell className="font-medium">{chapter.title}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              chapter.type === 'word' 
-                                ? 'bg-green-100 text-green-800' 
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${chapter.type === 'word'
+                                ? 'bg-green-100 text-green-800'
                                 : 'bg-blue-100 text-blue-800'
-                            }`}>
+                              }`}>
                               {chapter.type === 'word' ? '단어' : '문장'}
                             </span>
                           </TableCell>
@@ -206,8 +205,8 @@ const Admin = () => {
             updateCategory(editingCategory.id, categoryData);
           } else {
             const res = await API.post("/category", categoryData);
-            const createdCategory = res.data as { id: string }; 
-            addCategory(categoryData,createdCategory.id);
+            const createdCategory = res.data as { id: string };
+            addCategory(categoryData, createdCategory.id);
             // API.post("/learning/category",categoryData);
           }
           handleCategoryModalClose();
@@ -227,25 +226,27 @@ const Admin = () => {
           if (editingChapter) {
             updateChapter(editingChapter.categoryId, editingChapter.chapter.id, chapterData);
             const lessonIds = chapterData.signs.map(sign => sign.id);
-            await API.post(`/chapters/${editingChapter.chapter.id}/lessons/connect`,{"chapter":editingChapter.chapter.id, "lesson": lessonIds});
+            const courseTypeValue = chapterData.course_type === 'learn' ? 1 : 2;
+            await API.post(`/chapters/${editingChapter.chapter.id}/lessons/connect`, { "chapter": editingChapter.chapter.id, "lesson": lessonIds, "course_type": courseTypeValue });
             if (!options?.onlyLessonAdd) {
               handleChapterModalClose();
             }
           } else {
             const chapterRes = await API.post<Chapter>("/chapters", {
-                categoryid: selectedCategoryId,
-                title: chapterData["title"],
-                type: chapterData["type"]
-              });
+              categoryid: selectedCategoryId,
+              title: chapterData["title"],
+              type: chapterData["type"]
+            });
             const chapterId = (chapterRes.data as any).id;// ✅ ObjectId 문자열
-            addChapter(selectedCategoryId, chapterData,chapterId);
+            addChapter(selectedCategoryId, chapterData, chapterId);
             const lessonIds = chapterData.signs.map(sign => sign.id);
-            await API.post(`/chapters/${chapterId}/lessons/connect`,{"chapter":chapterId, "lesson": lessonIds});
+            const courseTypeValue = chapterData.course_type === 'learn' ? 1 : 2;
+            await API.post(`/chapters/${chapterId}/lessons/connect`, { "chapter": chapterId, "lesson": lessonIds, "course_type": courseTypeValue });
             handleChapterModalClose();
           }
         }}
       />
-            <VideoUploadModal
+      <VideoUploadModal
         open={videoUploadModalOpen}
         onClose={() => setVideoUploadModalOpen(false)}
         onSave={(videoData) => {
