@@ -227,7 +227,7 @@ const Admin = () => {
             updateChapter(editingChapter.categoryId, editingChapter.chapter.id, chapterData);
             const lessonIds = chapterData.signs.map(sign => sign.id);
             const courseTypeValue = chapterData.course_type === 'learn' ? 1 : 2;
-            await API.post(`/chapters/${editingChapter.chapter.id}/lessons/connect`, { "chapter": editingChapter.chapter.id, "lesson": lessonIds, "course_type": courseTypeValue });
+            await API.post(`/chapters/${editingChapter.chapter.id}`, { "chapter": editingChapter.chapter.id, "lesson": lessonIds, "course_type": courseTypeValue });
             if (!options?.onlyLessonAdd) {
               handleChapterModalClose();
             }
@@ -241,7 +241,7 @@ const Admin = () => {
             addChapter(selectedCategoryId, chapterData, chapterId);
             const lessonIds = chapterData.signs.map(sign => sign.id);
             const courseTypeValue = chapterData.course_type === 'learn' ? 1 : 2;
-            await API.post(`/chapters/${chapterId}/lessons/connect`, { "chapter": chapterId, "lesson": lessonIds, "course_type": courseTypeValue });
+            await API.post(`/chapters/${chapterId}`, { "chapter": chapterId, "lesson": lessonIds, "course_type": courseTypeValue });
             handleChapterModalClose();
           }
         }}
