@@ -148,16 +148,15 @@ const SessionBegin = () => {
                   {modeNum === 1 && (
                     <>
                       <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0 text-xl"></span>
                         동작을 천천히 따라하며 자연스럽게 익혀보세요
                       </li>
                       <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0 text-xl"></span>
                         어려운 동작은 반복 연습을 통해 익숙해질 수 있습니다
                       </li>
                       <li className="flex items-start">
-                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-
+                        <span className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-3 flex-shrink-0 text-xl"></span>
                         수어 동작은 무릎에서 시작하고 무릎에서 끝나야 합니다.
                       </li>
                     </>
