@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import LoadingFish from "./LoadingFish";
 
 interface WebcamPreviewProps {
   width?: number;
@@ -61,10 +62,7 @@ const WebcamPreview: React.FC<WebcamPreviewProps> = ({
       />
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 rounded-lg">
-          <div className="text-center text-white">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-2"></div>
-            <p className="text-lg font-medium">카메라 연결 중...</p>
-          </div>
+          <LoadingFish />
         </div>
       )}
       {error && (
