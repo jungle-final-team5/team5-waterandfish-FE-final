@@ -13,8 +13,7 @@ import ExampleAnim from '@/components/ExampleAnim';
 import FeedbackDisplay from '@/components/FeedbackDisplay';
 import API from "@/components/AxiosInstance";
 import { useLearningData } from '@/hooks/useLearningData';
-import { Lesson as LessonBase } from '@/types/learning';
-import VideoInput from '@/components/VideoInput';
+import PlayerWindow from '@/components/PlayerWindow';
 import { useMediaPipeHolistic } from '@/hooks/useMediaPipeHolistic';
 import FeedbackModalForLearn from '@/components/FeedbackModalForLearn';
 import LearningDisplay from '@/components/LearningDisplay';
@@ -24,12 +23,8 @@ import StreamingControls from '@/components/StreamingControls';
 import SessionHeader from '@/components/SessionHeader';
 import { update } from 'lodash';
 import { useClassifierClient } from '@/hooks/useClassifierClient';
-
-interface Lesson extends LessonBase {
-  sign_text?: string;
-  media_url?: string;
-  chapter_id?: string;
-}
+import { useAnimation } from '@/hooks/useAnimation';
+import { Lesson } from '@/types/learning';
 
 const CORRECT_TARGET = 3;
 
@@ -38,8 +33,6 @@ const Learn = () => {
   const [isRecording, setIsRecording] = useState(true); // 진입 시 바로 분류 시작
   const [videoProgress, setVideoProgress] = useState<number>(0);
   const exampleVideoRef = useRef<HTMLVideoElement>(null);
-  const [videoSrc, setVideoSrc] = useState<string | null>(null);
-  const [isSlowMotion, setIsSlowMotion] = useState(false);
   const [transmissionCount, setTransmissionCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -47,14 +40,12 @@ const Learn = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { lessonId } = useParams();
+  // 애니메이션 훅 사용
+  const { videoSrc, isSlowMotion, togglePlaybackSpeed } = useAnimation({
+    lessonId: lessonId ?? '',
+  });
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [lessonLoading, setLessonLoading] = useState(true);
-  const [lessonError, setLessonError] = useState<string | null>(null);
-  const [wsUrl, setWsUrl] = useState<string | null>(null);
-  const [wsUrlLoading, setWsUrlLoading] = useState(false);
-  const [currentSignIndex, setCurrentSignIndex] = useState(0);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [landmarksBuffer, setLandmarksBuffer] = useState<LandmarksData[]>([]);
   const bufferIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const BUFFER_DURATION = 1000; // 1초
@@ -87,6 +78,8 @@ const Learn = () => {
     wsList,
     sendMessage,
   } = useClassifierClient();
+
+
 
   //===============================================
   // 랜드마크 버퍼링 및 전송 처리
@@ -238,82 +231,6 @@ const Learn = () => {
 
   //===============================================
 
-  // lesson fetch (chapter_id 포함)
-  useEffect(() => {
-    if (!lessonId) return;
-    setLessonLoading(true);
-    setLessonError(null);
-    API.get<{ success: boolean; data: Lesson; message?: string }>(`/lessons/${lessonId}`)
-      .then(res => {
-        const data = res.data.data;
-        // word가 없고 sign_text가 있으면 word에 sign_text를 할당
-        if (!data.word && data.sign_text) {
-          data.word = data.sign_text;
-        }
-        setLesson(data);
-        setCurrentSign(data); // useClassifierClient의 currentSign 설정
-        setCurrentSignId(data.id); // useClassifierClient의 currentSignId 설정
-        setLessonLoading(false);
-      })
-      .catch((err) => {
-        setLesson(null);
-        setLessonLoading(false);
-        setLessonError('존재하지 않는 수어입니다');
-      });
-  }, [lessonId, setCurrentSign, setCurrentSignId]);
-
-  // 단일 레슨용 wsUrl fetch
-  useEffect(() => {
-    if (!lessonId) return;
-    setWsUrlLoading(true);
-    API.get<{ success: boolean; data: { ws_url: string }; message?: string }>(`/ml/public/deploy/lesson/${lessonId}`)
-      .then(res => {
-        setWsUrl(res.data.data.ws_url);
-        // Home.tsx처럼 lesson_mapper에 직접 할당
-        setLessonMapper(prev => ({
-          ...prev,
-          [lessonId]: res.data.data.ws_url
-        }));
-        setWsUrlLoading(false);
-      })
-      .catch(() => {
-        setWsUrl(null);
-        setWsUrlLoading(false);
-      });
-  }, [lessonId]);
-
-  // 애니메이션 데이터 로딩
-  useEffect(() => {
-    const loadAnim = async () => {
-      try {
-        const response = await API.get(`/anim/${lessonId}`, {
-          responseType: 'blob'
-        });
-        const videoBlob = new Blob([response.data as BlobPart], { type: 'video/webm' });
-        const videoUrl = URL.createObjectURL(videoBlob);
-
-        if (videoSrc) {
-          URL.revokeObjectURL(videoSrc);
-        }
-        setVideoSrc(videoUrl);
-      } catch (error) {
-        console.error('애니메이션 불러오는데 실패했습니다 : ', error);
-      }
-    };
-    if (lessonId) loadAnim();
-  }, [lessonId]);
-
-  const togglePlaybackSpeed = () => {
-    setIsSlowMotion(prev => !prev);
-  };
-
-  useEffect(() => {
-    const videoElement = document.querySelector('video[src]') as HTMLVideoElement;
-    if (videoElement) {
-      videoElement.playbackRate = isSlowMotion ? 0.5 : 1.0;
-    }
-  }, [isSlowMotion, videoSrc]);
-
   // 정답/오답 피드백이 닫힐 때 처리 (모든 상태 전이 담당)
   const handleFeedbackComplete = useCallback(() => {
     setCorrectCount(prev => {
@@ -368,13 +285,20 @@ const Learn = () => {
     navigate('/home');
   };
 
-  // 데이터 로딩/에러 처리
-  if (lessonLoading || wsUrlLoading) {
-    return <div className="text-center mt-10">수어 정보를 불러오는 중입니다...</div>;
-  }
-  if (lessonError) {
-    return <div className="text-center mt-10 text-red-500">{lessonError}</div>;
-  }
+  useEffect(() => {
+    const fetchLesson = async () => {
+      const response = await API.get<{ success: boolean; data: Lesson }>(`/lessons/${lessonId}`);
+      if (response.data.success) {
+        setLesson(response.data.data);
+      }
+    };
+    setCurrentSignId(lessonId ?? '');
+    fetchLesson();
+  }, [lessonId]);
+
+  useEffect(() => {
+    setCurrentSign(lesson);
+  }, [currentSignId, lesson]);
 
   // 완료 화면
   if (isCompleted) {
@@ -403,7 +327,7 @@ const Learn = () => {
           <div className="max-w-2xl mx-auto text-center py-12">
             <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-800 mb-2">학습 완료!</h2>
-            <p className="text-gray-600 mb-6">'{lesson?.sign_text ?? lessonId}' 수어를 성공적으로 3회 따라했습니다.</p>
+            <p className="text-gray-600 mb-6">'{lesson?.word ?? lessonId}' 수어를 성공적으로 3회 따라했습니다.</p>
             <div className="flex justify-center space-x-4">
               <Button onClick={handleRetry} variant="outline">
                 다시하기
@@ -431,44 +355,43 @@ const Learn = () => {
       />
 
       <div className="grid lg:grid-cols-2 gap-12">
-              <div className="mt-12 p-3 bg-gray-100 rounded-md">
-        <div className="space-y-4">
-        {videoSrc ? (
-          <div className="relative">
-            <video
-              ref={exampleVideoRef}
-              src={videoSrc}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-auto"
-              onTimeUpdate={updateVideoProgress}
-            />
-
-            {/* 프로그레스 바 */}
-            <div className="w-full h-1 bg-gray-200 mt-2">
-              <div
-                className="h-full bg-blue-500 transition-all duration-300"
-                style={{ width: `${videoProgress}%` }}
-              ></div>
-            </div>
+        <div className="mt-12 p-3 bg-gray-100 rounded-md">
+          <div className="space-y-4 relative">
+            {videoSrc ? (
+              <>
+                <video
+                  src={videoSrc}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-contain"
+                  onClick={togglePlaybackSpeed}
+                />
+                {isSlowMotion && (
+                  <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded-md text-xl font-medium">
+                    0.5x
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center justify-center bg-gray-200 rounded h-full w-full">
+                <p>비디오 로딩 중...</p>
+              </div>
+            )}
           </div>
-          
-
-        ) : (
-          <div className="flex items-center justify-center h-64 bg-gray-200 rounded">
-            <p>비디오 로딩 중...</p>
+          <div className="text-center mt-4">
+            <h2 className="text-3xl font-bold text-blue-600">
+              {lesson?.word}
+            </h2>
           </div>
-        )}
         </div>
-        </div>
-        
+
         <div className="mt-4 p-3 bg-gray-100 rounded-md">
 
           {/* 비디오 입력 영역 */}
           <div className="space-y-4">
-            <VideoInput
+            <PlayerWindow
               width={640}
               height={480}
               autoStart={true}
@@ -477,15 +400,6 @@ const Learn = () => {
               currentSign={lesson}
               currentResult={displayConfidence}
             />
-            <Button
-              onClick={togglePlaybackSpeed}
-              variant="outline"
-              size="sm"
-              className="flex items-center"
-            >
-              {isSlowMotion ? '일반 속도' : '천천히 보기'}
-              {isSlowMotion ? '(1x)' : '(0.5x)'}
-            </Button>
 
             {/* 숨겨진 비디오 요소들 */}
             <div className="hidden">

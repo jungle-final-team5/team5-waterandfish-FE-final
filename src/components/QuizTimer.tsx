@@ -1,7 +1,4 @@
-
-import { useState, useEffect } from 'react';
-import { Progress } from '@/components/ui/progress';
-import { Timer } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 
 interface QuizTimerProps {
   duration: number; // 초 단위
@@ -11,8 +8,9 @@ interface QuizTimerProps {
   onTimeChange?: (timeLeft: number) => void; // 시간 변경 콜백 추가
 }
 
-const QuizTimer = ({ duration, onTimeUp, isActive, onReset, onTimeChange }: QuizTimerProps) => {
+const QuizTimer = ({ duration, onTimeUp, isActive, onTimeChange }: QuizTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(duration);
+  const timeref = useRef<HTMLDivElement | null>(null);
 
   // isActive가 true가 될 때만 타이머 초기화 및 시작
   useEffect(() => {
@@ -21,7 +19,6 @@ const QuizTimer = ({ duration, onTimeUp, isActive, onReset, onTimeChange }: Quiz
       setTimeLeft(duration);
     } else {
       console.log('⏸️ 타이머 정지');
-      // 타이머가 정지될 때는 timeLeft를 리셋하지 않음
     }
   }, [isActive, duration]);
 
@@ -49,33 +46,40 @@ const QuizTimer = ({ duration, onTimeUp, isActive, onReset, onTimeChange }: Quiz
       console.log('🛑 타이머 정리');
       clearInterval(interval);
     };
-  }, [isActive, onTimeUp]);
+  }, [isActive, onTimeUp, onTimeChange]);
 
-  const progress = ((duration - timeLeft) / duration) * 100;
   const isWarning = timeLeft <= 5;
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-2">
-          <Timer className={`h-4 w-4 ${isWarning ? 'text-red-600' : 'text-blue-600'}`} />
-          <span className="text-sm font-medium text-gray-700">남은 시간</span>
+    <div className="flex flex-col items-center mb-4">
+      <div className="relative flex items-center justify-center w-64 h-64">
+        <svg className="absolute top-0 left-0 w-64 h-64" viewBox="0 0 256 256">
+          <circle
+            cx="128"
+            cy="128"
+            r="112"
+            fill="none"
+            stroke="#e5e7eb"
+            strokeWidth="24"
+          />
+          {timeLeft > 0 && (
+            <circle
+              cx="128"
+              cy="128"
+              r="112"
+              fill="none"
+              stroke={isWarning ? "#ef4444" : "#2563eb"} // 5초 이하일 때 빨간색
+              strokeWidth="24"
+              strokeDasharray={2 * Math.PI * 112}
+              strokeDashoffset={2 * Math.PI * 112 * (1 - (timeLeft - 1) / (duration - 1))}
+              style={{ transition: 'stroke-dashoffset 1s linear' }}
+            />
+          )}
+        </svg>
+        <div ref={timeref} className="absolute text-[7rem] font-extrabold text-gray-800 text-center select-none w-full h-full flex items-center justify-center">
+          {timeLeft}
         </div>
-        <span className={`text-lg font-bold ${isWarning ? 'text-red-600' : 'text-blue-600'}`}>
-          {timeLeft}초
-        </span>
       </div>
-      <Progress 
-        value={progress} 
-        className={`h-3 ${isWarning ? 'bg-red-100' : 'bg-blue-100'}`}
-      />
-      {isWarning && (
-        <div className="text-center mt-2">
-          <span className="text-red-600 text-sm font-medium animate-pulse">
-            시간이 얼마 남지 않았습니다!
-          </span>
-        </div>
-      )}
     </div>
   );
 };

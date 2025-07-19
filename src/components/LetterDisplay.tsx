@@ -20,15 +20,14 @@ const imagePath = useMemo(() => {
   }, [isVowel, progress]);
 
   return (
-    <div className={styles['learning-display']} style={{ '--progress': progress } as React.CSSProperties}>
       <div className="flex justify-center items-center min-h-[390px] w-full">
         <img 
           src={imagePath} 
           alt={`${isVowel ? '모음' : '자음'} 학습 이미지 ${Math.floor(progress)}`} 
-          className="max-w-[395px] h-[395px] rounded-lg shadow-md"
+          className="max-w-[500px] h-[500px] rounded-lg shadow-md"
         />
       </div>
-    </div>
+
   );
 };
 export default LetterDisplay; 

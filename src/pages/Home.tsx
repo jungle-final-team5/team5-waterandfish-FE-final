@@ -1,5 +1,3 @@
-// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Progress, Badge, Avatar, Tooltip, Input } from 'antd';
 import {
@@ -12,7 +10,9 @@ import {
   BookOutlined,
   HomeOutlined,
   QuestionCircleOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  CheckCircleOutlined,
+  LockOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,6 @@ import BadgeModal from '@/components/BadgeModal';
 import StreakModal from '@/components/StreakModal';
 import ProgressModal from '@/components/ProgressModal';
 import { useToast } from '@/hooks/use-toast';
-import { useLearningData } from '@/hooks/useLearningData';
 import { useBadgeSystem } from '@/hooks/useBadgeSystem';
 import { useStreakData } from '@/hooks/useStreakData';
 import API from '@/components/AxiosInstance';
@@ -58,17 +57,12 @@ import useWebsocket, { connectToWebSockets, disconnectWebSockets } from '@/hooks
 import { Lesson } from '@/types/learning';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import { useChapterHandler } from '@/hooks/useChapterHandler';
+import { Dialog } from '@/components/ui/dialog';
+import axios from 'axios';
+import 'animate.css';
 
 
 const { Search: AntdSearch } = Input;
-
-// 최근 학습 정보 타입
-interface RecentLearning {
-  category: string | null;
-  chapter: string | null;
-  chapterId?: string; // 추가
-  modeNum?: string; // 추가
-}
 
 // 진도율 정보 타입
 interface ProgressOverview {
@@ -85,18 +79,6 @@ interface ProgressOverview {
     total_lessons: number;
     status: string;
   }>;
-}
-
-interface RecommendedSign {
-  id: string;
-  word: string;
-  description?: string;
-  videoUrl?: string;
-  category?: {
-    id: string;
-    name: string;
-  };
-  [key: string]: unknown;
 }
 
 // 뱃지 타입 정의
@@ -145,7 +127,6 @@ const Dashboard: React.FC = () => {
   const { currentStreak, studyDates, loading: streakLoading } = useStreakData();
   const { isOnboardingActive, currentStep, nextStep, previousStep, skipOnboarding, completeOnboarding } = useOnboarding();
   const { logout } = useAuth();
-  const { categories, findChapterById } = useLearningData();
   const { showStatus } = useGlobalWebSocketStatus();
   // 검색 기능
   const [searchQuery, setSearchQuery] = useState('');
@@ -160,8 +141,6 @@ const Dashboard: React.FC = () => {
   const [progressLoading, setProgressLoading] = useState(true);
 
   // 추천 수어 상태
-  const [recommendedSign, setRecommendedSign] = useState<RecommendedSign | null>(null);
-  const [recentLearning, setRecentLearning] = useState<RecentLearning | null>(null);
   const [nickname, setNickname] = useState<string>('학습자');
   const [badgeCount, setBadgeCount] = useState<number>(0);
   const [badgeList, setBadgeList] = useState<BadgeData[]>([]);
@@ -174,6 +153,29 @@ const Dashboard: React.FC = () => {
   // 온보딩 및 손 선호도 모달 상태
   const [isHandPreferenceModalOpen, setIsHandPreferenceModalOpen] = useState(false);
   const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
+
+  // 마이페이지 모달 상태
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [chaptersToAnimate, setChaptersToAnimate] = useState<string[]>([]);
+
+  // 마이페이지 버튼 ref와 꼬리 위치 상태
+  const profileBtnRef = useRef<HTMLButtonElement>(null);
+  const [tailLeft, setTailLeft] = useState<number | null>(null);
+  const firstAnimatedChapterRef = useRef<HTMLDivElement>(null);
+
+  // Home 컴포넌트 내부
+  const prevChapterStatus = useRef<{ [id: string]: string }>({});
+
+  useEffect(() => {
+    if (isProfileModalOpen && profileBtnRef.current) {
+      const btnRect = profileBtnRef.current.getBoundingClientRect();
+      const modalRect = document.getElementById('profile-modal')?.getBoundingClientRect();
+      if (modalRect) {
+        // 꼬리의 left를 버튼의 중앙에 맞춤 (모달 기준)
+        setTailLeft(btnRect.left + btnRect.width / 2 - modalRect.left - 20); // 20은 꼬리 width/2
+      }
+    }
+  }, [isProfileModalOpen]);
 
   // 전체 진도율 원형 그래프 변수 선언 (JSX 바깥에서)
   const percent = progressOverview?.overall_progress || 0;
@@ -215,33 +217,8 @@ const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const fetchDailySign = async () => {
-      try {
-        const res = await API.get<{ success: boolean; data: { lessons: RecommendedSign[] } }>('/recommendations/daily-sign');
-        if (res.data.success && res.data.data && Array.isArray(res.data.data.lessons) && res.data.data.lessons.length > 0) {
-          setRecommendedSign(res.data.data.lessons[0]);
-        } else {
-          setRecommendedSign(null);
-        }
-      } catch (e) {
-        setRecommendedSign(null);
-      }
-    };
-    fetchDailySign();
-  }, []);
-
-  useEffect(() => {
     const storedNickname = localStorage.getItem('nickname');
     if (storedNickname) setNickname(storedNickname);
-    API.get<{ success: boolean; data: RecentLearning; message: string }>('/progress/recent-learning')
-      .then(res => {
-        if (res.data.data && res.data.data.category && res.data.data.chapter) {
-          setRecentLearning(res.data.data);
-        } else {
-          setRecentLearning(null);
-        }
-      })
-      .catch(() => setRecentLearning(null));
   }, []);
 
   useEffect(() => {
@@ -301,7 +278,7 @@ const Dashboard: React.FC = () => {
       }
       setSearchLoading(true);
       try {
-        const { data } = await API.get<{ data: { lessons: RecommendedSign[] } }>('/search', { params: { q: query, k: 5 } });
+        const { data } = await API.get<{ data: { lessons: any[] } }>('/search', { params: { q: query, k: 5 } });
         if (Array.isArray(data?.data?.lessons)) {
           setSearchResults(data.data.lessons.map((item) => item.word));
           setSearchLessonIds(data.data.lessons.map((item) => item.id));
@@ -342,32 +319,7 @@ const Dashboard: React.FC = () => {
   const handleCardClick = async (cardType: string) => {
     switch (cardType) {
       case 'recent':
-        if (recentLearning) {
-          if(recentLearning.chapter == "자음"){
-            const chapter = await findChapterById(recentLearning.chapterId);
-            const lessonIds = (chapter?.lessons || []).map((lesson: Lesson) => lesson.id);
-            await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'study' });
-            navigate('/test/letter/consonant/study');
-          }else if (recentLearning.chapter == "모음"){
-            const chapter = await findChapterById(recentLearning.chapterId);
-            const lessonIds = (chapter?.lessons || []).map((lesson: Lesson) => lesson.id);
-            await API.post('/progress/lessons/events', { lesson_ids: lessonIds, mode: 'study' });
-            navigate('/test/letter/vowel/study');
-          }else
-          {const modeNum = recentLearning.modeNum;
-          const chapter = await findChapterById(recentLearning.chapterId);
-          const lessonIds = (chapter?.lessons || []).map((lesson: Lesson) => lesson.id);
-          if (modeNum == '1') {
-            handleStartLearn(recentLearning.chapterId, lessonIds, '/home');
-          } else if (recentLearning.modeNum == '2') {
-            handleStartQuiz(recentLearning.chapterId, lessonIds, '/home');
-          }
-          else {
-            alert(`유효하지 않은 최근학습입니다`);
-          }}
-        } else {
-          navigate('/category');
-        }
+        // recentLearning 관련 코드 제거
         break;
       case 'streak':
         setIsStreakModalOpen(true);
@@ -392,8 +344,100 @@ const Dashboard: React.FC = () => {
     navigate('/');
   };
 
+  // 모든 챕터 상태
+  const [allChapters, setAllChapters] = useState<any[]>([]);
+  const [loadingChapterId, setLoadingChapterId] = useState<string | null>(null);
+
+  useEffect(() => {
+    API.get<{ success: boolean; data: { chapters: any[] }; message: string }>('/chapters')
+      .then(res => {
+        setAllChapters(res.data.data.chapters || []);
+      })
+      .catch(() => {
+        setAllChapters([]);
+      });
+  }, []);
+
+  // user 상태를 서버에서 받아옴
+  const [user, setUser] = useState<any>(null);
+  const [userLoading, setUserLoading] = useState(true);
+
+  useEffect(() => {
+    if (allChapters.length === 0) return; // allChapters가 로드될 때까지 기다림
+
+    setUserLoading(true);
+    API.get('/user/me', { withCredentials: true })
+      .then(res => {
+        const user = res.data;
+        setUser(user);
+
+        const lastKnownIndexStr = localStorage.getItem('lastKnownChapterIndex');
+        const lastKnownIndex = lastKnownIndexStr ? parseInt(lastKnownIndexStr, 10) : -1;
+        const currentIndex = user?.chapter_current_index ?? 0;
+
+        if (lastKnownIndex !== -1 && currentIndex > lastKnownIndex) {
+          const newlyUnlockedChapters = allChapters
+            .slice(lastKnownIndex, currentIndex)
+            .map(ch => ch.id);
+          setChaptersToAnimate(newlyUnlockedChapters);
+        }
+
+        localStorage.setItem('lastKnownChapterIndex', currentIndex.toString());
+      })
+      .catch(() => setUser(null))
+      .finally(() => setUserLoading(false));
+  }, [allChapters]);
+
+  const chapterCurrentIndex = user?.chapter_current_index ?? 0;
+
+  // 지그재그(ㄹ자) 배치용: 3개씩 묶고, 짝수줄은 reverse + 각 chapter에 원래 인덱스 저장
+  function zigzagChapters(chapters: any[], rowSize = 3) {
+    const rows = [];
+    for (let i = 0; i < chapters.length; i += rowSize) {
+      const row = chapters.slice(i, i + rowSize);
+      const indexedRow = row.map((chapter, idx) => ({
+        ...chapter,
+        _originalIndex: i + idx,
+      }));
+      // 짝수 번째 줄 (row index가 1, 3, 5...)는 뒤집기
+      if ((i / rowSize) % 2 === 1) {
+        indexedRow.reverse();
+      }
+      rows.push(indexedRow);
+    }
+    return rows;
+  }
+  const zigzagRows = zigzagChapters(allChapters, 3);
+
+  useEffect(() => {
+    const newStatuses: { [id: string]: string } = {};
+    allChapters.forEach(ch => {
+      newStatuses[ch.id] = ch.status;
+    });
+    prevChapterStatus.current = newStatuses;
+  }, [allChapters]);
+
+  useEffect(() => {
+    if (chaptersToAnimate.length > 0 && firstAnimatedChapterRef.current) {
+      setTimeout(() => {
+        firstAnimatedChapterRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }, 500); // 애니메이션 시작과 함께 부드럽게 스크롤
+    }
+  }, [chaptersToAnimate]);
+
+  // user 정보가 없으면 챕터 목록 렌더링 X
+  if (userLoading) {
+    return <div className="w-full flex justify-center items-center min-h-[400px]">Loading...</div>;
+  }
+  if (!user) {
+    return <div className="w-full flex justify-center items-center min-h-[400px] text-red-500">유저 정보를 불러올 수 없습니다.</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <style>
         {`
           .!rounded-button {
@@ -401,6 +445,22 @@ const Dashboard: React.FC = () => {
           }
           body {
             min-height: 1024px;
+          }
+          @keyframes flow {
+            0% {
+              background-position: 200% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
+          }
+          @keyframes flow-reverse {
+            0% {
+              background-position: 0% 50%;
+            }
+            100% {
+              background-position: 200% 50%;
+            }
           }
         `}
       </style>
@@ -423,12 +483,55 @@ const Dashboard: React.FC = () => {
           {/* 프로필/설정 버튼 - 알림(벨) 아이콘 제거 */}
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
             {/* 알림 버튼 제거됨 */}
-            <Button onClick={() => navigate('/profile')} variant="ghost" size="icon">
-              <User className="h-5 w-5 text-gray-600" />
-            </Button>
-            <Button onClick={handleLogout} variant="ghost" size="icon" aria-label="logout">
-              <LogOut className="h-5 w-5 text-gray-600" />
-            </Button>
+            {/* 마이페이지 버튼 아래에 말풍선 모달 (버튼 div 내부에서 조건부 렌더링) */}
+            <div className="flex items-center space-x-4 mt-4 md:mt-0 relative">
+              <Button ref={profileBtnRef} onClick={() => setIsProfileModalOpen((v) => !v)} variant="ghost" size="icon">
+                <User className="h-5 w-5 text-gray-600" />
+              </Button>
+              {isProfileModalOpen && (
+                <div className="absolute left-1/2 transform -translate-x-1/2 top-12 z-50 w-[340px] max-w-xs flex justify-center pointer-events-auto" id="profile-modal">
+                  <div className="relative bg-white rounded-3xl shadow-2xl p-8 w-full flex flex-col items-center" style={{ minWidth: 300 }}>
+                    {/* 말풍선 꼬리 (동적 위치) */}
+                    <div className="absolute -top-6" style={tailLeft !== null ? { left: tailLeft } : { left: '50%', transform: 'translateX(-50%)' }}>
+                      <svg width="40" height="40" viewBox="0 0 40 40"><polygon points="20,0 40,40 0,40" fill="#fff" /></svg>
+                    </div>
+                    {/* 연속학습 카드 */}
+                    <div className="w-full bg-gradient-to-r from-blue-400 to-cyan-400 rounded-xl p-4 text-white mb-4 flex items-center justify-between cursor-pointer" onClick={() => { setIsProfileModalOpen(false); setIsStreakModalOpen(true); }}>
+                      <div>
+                        <div className="font-semibold">연속 학습</div>
+                        <div className="text-sm opacity-90">{currentStreak}일 연속 학습 중!</div>
+                      </div>
+                      <div className="text-2xl">🔥</div>
+                    </div>
+                    {/* 뱃지 카드 */}
+                    <div className="w-full bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 flex items-center justify-between cursor-pointer" onClick={() => { setIsProfileModalOpen(false); setIsBadgeModalOpen(true); }}>
+                      <div>
+                        <div className="font-semibold text-gray-800">획득한 뱃지</div>
+                        <div className="text-sm text-gray-600">총 {badgeCount}개 획득</div>
+                      </div>
+                      <Trophy className="text-2xl text-yellow-500" />
+                    </div>
+                    {/* 진도율 카드 */}
+                    <div className="w-full bg-green-50 border border-green-200 rounded-xl p-4 mb-6 cursor-pointer" onClick={() => { setIsProfileModalOpen(false); setIsProgressModalOpen(true); }}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold text-gray-800">전체 진도율</div>
+                        <span className="text-sm font-medium text-green-600">{progressOverview?.overall_progress ?? 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full" style={{ width: `${progressOverview?.overall_progress ?? 0}%` }}></div>
+                      </div>
+                    </div>
+                    {/* 계정 설정 버튼 */}
+                    <Button className="w-full bg-cyan-500 text-white py-3 rounded-lg hover:bg-cyan-600 transition-colors font-semibold text-base" onClick={() => { setIsProfileModalOpen(false); navigate('/profile'); }}>
+                      계정 설정
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <Button onClick={handleLogout} variant="ghost" size="icon" aria-label="logout">
+                <LogOut className="h-5 w-5 text-gray-600" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -480,290 +583,194 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
+      {/* 모든 챕터 카드 그리드 (백엔드 /chapters API 사용) */}
+      <div className="flex flex-col gap-16 relative w-full max-w-7xl mx-auto px-8 pb-24">
+        {zigzagRows.map((row, rowIdx) => {
+          const isOddRow = rowIdx % 2 === 0; // 0,2,...이 왼→오
+          const isLastRow = rowIdx === zigzagRows.length - 1;
+          return (
+            <div
+              key={rowIdx}
+              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 ${(row.length === 1 || row.length === 2) && rowIdx % 2 !== 0 ? 'justify-end' : ''}`}
+            >
+              {row.map((chapter, idx) => {
+                const globalIdx = chapter._originalIndex;
+                let status;
+                if (globalIdx < chapterCurrentIndex) status = 'completed';
+                else if (globalIdx === chapterCurrentIndex) status = 'current';
+                else status = 'locked';
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                const isRightColInOddRow = isOddRow && idx === row.length - 1;
+                const isLeftColInEvenRow = !isOddRow && idx === 0;
+                const showVerticalLine =
+                  (isRightColInOddRow || isLeftColInEvenRow) &&
+                  (!isLastRow || row.length === 1);
 
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
+                // 역방향 + 2개일 때 오른쪽 정렬(col-start-2, col-start-3)
+                let colStart = '';
+                if (row.length === 2 && rowIdx % 2 !== 0) {
+                  colStart = idx === 0 ? 'col-start-2' : 'col-start-3';
+                }
 
-            {/* 최근 학습 + 오늘의 추천 수어 (나란히 배치) */}
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* 최근 학습 카드 */}
-              <div className="flex-1 bg-indigo-500 rounded-lg p-6 text-white shadow-lg min-h-[240px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-blue-200 cursor-pointer">
-                <div>
-                  <h2 className="text-xl font-bold flex items-center mb-2">
-                    <BookOpen className="mr-2 text-blue-100" />최근 학습
-                  </h2>
-                  {recentLearning && recentLearning.category && recentLearning.chapter ? (
-                    <>
-                      <div className="text-3xl font-semibold mb-1">{recentLearning.category}</div>
-                      <div className="text-lg mb-4">{recentLearning.chapter}</div>
-                    </>
-                  ) : (
-                    <div className="text-base mb-4 text-blue-100">최근 학습 기록이 없습니다.</div>
-                  )}
-                </div>
+                // 가로 연결선: 왼→오 줄은 오른쪽, 오→왼 줄은 왼쪽
+                const showHorizontalLine = isOddRow
+                  ? idx < row.length - 1 // 오른쪽에 선
+                  : idx > 0;             // 왼쪽에 선
 
-                <Button
-                  className="bg-white text-indigo-500 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
-                  onClick={() => {
-                    handleCardClick('recent')
-                  }}
-                >
-                  {connectingChapter === recentLearning?.chapterId ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2 "></div>
-                      연결 중...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      이어서 학습하기
-                    </>
-                  )}
-                </Button>
+                const shouldAnimate = chaptersToAnimate.includes(chapter.id);
+                const animationDelay = `${500 + chaptersToAnimate.indexOf(chapter.id) * 200}ms`; // 0.5초 기본 지연
 
+                const isFirstAnimated = chaptersToAnimate[0] === chapter.id;
 
-              </div>
-
-              {/* 오늘의 추천 수어 카드 */}
-                <div className="flex-1 bg-violet-600 rounded-lg p-6 text-white shadow-lg min-h-[240px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-violet-300 cursor-pointer">
-                  <div>
-                    <h2 className="text-xl font-bold flex items-center mb-2">
-                      <Calendar className="mr-2 text-purple-100" />오늘의 추천 수어
-                    </h2>
-                    <h3 className="text-3xl font-semibold mb-3">{recommendedSign ? recommendedSign.word : '...'}</h3>
-                    <p className="text-purple-100 mb-4 text-lg">{recommendedSign?.description || '수어지교에서 추천하는 수어를 배워보세요'}</p>
-                  </div>
-                  
-                  <Button
-                    className="bg-white text-violet-600 px-6 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap mt-2"
-                    onClick={() => {
-                      if (recommendedSign?.id) {
-                        handleStartSingleLearn(recommendedSign.id);
-                      }
+                return (
+                  <div
+                    ref={isFirstAnimated ? firstAnimatedChapterRef : null}
+                    key={chapter.id}
+                    className={`relative group ${colStart} ${
+                      status === 'locked'
+                        ? 'opacity-60 cursor-not-allowed'
+                        : 'cursor-pointer'
+                    } ${shouldAnimate ? 'animate__animated animate__zoomIn animate__slow' : ''}`}
+                    style={{ 
+                      minHeight: 340, 
+                      height: 340, 
+                      maxWidth: 480, 
+                      width: '100%', 
+                      animationDelay: shouldAnimate ? animationDelay : '0s',
+                      transitionDelay: shouldAnimate ? animationDelay : '0s' 
                     }}
-                    disabled={!recommendedSign?.id}
                   >
-                    {connectingChapter === recommendedSign?.id ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
-                        연결 중...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-4 w-4 mr-2" />
-                        지금 배우기
-                      </>
+                    {/* 👉 수직 연결선 */}
+                    {showVerticalLine && (
+                      <div
+                        className="absolute left-1/2 bottom-[-64px] w-[5px] h-[64px] rounded-full bg-cyan-200 overflow-hidden z-0"
+                        style={{
+                          backgroundImage: 'linear-gradient(180deg, rgba(103,232,249,0.4), rgba(103,232,249,0.8))',
+                          backgroundSize: '100% 200%',
+                          animation: 'flow 4s linear infinite',
+                          boxShadow: '0 0 6px rgba(103,232,249,0.4)',
+                        }}
+                      ></div>
                     )}
-                  </Button>
-                </div>
-
-
-            </div>
-
-            {/* 맞춤 추천 학습 */}
-            <div className="bg-white rounded-lg p-8 shadow-lg min-h-[220px]">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center">
-                  <Sparkles className="mr-2 text-indigo-400" />
-                  맞춤 추천 학습
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {(progressOverview?.categories ?? [])
-                  .filter(category => category.status !== 'completed')
-                  .sort((a, b) => b.progress - a.progress)
-                  .slice(0, 3)
-                  .map((category) => (
-                    <div key={category.id} className="bg-indigo-50 rounded-lg p-6 shadow-lg min-h-[140px] flex flex-col justify-between transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-indigo-300 hover:bg-indigo-100 cursor-pointer"
-                      onClick={() => navigate(`/category/${category.id}/chapters`)}
-                    >
-                      <h3 className="font-semibold text-gray-800 mb-2 text-lg">{category.name}</h3>
-                      <div className="flex items-center justify-between mt-auto">
-                        <CustomBadge variant="default" className="text-sm px-2 py-1 text-indigo-600 bg-indigo-100 hover:bg-indigo-200">
-                          {`진도: ${category.progress}%`}
-                        </CustomBadge>
-                        <Button className="bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 cursor-pointer whitespace-nowrap px-3 py-1.5" size="sm">
-                          계속
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-          </div>
-
-          {/* Right Column */}
-          <div className="space-y-6">
-
-            {/* Learning Streak */}
-            <Card className="shadow-lg !rounded-button mb-6 cursor-pointer min-h-[240px] z-0 transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-green-400 hover:bg-green-50" onClick={() => setIsStreakModalOpen(true)}>
-              <div className="text-center">
-                <div className="text-2xl mb-2">🔥</div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">연속 학습</h3>
-                {streakLoading ? (
-                  <div className="text-gray-400 text-lg mb-1 animate-pulse">로딩 중...</div>
-                ) : (
-                  <div className="text-3xl font-bold text-green-500 mb-1">{currentStreak}일</div>
-                )}
-                <p className="text-gray-600 text-sm mb-2">연속 학습 중!</p>
-                <div className="mt-3 flex justify-center space-x-2">
-                  {(() => {
-                    const getLast7Days = () => {
-                      const days = [];
-                      const today = new Date();
-                      for (let i = 6; i >= 0; i--) {
-                        const d = new Date(today);
-                        d.setDate(today.getDate() - i);
-                        const y = d.getFullYear();
-                        const m = String(d.getMonth() + 1).padStart(2, '0');
-                        const day = String(d.getDate()).padStart(2, '0');
-                        days.push(`${y}-${m}-${day}`);
+                    {/* 👉 가로 연결선 (지그재그 방향에 따라 위치 다름) */}
+                    {showHorizontalLine && (
+                      <div
+                        className={`absolute top-1/2 ${isOddRow ? '-right-16' : '-left-16'} w-16 h-[5px] rounded-full bg-cyan-200 overflow-hidden`}
+                        style={{
+                          backgroundImage: 'linear-gradient(90deg, rgba(103,232,249,0.4), rgba(103,232,249,0.8))',
+                          backgroundSize: '200% 100%',
+                          animation: isOddRow ? 'flow 4s linear infinite' : 'flow-reverse 4s linear infinite',
+                          boxShadow: '0 0 6px rgba(103,232,249,0.4)',
+                        }}
+                      ></div>
+                    )}
+                    {/* Chapter Card */}
+                    <div
+                      className={`h-full p-8 rounded-3xl shadow-lg border-2 transition-all duration-500 relative
+                        ${status === 'completed'
+                          ? 'bg-white border-emerald-200 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:rotate-1'
+                          : status === 'locked'
+                            ? 'bg-gray-50 border-gray-100'
+                            : 'bg-white border-cyan-100 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:bg-cyan-50 group-hover:border-cyan-300'
                       }
-                      return days;
-                    };
-                    const last7Days = getLast7Days();
-                    return last7Days.map((date, i) => (
-                      <div
-                        key={i}
-                        className={`w-5 h-5 rounded-full ${studyDates && studyDates.includes(date) ? 'bg-green-500' : 'bg-gray-200'}`}
-                      />
-                    ));
-                  })()}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">최근 7일</p>
-              </div>
-            </Card>
-            {/* 전체 진도율 + 뱃지 카드 나란히 배치 */}
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Overall Progress */}
-              <Card className="shadow-lg !rounded-button flex-1 mb-0 cursor-pointer min-h-[150px] transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-blue-200 hover:bg-blue-50" onClick={() => setIsProgressModalOpen(true)}>
-                <div className="text-center">
-                  <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center justify-center">
-                    <Target className="mr-2 text-blue-500" />
-                    전체 진도율
-                  </h3>
-                  <div className="relative inline-block" style={{ width: radius * 2, height: radius * 2 }}>
-                    <svg
-                      width={radius * 2}
-                      height={radius * 2}
-                      className="block mx-auto"
-                      style={{ transform: 'rotate(-90deg)' }}
+                      `}
+                      onClick={async () => {
+                        if (status === 'locked' || loadingChapterId) return;
+                        if(chapter.title == "자음"){
+                          await API.post(`/progress/chapters/${chapter.id}`);
+                          return navigate(`/test/letter/consonant/study`);
+                        }else if(chapter.title == "모음"){
+                          await API.post(`/progress/chapters/${chapter.id}`);
+                          return navigate(`/test/letter/vowel/study`);
+                        }else if(chapter.title == "단어 해체"){
+                          await API.post(`/progress/chapters/${chapter.id}`);
+                          return navigate(`/test/letter/word/study`);
+                        }
+                        setLoadingChapterId(chapter.id);
+                        const lessonIds = (chapter.lessons || []).map((lesson) => lesson.id);
+                        await handleStartLearn(chapter.id, lessonIds, '/home');
+                        setLoadingChapterId(null);
+                      }}
                     >
-                      {/* 배경 원 */}
-                      <circle
-                        cx={radius}
-                        cy={radius}
-                        r={normalizedRadius}
-                        fill="none"
-                        stroke="#E5E7EB"
-                        strokeWidth={stroke}
-                      />
-                      {/* 진행 원 */}
-                      <circle
-                        cx={radius}
-                        cy={radius}
-                        r={normalizedRadius}
-                        fill="none"
-                        stroke="#2563eb"
-                        strokeWidth={stroke}
-                        strokeDasharray={circumference}
-                        strokeDashoffset={offset}
-                        strokeLinecap="round"
-                        style={{ transition: 'stroke-dashoffset 0.6s' }}
-                      />
-                    </svg>
-                    {/* 중앙 숫자 */}
-                    <span className="absolute top-1/2 left-1/2 text-3xl font-bold text-blue-600" style={{ transform: 'translate(-50%, -50%)' }}>
-                      {percent}%
-                    </span>
-                  </div>
-                  {/* 완료 챕터 중앙 정렬 */}
-                  <div className="mt-4 flex flex-col items-center justify-center text-sm">
-                    <div className="font-semibold text-gray-800">완료 챕터</div>
-                    <div className="text-blue-600 font-bold">{progressOverview?.completed_chapters || 0}/{progressOverview?.total_chapters || 0}</div>
-                  </div>
-                </div>
-              </Card>
-              {/* Badges */}
-              <Card className="shadow-lg !rounded-button flex-1 mb-0 cursor-pointer min-h-[150px] transition-all duration-200 hover:shadow-xl hover:scale-105 hover:ring-2 hover:ring-yellow-200 hover:bg-yellow-50" onClick={() => setIsBadgeModalOpen(true)}>
-                <div className="mb-2">
-                  <h3 className="text-lg font-bold text-gray-800 flex items-center">
-                    <Trophy className="mr-2 text-yellow-500" />
-                    획득한 뱃지
-                  </h3>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {badgeList.filter(badge => badge.unlocked).length === 0 ? (
-                    <div className="text-center text-gray-400 py-3">획득한 뱃지가 없습니다.</div>
-                  ) : (
-                    badgeList.filter(badge => badge.unlocked).slice(-3).reverse().map((badge) => (
-                      <div
-                        key={badge.id}
-                        className="flex items-center p-2 rounded-lg transition-all bg-yellow-50 border-2 border-yellow-200 mb-1"
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div className="flex-shrink-0 flex justify-center items-center mr-2">
-                          {getIconForBadge(badge.icon)}
+                      {/* 오버레이: 로딩 중일 때 카드 전체 흐리게 + 중앙 스피너 */}
+                      {loadingChapterId === chapter.id && (
+                        <div className="absolute inset-0 bg-gray-200/60 flex items-center justify-center z-20 rounded-3xl">
+                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500"></div>
                         </div>
-                        <div className="flex flex-col">
-                          <p className="text-xs text-gray-800 font-semibold">
-                            {badge.name.length > 8 ? badge.name.slice(0, 8) + '...' : badge.name}
-                          </p>
+                      )}
+                      {/* Status Badge */}
+                      <div className="flex justify-between items-start mb-6">
+                        <div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                            status === 'completed'
+                              ? 'bg-emerald-400 text-white'
+                              : status === 'current'
+                                ? 'bg-white border-4 border-cyan-400 text-cyan-500'
+                                : 'bg-gray-300 text-gray-500'
+                          }`}
+                        >
+                          {status === 'completed' ? (
+                            <CheckCircleOutlined className="text-xl" />
+                          ) : status === 'locked' ? (
+                            <LockOutlined className="text-lg" />
+                          ) : (
+                            globalIdx + 1
+                          )}
+                        </div>
+                        {status === 'current' && (
+                          <span className="bg-cyan-100 text-cyan-600 px-3 py-1 rounded-full text-sm font-medium">
+                            진행 중
+                          </span>
+                        )}
+                      </div>
+                      {/* Content */}
+                      <div>
+                        <h3
+                          className={`text-xl font-bold mb-6 ${
+                            status === 'locked' ? 'text-gray-400' : 'text-gray-800'
+                          }`}
+                        >
+                          {chapter.title}
+                        </h3>
+                        {/* Example Signs Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                          {(chapter.lessons || []).slice(0, 4).map((lesson, lidx) => (
+                            <div
+                              key={lidx}
+                              className={`rounded-xl p-4 flex items-center justify-center transition-colors duration-300
+                            ${status === 'completed'
+                              ? 'bg-emerald-50 group-hover:bg-emerald-100'
+                              : 'bg-cyan-50 group-hover:bg-cyan-100'}
+                          `}
+                            >
+                              <span className={`text-sm font-medium ${status === 'completed' ? 'text-emerald-700' : 'text-cyan-700'}`}>{lesson.word}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </Card>
+                      {/* Locked 안내 멘트: 카드 하단 고정 */}
+                      {status === 'locked' && (
+                        <div className="absolute bottom-6 left-0 w-full flex justify-center">
+                          <div className="flex items-center space-x-2 text-gray-400">
+                            <LockOutlined />
+                            <span className="text-sm">이전 챕터를 완료하면 잠금이 해제됩니다</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-indigo-700 px-6 py-3">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-center space-x-12">
-            <div className="flex flex-col items-center cursor-pointer text-white">
-              <HomeOutlined className="text-2xl mb-1" />
-              <span className="text-xs font-medium">홈</span>
-            </div>
-            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition-colors"
-              onClick={() => navigate('/category')}>
-              <BookOutlined className="text-2xl mb-1" />
-              <span className="text-xs font-medium">학습</span>
-            </div>
-            <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition-colors"
-              onClick={() => navigate('/review')}>
-              <ReloadOutlined className="text-2xl mb-1" />
-              <span className="text-xs font-medium">복습</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom padding to account for fixed navigation */}
-      <div className="h-20"></div>
-
-      {/* 모달 */}
+      {/* 검색창 밑은 모두 제거, 빈 공간만 남김 */}
+      <div className="h-40"></div>
+      {/* 마이페이지 관련 모달들 */}
       <BadgeModal isOpen={isBadgeModalOpen} onClose={() => setIsBadgeModalOpen(false)} />
       <StreakModal isOpen={isStreakModalOpen} onClose={() => setIsStreakModalOpen(false)} />
       <ProgressModal isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} />
-      <HandPreferenceModal isOpen={isHandPreferenceModalOpen} onClose={() => setIsHandPreferenceModalOpen(false)} />
-      {isOnboardingActive && shouldShowOnboarding && (
-        <OnboardingTour
-          currentStep={currentStep}
-          onNext={nextStep}
-          onSkip={skipOnboarding}
-          onComplete={completeOnboarding}
-          onPrevious={previousStep}
-        />
-      )}
     </div>
   );
 };

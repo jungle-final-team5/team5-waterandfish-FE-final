@@ -6,34 +6,43 @@ import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import API from '@/components/AxiosInstance';
 import { useAuth } from '@/hooks/useAuth';
+import { useChapterHandler } from '@/hooks/useChapterHandler';
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<{ id: string; word: string }[]>([]);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [searchLessonIds, setSearchLessonIds] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isEnteringLesson, setIsEnteringLesson] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lessonMapper, setLessonMapper] = useState<{ [lessonId: string]: string }>({});
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { connectingChapter, handleStartSingleLearn } = useChapterHandler();
+
   const debouncedFetch = useRef(
     debounce(async (query: string) => {
       if (!query.trim()) {
         setSearchResults([]);
+        setSearchLessonIds([]);
         setShowResults(false);
         return;
       }
       setLoading(true);
       try {
-        const { data } = await API.get<{ success: boolean; data: { lessons: { id: string; word: string }[] } }>('/search', { params: { q: query, k: 5 } });
+        const { data } = await API.get<{ data: { lessons: { id: string; word: string }[] } }>('/search', { params: { q: query, k: 5 } });
         if (Array.isArray(data?.data?.lessons)) {
-          setSearchResults(data.data.lessons);
+          setSearchResults(data.data.lessons.map((item) => item.word));
+          setSearchLessonIds(data.data.lessons.map((item) => item.id));
         } else {
           setSearchResults([]);
+          setSearchLessonIds([]);
         }
         setShowResults(true);
       } catch {
         setSearchResults([]);
+        setSearchLessonIds([]);
         setShowResults(false);
       } finally {
         setLoading(false);
@@ -46,21 +55,13 @@ const Index = () => {
     debouncedFetch(query);
   };
 
-  const handleSearchSelect = async (selected: { id: string; word: string }) => {
-    setSearchQuery(selected.word);
+  const handleSearchSelect = (selectedItem: string, index: number) => {
+    setSearchQuery(selectedItem);
     setShowResults(false);
     setIsEnteringLesson(true);
-    try {
-      const { data } = await API.get<{ success: boolean; data: { ws_url: string } }>(`/ml/public/deploy/lesson/${selected.id}`);
-      const wsUrl = data.data.ws_url;
-      const newLessonMapper = { ...lessonMapper, [selected.id]: wsUrl };
-      setLessonMapper(newLessonMapper);
-      navigate(`/learn/${selected.id}`, { state: { lesson_mapper: newLessonMapper } });
-    } catch (e) {
-      // 에러 처리 (필요시 토스트 등)
-    } finally {
-      setIsEnteringLesson(false);
-    }
+    setErrorMessage(null);
+    console.log('isAuthenticated:', isAuthenticated);
+    handleStartSingleLearn(searchLessonIds[index], !!isAuthenticated);
   };
 
   const handleLogin = () => {
@@ -76,6 +77,14 @@ const Index = () => {
       navigate('/home', { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (isEnteringLesson || connectingChapter) {
+      // 연결 중 표시
+    } else {
+      // 기본 placeholder
+    }
+  }, [isEnteringLesson, connectingChapter]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-indigo-100">
@@ -117,7 +126,7 @@ const Index = () => {
           <div className="max-w-2xl mx-auto mb-8 relative">
             <div className="relative">
               {/* 로딩 중이면 스피너, 아니면 돋보기 아이콘 */}
-              {isEnteringLesson ? (
+              {(isEnteringLesson || connectingChapter) ? (
                 <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-indigo-600"></div>
                 </div>
@@ -126,30 +135,35 @@ const Index = () => {
               )}
               <Input
                 type="text"
-                placeholder="배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)"
+                placeholder={isEnteringLesson || connectingChapter ? '연결 중...' : '배우고 싶은 수어를 검색해보세요 (예: 병원, 학교)'}
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-12 pr-4 py-3 text-base border-2 border-gray-200 focus:border-violet-500 rounded-xl whitespace-nowrap"
-                disabled={isEnteringLesson}
+                disabled={isEnteringLesson || !!connectingChapter}
               />
             </div>
 
             {/* Search Results Dropdown */}
-            {showResults && searchResults.length > 0 && !isEnteringLesson && (
+            {showResults && searchResults.length > 0 && !(isEnteringLesson || connectingChapter) && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-10">
                 {searchResults.map((result, index) => (
                   <button
-                    key={result.id}
-                    onClick={() => handleSearchSelect(result)}
+                    key={index}
+                    onClick={() => handleSearchSelect(result, index)}
                     className="w-full px-4 py-3 text-left hover:bg-violet-50 first:rounded-t-xl last:rounded-b-xl transition-colors"
-                    disabled={isEnteringLesson}
+                    disabled={isEnteringLesson || !!connectingChapter}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-800">{result.word}</span>
+                      <span className="text-gray-800">{result}</span>
                       <ArrowRight className="h-4 w-4 text-gray-400" />
                     </div>
                   </button>
                 ))}
+              </div>
+            )}
+            {errorMessage && (
+              <div className="mt-4 text-red-500 text-center">
+                {errorMessage}
               </div>
             )}
           </div>
