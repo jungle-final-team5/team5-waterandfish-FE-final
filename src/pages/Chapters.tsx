@@ -106,7 +106,7 @@ const Chapters = () => {
   const sortedChapters = (categoryData.chapters as Chapter[]).slice(); // 정렬된 챕터 목록
   if (categoryData.title == "수어 기초") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-cyan-50">
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50">
         <header className="bg-white shadow-sm border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center space-x-4">
@@ -264,11 +264,11 @@ const Chapters = () => {
                   >
                     {/* 상태 원 + 진행중 뱃지 */}
                     <div className="flex justify-between items-start mb-6">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-white border-4 border-cyan-400 text-cyan-500">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-white border-4 border-indigo-400 text-indigo-500">
                         {index + 1}
                       </div>
                       {/* 진행중 뱃지 예시 (상태별로 조건부 렌더링) */}
-                      {/* <span className="bg-cyan-100 text-cyan-600 px-3 py-1 rounded-full text-sm font-medium">진행 중</span> */}
+                      {/* <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-sm font-medium">진행 중</span> */}
                     </div>
                     {/* 챕터명 */}
                     <h3 className="text-xl font-bold mb-6 text-gray-800">{chapter.title}</h3>
