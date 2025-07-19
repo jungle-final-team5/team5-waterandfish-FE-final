@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useBadgeSystem } from "@/hooks/useBadgeSystem";
 import confetti from 'canvas-confetti';
 import { useChapterHandler } from "@/hooks/useChapterHandler";
+import Lottie from 'lottie-react';
+import successAnimation from '../../public/Success.json';
 
 const SessionComplete = () => {
   // modeNum 1. 기본 학습
@@ -178,7 +180,9 @@ const SessionComplete = () => {
             {modeNum === 2 && <span className="text-6xl animate-bounce">🏆</span>}
             {modeNum === 3 && <span className="text-6xl animate-bounce">🫶🏻</span>}
           </div>
-          <CheckCircle className="h-20 w-20 text-green-500 mx-auto mb-4 drop-shadow-lg animate-fade-in" />
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            <Lottie animationData={successAnimation} loop={false} style={{ width: 90, height: 90 }} />
+          </div>
           {/* 완료 메시지 */}
           {modeNum === 1 && <>
             <h2 className="text-3xl font-extrabold text-purple-700 mb-2 animate-fade-in">학습 완료!</h2>
@@ -207,7 +211,7 @@ const SessionComplete = () => {
           )}
           {/* 버튼 영역 */}
           <div className="flex flex-col gap-4 mt-8 w-full">
-            <Button onClick={() => navigate('/home')}
+            <Button onClick={() => navigate('/home', { state: { completed: true } })}
               className="bg-indigo-600 hover:bg-indigo-700 text-white text-lg py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center">
               홈으로 돌아가기
             </Button>
