@@ -44,11 +44,11 @@ const Chapters = () => {
   const handleletter = async (chapter: Chapter, lessonIds: string[]) => {
     let path;
     if (chapter.title == "자음") {
-      path = "/test/letter/consonant/study";
+      path = `/test/letter/consonant/study/${chapter.id}`;
     } else if (chapter.title == "모음") {
-      path = "/test/letter/vowel/study";
+      path = `/test/letter/vowel/study/${chapter.id}`;
     } else {
-      path = "/test/letter/word/study";
+      path = `/test/letter/word/study/${chapter.id}`;
     }
 
     await API.post(`/progress/chapters/${chapter.id}`);
