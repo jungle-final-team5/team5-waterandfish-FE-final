@@ -339,7 +339,7 @@ const Dashboard: React.FC = () => {
   const [loadingChapterId, setLoadingChapterId] = useState<string | null>(null);
 
   useEffect(() => {
-    API.get<{ success: boolean; data: { chapters: any[] }; message: string }>('/chapters/v2')
+    API.get<{ success: boolean; data: { chapters: any[] }; message: string }>('/chapters')
       .then(res => {
         setAllChapters(res.data.data.chapters || []);
       })
@@ -364,6 +364,7 @@ const Dashboard: React.FC = () => {
         const lastKnownIndexStr = localStorage.getItem('lastKnownChapterIndex');
         const lastKnownIndex = lastKnownIndexStr ? parseInt(lastKnownIndexStr, 10) : -1;
         const currentIndex = user?.chapter_current_index ?? 0;
+        alert(`currentIndex: ${currentIndex}`);
 
         if (lastKnownIndex !== -1 && currentIndex > lastKnownIndex) {
           const newlyUnlockedChapters = allChapters
