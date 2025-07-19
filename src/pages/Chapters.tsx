@@ -12,6 +12,7 @@ import API from '@/components/AxiosInstance';
 import useWebsocket, { connectToWebSockets, disconnectWebSockets } from '@/hooks/useWebsocket';
 import { useGlobalWebSocketStatus } from '@/contexts/GlobalWebSocketContext';
 import { useChapterHandler } from '@/hooks/useChapterHandler';
+import LoadingFish from "../components/LoadingFish";
 
 // 챕터별 상태 계산 함수
 // userLessonProgress: { [lessonId: string]: string } 형태로 각 레슨의 상태를 담고 있다고 가정
@@ -87,9 +88,7 @@ const Chapters = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">챕터 정보를 불러오는 중...</h2>
-        </div>
+        <LoadingFish />
       </div>
     );
   }
