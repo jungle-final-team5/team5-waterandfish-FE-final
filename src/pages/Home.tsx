@@ -437,9 +437,18 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white font-ttlaundry">
       <style>
         {`
+          @font-face {
+            font-family: 'TTLaundryGothicB';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2403-2@1.0/TTLaundryGothicB.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+          }
+          .font-ttlaundry {
+            font-family: 'TTLaundryGothicB', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+          }
           .!rounded-button {
             border-radius: 12px !important;
           }
@@ -538,10 +547,10 @@ const Dashboard: React.FC = () => {
 
       {/* 인사 메시지: 중앙 검색창 바로 위 */}
       <div className="w-full max-w-2xl mx-auto mt-8 mb-2 text-center">
-        <h1 className="text-3xl font-bold text-indigo-600 mb-2">
+        <h1 className="text-3xl font-bold text-indigo-600 mb-2 font-ttlaundry">
           {getGreeting()}, {nickname}님! 👋
         </h1>
-        <p className="text-gray-600 mb-2">오늘도 수어 학습을 시작해볼까요?</p>
+        <p className="text-gray-600 mb-2 font-ttlaundry">오늘도 수어 학습을 시작해볼까요?</p>
       </div>
 
       {/* 중앙 검색 바 (Home.tsx 스타일) */}
